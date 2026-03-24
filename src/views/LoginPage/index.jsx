@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { loginAPI } from '../../services/authApi';
 import GoogleLoginButton from '../../components/GoogleLoginButton';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function LoginPage() {
-    const navigate  = useNavigate();
+    const navigate = useNavigate();
+    const setToken = useAuthStore((s) => s.setToken);
     const [account,  setAccount]  = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
@@ -19,9 +21,9 @@ export default function LoginPage() {
         setLoading(true);
         setError('');
         try {
-            await loginAPI(account.trim(), password);
-            // TODO: lưu token rồi navigate tới dashboard
-            navigate('/');
+            const token = await loginAPI(account.trim(), password);
+            setToken(token);        // lưu token
+            navigate('/profile');   // → trang profile
         } catch (err) {
             setError(err.message);
         } finally {
@@ -59,8 +61,7 @@ export default function LoginPage() {
                         Tài khoản <span className="text-red-500">*</span>
                     </label>
                     <input type="text" placeholder="Nhập tên đăng nhập"
-                           value={account} onChange={(e) => setAccount(e.target.value)}
-                           className={inputCls} />
+                           value={account} onChange={(e) => setAccount(e.target.value)} className={inputCls} />
                 </div>
 
                 <div className="mb-2">
@@ -68,14 +69,10 @@ export default function LoginPage() {
                         Mật khẩu <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                        <input
-                            type={showPass ? 'text' : 'password'}
-                            placeholder="Nhập mật khẩu"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                            className={`${inputCls} pr-11`}
-                        />
+                        <input type={showPass ? 'text' : 'password'} placeholder="Nhập mật khẩu"
+                               value={password} onChange={(e) => setPassword(e.target.value)}
+                               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                               className={`${inputCls} pr-11`} />
                         <button onClick={() => setShowPass(!showPass)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                             {showPass ? '🙈' : '👁️'}
@@ -105,12 +102,9 @@ export default function LoginPage() {
 
                 <p className="text-center text-sm text-gray-600 mb-4">
                     Bạn chưa có tài khoản?{' '}
-                    <Link to="/register" className="text-violet-600 font-semibold hover:underline">
-                        Đăng ký ngay
-                    </Link>
+                    <Link to="/register" className="text-violet-600 font-semibold hover:underline">Đăng ký ngay</Link>
                 </p>
 
-                {/* Điều khoản */}
                 <p className="text-center text-xs text-gray-400 mb-5 leading-relaxed">
                     Bằng việc đăng nhập, bạn đồng ý với{' '}
                     <span className="underline cursor-pointer hover:text-violet-500">điều khoản dịch vụ</span>
@@ -124,7 +118,6 @@ export default function LoginPage() {
                     <div className="flex-1 h-px bg-gray-200" />
                 </div>
 
-                {/* Google */}
                 <GoogleLoginButton label="Google" />
 
                 <div className="text-center mt-5">

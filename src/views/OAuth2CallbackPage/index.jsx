@@ -1,24 +1,21 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function OAuth2CallbackPage() {
     const navigate = useNavigate();
+    const setToken = useAuthStore((s) => s.setToken);
 
     useEffect(() => {
-        // Lấy token từ URL: /oauth2/callback?token=xxxxx
         const params = new URLSearchParams(window.location.search);
         const token  = params.get('token');
-
         if (token) {
-            // Lưu token vào localStorage
-            localStorage.setItem('token', token);
-            // Chuyển về trang chủ hoặc dashboard
-            navigate('/', { replace: true });
+            setToken(token);
+            navigate('/profile', { replace: true });
         } else {
-            // Không có token → về trang login
             navigate('/login', { replace: true });
         }
-    }, [navigate]);
+    }, [navigate, setToken]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-teal-50">
