@@ -53,5 +53,6 @@ export async function loginAPI(username, password) {
         const err = await res.json().catch(() => ({ message: 'Đăng nhập thất bại' }));
         throw new Error(err.message || 'Đăng nhập thất bại');
     }
-    return await res.text();
+    const data = await res.json();
+    return data.token;
 }
