@@ -1,0 +1,121 @@
+import { BookOpen, ChevronLeft, ChevronRight, LogOut, X } from 'lucide-react';
+import { ADMIN_MENU } from '../../../data/adminDashboardData';
+import { useAdminStore } from '../../../stores/adminStore';
+
+export default function AdminSidebar() {
+  const {
+    activePage, setActivePage,
+    sidebarCollapsed, toggleSidebar,
+    mobileSidebarOpen, setMobileSidebarOpen,
+  } = useAdminStore();
+
+  const sidebarContent = (
+    <div className="flex flex-col h-full">
+
+      <div className={`flex items-center gap-3 px-5 pt-6 pb-8 ${sidebarCollapsed ? 'justify-center px-3' : ''}`}>
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/25 flex-shrink-0">
+          <BookOpen className="w-[18px] h-[18px] text-white" />
+        </div>
+        {!sidebarCollapsed && (
+          <span className="text-lg font-bold bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent whitespace-nowrap">
+            TeachAI Admin
+          </span>
+        )}
+
+        <button
+          onClick={() => setMobileSidebarOpen(false)}
+          className="ml-auto lg:hidden p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+
+      <nav className="flex-1 px-3 space-y-1">
+        {ADMIN_MENU.map((item) => {
+          const Icon = item.icon;
+          const isActive = activePage === item.key;
+          return (
+            <button
+              key={item.key}
+              onClick={() => {
+                setActivePage(item.key);
+                setMobileSidebarOpen(false);
+              }}
+              className={`
+                w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                ${sidebarCollapsed ? 'justify-center px-2' : ''}
+                ${isActive
+                  ? 'bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow-lg shadow-violet-500/25'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }
+              `}
+              title={sidebarCollapsed ? item.label : undefined}
+            >
+              <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+              {!sidebarCollapsed && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+
+      <div className="px-3 pb-4 space-y-2">
+
+        <button
+          onClick={toggleSidebar}
+          className="hidden lg:flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all duration-200"
+          style={{ justifyContent: sidebarCollapsed ? 'center' : undefined }}
+        >
+          {sidebarCollapsed
+            ? <ChevronRight className="w-5 h-5" />
+            : <><ChevronLeft className="w-5 h-5 flex-shrink-0" /><span>Thu gọn</span></>
+          }
+        </button>
+
+
+        <button
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all duration-200 ${sidebarCollapsed ? 'justify-center px-2' : ''}`}
+          title={sidebarCollapsed ? 'Đăng xuất' : undefined}
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {!sidebarCollapsed && <span>Đăng xuất</span>}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+
+      <aside
+        className={`
+          hidden lg:flex flex-col fixed top-0 left-0 h-screen bg-white border-r border-gray-200 z-40
+          transition-all duration-300 ease-in-out
+          ${sidebarCollapsed ? 'w-[72px]' : 'w-64'}
+        `}
+      >
+        {sidebarContent}
+      </aside>
+
+
+      {mobileSidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+
+      <aside
+        className={`
+          lg:hidden fixed top-0 left-0 h-screen w-72 bg-white border-r border-gray-200 z-50
+          transition-transform duration-300 ease-in-out
+          ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {sidebarContent}
+      </aside>
+    </>
+  );
+}
