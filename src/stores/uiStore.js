@@ -9,7 +9,7 @@ export const useUIStore = create((set) => ({
   setMobileMenuOpen: (open) => set({ isMobileMenuOpen: open }),
   toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
 
-  activeToolCategory: 'ai',
+  activeToolCategory: 'baigiảng',
   setActiveToolCategory: (category) => set({ activeToolCategory: category }),
 
   theme: 'light',

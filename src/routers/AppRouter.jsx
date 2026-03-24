@@ -4,7 +4,7 @@ import LoginPage          from '../views/LoginPage';
 import RegisterPage       from '../views/RegisterPage';
 import OAuth2CallbackPage from '../views/OAuth2CallbackPage';
 import ProfilePage        from '../views/ProfilePage';
-
+import AdminPage          from '../views/AdminPage';
 export default function AppRouter() {
     return (
         <BrowserRouter>
@@ -14,6 +14,7 @@ export default function AppRouter() {
                 <Route path="/register"        element={<RegisterPage />} />
                 <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
                 <Route path="/profile"         element={<ProfilePage />} />
+                <Route path="/admin"           element={<AdminPage />} />
                 <Route path="*"                element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
