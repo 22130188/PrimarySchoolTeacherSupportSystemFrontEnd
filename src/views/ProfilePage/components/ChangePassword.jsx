@@ -40,7 +40,7 @@ export default function ChangePassword() {
         if (!isValid || loading) return;
         setLoading(true); setSuccess(''); setError('');
         try {
-            await changePasswordAPI({ currentPassword: current, newPassword: newPass });
+            await changePasswordAPI({ oldPassword: current, newPassword: newPass });
             setSuccess('Đổi mật khẩu thành công!');
             setCurrent(''); setNewPass(''); setConfirm('');
         } catch (err) {

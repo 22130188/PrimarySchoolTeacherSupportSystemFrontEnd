@@ -12,6 +12,7 @@ import ChangePassword from './components/ChangePassword';
 export default function ProfilePage() {
     const navigate = useNavigate();
     const token    = useAuthStore((s) => s.token);
+    const roleId   = useAuthStore((s) => s.roleId);
     const setUser  = useAuthStore((s) => s.setUser);
     const logout   = useAuthStore((s) => s.logout);
 
@@ -20,12 +21,22 @@ export default function ProfilePage() {
     const [loading,   setLoading]   = useState(true);
 
     useEffect(() => {
-        if (!token) { navigate('/login'); return; }
+        // Kiểm tra xem người dùng đã đăng nhập hay chưa
+        if (!token) { 
+            navigate('/login'); 
+            return; 
+        }
+        
+        if (roleId && roleId !== 1 && roleId !== 2) {
+            navigate('/admin');
+            return;
+        }
+        
         getMeAPI()
             .then((data) => { setLocalUser(data); setUser(data); })
             .catch(() => { logout(); navigate('/login'); })
             .finally(() => setLoading(false));
-    }, [token]);
+    }, [token, roleId]);
 
     const handleUserUpdate = (updated) => {
         setLocalUser((prev) => ({ ...prev, ...updated }));
@@ -51,7 +62,7 @@ export default function ProfilePage() {
                 <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                     {activeTab === 'personal'  && <PersonalInfo   user={user} onUpdate={handleUserUpdate} />}
                     {activeTab === 'school'    && <SchoolInfo      user={user} onUpdate={handleUserUpdate} />}
-                    {activeTab === 'class'     && <ClassInfo       user={user} onUpdate={handleUserUpdate} />}
+                    {activeTab === 'class'     && roleId === 2 && <ClassInfo       user={user} onUpdate={handleUserUpdate} />}
                     {activeTab === 'avatar'    && <AvatarInfo      user={user} onUpdate={handleUserUpdate} />}
                     {activeTab === 'password'  && <ChangePassword />}
                 </div>

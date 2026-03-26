@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/authStore';
 export default function LoginPage() {
     const navigate = useNavigate();
     const setToken = useAuthStore((s) => s.setToken);
+    const setRole = useAuthStore((s) => s.setRole);
     const [account,  setAccount]  = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
@@ -21,9 +22,18 @@ export default function LoginPage() {
         setLoading(true);
         setError('');
         try {
-            const token = await loginAPI(account.trim(), password);
-            setToken(token);        // lưu token
-            navigate('/profile');   // → trang profile
+            const loginResult = await loginAPI(account.trim(), password);
+            const { token, roleId, roleName } = loginResult;
+            
+            // lưu token  role
+            setToken(token);
+            setRole(roleId, roleName);
+            
+            if (roleId === 3) {
+                navigate('/admin');
+            } else {
+                navigate('/profile');
+            }
         } catch (err) {
             setError(err.message);
         } finally {

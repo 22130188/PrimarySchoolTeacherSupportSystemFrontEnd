@@ -7,7 +7,10 @@ const authHeaders = () => ({
 
 // LẤY THÔNG TIN USER
 export async function getMeAPI() {
-  const res = await fetch(`${BASE_URL}/user/me`, { headers: authHeaders() });
+  const res = await fetch(`${BASE_URL}/user/me`, { 
+    headers: authHeaders(),
+    credentials: 'include'
+  });
   if (!res.ok) throw new Error('Không thể lấy thông tin người dùng');
   return await res.json();
 }
@@ -18,6 +21,7 @@ export async function updatePersonalAPI(payload) {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(payload),
+    credentials: 'include'
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: 'Cập nhật thất bại' }));
@@ -32,6 +36,7 @@ export async function updateSchoolAPI(payload) {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(payload),
+    credentials: 'include'
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: 'Cập nhật thất bại' }));
@@ -45,8 +50,7 @@ export async function updateClassesAPI(classes) {
   const res = await fetch(`${BASE_URL}/user/classes`, {
     method: 'PUT',
     headers: authHeaders(),
-    body: JSON.stringify({ classes }),
-  });
+    body: JSON.stringify({ classes }),    credentials: 'include'  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: 'Cập nhật thất bại' }));
     throw new Error(err.message || 'Cập nhật thất bại');
@@ -60,6 +64,7 @@ export async function updateAvatarUrlAPI(avatarUrl) {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify({ avatarUrl }),
+    credentials: 'include'
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: 'Lưu ảnh thất bại' }));
@@ -74,6 +79,7 @@ export async function changePasswordAPI(payload) {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(payload),
+    credentials: 'include'
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: 'Đổi mật khẩu thất bại' }));

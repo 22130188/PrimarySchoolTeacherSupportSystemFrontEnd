@@ -1,24 +1,27 @@
 import { User, Building2, Users, UserCircle, Lock, LogOut } from 'lucide-react';
+import { useAuthStore } from '../../../stores/authStore';
 
 const MENU = [
     { id: 'personal', icon: User,        label: 'Cá nhân' },
     { id: 'school',   icon: Building2,   label: 'Trường học' },
-    { id: 'class',    icon: Users,       label: 'Lớp học' },
+    { id: 'class',    icon: Users,       label: 'Lớp học', roleId: 2 }, // Only for teachers
     { id: 'avatar',   icon: UserCircle,  label: 'Ảnh đại diện' },
     { id: 'password', icon: Lock,        label: 'Đổi mật khẩu' },
 ];
 
 export default function Sidebar({ activeTab, onTabChange, onLogout }) {
+    const roleId = useAuthStore((s) => s.roleId);
+
     return (
         <div className="w-56 flex-shrink-0">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                {MENU.map((item, i) => {
+                {MENU.filter(item => !item.roleId || item.roleId === roleId).map((item, i, filtered) => {
                     const Icon    = item.icon;
                     const active  = activeTab === item.id;
                     return (
                         <button key={item.id} onClick={() => onTabChange(item.id)}
                                 className={`w-full flex items-center gap-3 px-5 py-4 text-sm font-medium transition-all
-                ${i < MENU.length - 1 ? 'border-b border-gray-100' : ''}
+                ${i < filtered.length - 1 ? 'border-b border-gray-100' : ''}
                 ${active
                                     ? 'text-violet-600 bg-violet-50'
                                     : 'text-gray-600 hover:bg-gray-50 hover:text-violet-500'}`}>

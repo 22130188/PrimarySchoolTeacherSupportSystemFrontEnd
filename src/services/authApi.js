@@ -54,5 +54,9 @@ export async function loginAPI(username, password) {
         throw new Error(err.message || 'Đăng nhập thất bại');
     }
     const data = await res.json();
-    return data.token;
+    return {
+        token: data.token,
+        roleId: data.roleId,
+        roleName: data.roleName
+    };
 }
