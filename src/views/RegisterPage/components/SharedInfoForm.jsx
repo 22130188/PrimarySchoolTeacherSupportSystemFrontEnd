@@ -119,7 +119,7 @@ export default function SharedInfoForm({
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                                 </svg>
-                            ) : countdown > 0 ? `${countdown}s` : otpSent ? 'Gửi lại' : 'Gửi OTP'}
+                            ) : (otpSent ? (canResend ? 'Gửi lại OTP' : `${countdown}s`) : 'Gửi OTP')}
                         </button>
                     </div>
                     {otpError && <p className="text-red-500 text-xs mt-1">{otpError}</p>}

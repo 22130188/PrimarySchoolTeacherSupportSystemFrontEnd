@@ -1,9 +1,30 @@
 import { Menu, Search, Bell, ChevronRight } from 'lucide-react';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAdminStore } from '../../../stores/adminStore';
+import { useAuthStore } from '../../../stores/authStore';
+import { getMeAPI } from '../../../services/userApi';
 import { ADMIN_MENU } from '../../../data/adminDashboardData';
 
 export default function AdminHeader() {
-  const { activePage, searchQuery, setSearchQuery, toggleMobileSidebar } = useAdminStore();
+  const navigate = useNavigate();
+  const { activePage, searchQuery, setSearchQuery, toggleMobileSidebar, setActivePage } = useAdminStore();
+  const token = useAuthStore((s) => s.token);
+  const roleName = useAuthStore((s) => s.roleName);
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const logout = useAuthStore((s) => s.logout);
+
+  useEffect(() => {
+    if (!token || user) return;
+
+    getMeAPI()
+      .then((data) => setUser(data))
+      .catch(() => {
+        logout();
+        navigate('/login');
+      });
+  }, [token, user, setUser, logout, navigate]);
 
   const currentPage = ADMIN_MENU.find((m) => m.key === activePage);
 
@@ -48,11 +69,23 @@ export default function AdminHeader() {
           </button>
 
 
-          <button className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl hover:bg-gray-100 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
-              A
+          <button
+            onClick={() => {
+              setActivePage('profile');
+              navigate('/admin');
+            }}
+            className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-md overflow-hidden">
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span>{(user?.fullName || user?.name || user?.username || roleName || 'A').charAt(0).toUpperCase()}</span>
+              )}
             </div>
-            <span className="text-sm font-medium text-gray-700 hidden md:inline">Admin</span>
+            <span className="text-sm font-medium text-gray-700 hidden md:inline">
+              {user?.fullName || user?.name || user?.username || roleName || 'Admin'}
+            </span>
           </button>
         </div>
       </div>

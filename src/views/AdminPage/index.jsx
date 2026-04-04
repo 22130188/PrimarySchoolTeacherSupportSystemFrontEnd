@@ -5,6 +5,7 @@ import { useAdminStore } from '../../stores/adminStore';
 import AdminSidebar from './components/AdminSidebar';
 import AdminHeader from './components/AdminHeader';
 import DashboardOverview from './components/DashboardOverview';
+import AdminProfile from './components/AdminProfile';
 import UserManagement from './components/UserManagement';
 import ClassroomManagement from './components/ClassroomManagement';
 import SubjectManagement from './components/SubjectManagement';
@@ -14,6 +15,7 @@ import SystemSettings from './components/SystemSettings';
 
 const PAGE_MAP = {
   dashboard:  DashboardOverview,
+  profile:    AdminProfile,
   users:      UserManagement,
   classrooms: ClassroomManagement,
   subjects:   SubjectManagement,

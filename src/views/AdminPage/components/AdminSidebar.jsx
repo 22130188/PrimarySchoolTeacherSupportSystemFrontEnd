@@ -1,8 +1,12 @@
 import { BookOpen, ChevronLeft, ChevronRight, LogOut, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { ADMIN_MENU } from '../../../data/adminDashboardData';
 import { useAdminStore } from '../../../stores/adminStore';
+import { useAuthStore } from '../../../stores/authStore';
 
 export default function AdminSidebar() {
+  const navigate = useNavigate();
+  const logout = useAuthStore((s) => s.logout);
   const {
     activePage, setActivePage,
     sidebarCollapsed, toggleSidebar,
@@ -75,6 +79,10 @@ export default function AdminSidebar() {
 
 
         <button
+          onClick={() => {
+            logout();
+            navigate('/login');
+          }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all duration-200 ${sidebarCollapsed ? 'justify-center px-2' : ''}`}
           title={sidebarCollapsed ? 'Đăng xuất' : undefined}
         >
