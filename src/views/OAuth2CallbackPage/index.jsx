@@ -7,6 +7,7 @@ export default function OAuth2CallbackPage() {
     const navigate = useNavigate();
     const setToken = useAuthStore((s) => s.setToken);
     const setRole = useAuthStore((s) => s.setRole);
+    const setUser = useAuthStore((s) => s.setUser);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -28,6 +29,7 @@ export default function OAuth2CallbackPage() {
                     else if (roleName === 'TEACHER') roleId = 2;
                     else roleId = 1;
                     
+                    setUser(user);
                     setRole(roleId, roleName);
 
                     // Chuyển hướng dựa trên vai trò
@@ -47,7 +49,7 @@ export default function OAuth2CallbackPage() {
         } else {
             navigate('/login', { replace: true });
         }
-    }, [navigate, setToken, setRole]);
+    }, [navigate, setToken, setRole, setUser]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-teal-50">

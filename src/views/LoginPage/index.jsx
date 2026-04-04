@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { loginAPI } from '../../services/authApi';
+import { getMeAPI } from '../../services/userApi';
 import GoogleLoginButton from '../../components/GoogleLoginButton';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -9,6 +10,7 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const setToken = useAuthStore((s) => s.setToken);
     const setRole = useAuthStore((s) => s.setRole);
+    const setUser = useAuthStore((s) => s.setUser);
     const [account,  setAccount]  = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
@@ -28,6 +30,13 @@ export default function LoginPage() {
             // lưu token  role
             setToken(token);
             setRole(roleId, roleName);
+
+            try {
+                const userProfile = await getMeAPI();
+                setUser(userProfile);
+            } catch {
+                setUser(null);
+            }
             
             if (roleId === 3) {
                 navigate('/admin');
