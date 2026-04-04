@@ -147,3 +147,72 @@ export const FOOTER_LINKS = {
   'Hỗ trợ': ['Trung tâm trợ giúp', 'Hướng dẫn sử dụng', 'Video hướng dẫn', 'Cộng đồng giáo viên', 'Liên hệ hỗ trợ'],
   'Về chúng tôi': ['Giới thiệu', 'Đội ngũ phát triển', 'Blog giáo dục', 'Điều khoản sử dụng', 'Chính sách bảo mật'],
 };
+
+
+export const SIDEBAR_MENU = [
+  { id: 'home',       icon: '🏠', label: 'Trang chủ',    path: '/' },
+  { id: 'lessons',    icon: '📖', label: 'Bài giảng',    path: '/lessons' },
+  { id: 'tests',      icon: '📝', label: 'Bài kiểm tra', path: '/tests' },
+  { id: 'ai',         icon: '✨', label: 'Công cụ AI',   path: '/ai-tools' },
+  { id: 'classrooms', icon: '🏫', label: 'Lớp học',      path: '/classrooms' },
+];
+
+export const DASHBOARD_CATEGORIES = [
+  { id: 'lesson-create',  icon: '📖', label: 'Soạn bài giảng',   color: '#e74c3c', bgColor: 'rgba(231,76,60,0.12)' },
+  { id: 'test-create',    icon: '📝', label: 'Bài kiểm tra',     color: '#f97316', bgColor: 'rgba(249,115,22,0.12)' },
+  { id: 'tts',            icon: '🔊', label: 'AI Đọc văn bản',   color: '#8b5cf6', bgColor: 'rgba(139,92,246,0.12)' },
+  { id: 'translate',      icon: '🌐', label: 'Dịch song ngữ',    color: '#0ea5e9', bgColor: 'rgba(14,165,233,0.12)' },
+  { id: 'pronunciation',  icon: '🎤', label: 'Kiểm tra phát âm', color: '#10b981', bgColor: 'rgba(16,185,129,0.12)' },
+  { id: 'classroom',      icon: '🏫', label: 'Quản lý lớp',      color: '#3b82f6', bgColor: 'rgba(59,130,246,0.12)' },
+  { id: 'export',         icon: '📤', label: 'Xuất file',         color: '#6366f1', bgColor: 'rgba(99,102,241,0.12)' },
+  { id: 'library',        icon: '📚', label: 'Thư viện',          color: '#a855f7', bgColor: 'rgba(168,85,247,0.12)' },
+  { id: 'assign',         icon: '📬', label: 'Giao bài',          color: '#14b8a6', bgColor: 'rgba(20,184,166,0.12)' },
+  { id: 'scores',         icon: '📊', label: 'Bảng điểm',         color: '#f59e0b', bgColor: 'rgba(245,158,11,0.12)' },
+  { id: 'record',         icon: '🎙️', label: 'Ghi âm',            color: '#ec4899', bgColor: 'rgba(236,72,153,0.12)' },
+  { id: 'more',           icon: '•••', label: 'Khác',              color: '#6b7280', bgColor: 'rgba(107,114,128,0.10)' },
+];
+
+export const RECENT_ITEMS = [
+  {
+    id: 1, title: 'Phép cộng trong phạm vi 100',
+    type: 'Bài giảng', subject: 'Toán', grade: 'Lớp 3',
+    updatedAt: '2 giờ trước', color: 'from-rose-400 to-pink-500',
+    emoji: '➕',
+  },
+  {
+    id: 2, title: 'Animals and Pets — Vocabulary',
+    type: 'Bài kiểm tra', subject: 'Tiếng Anh', grade: 'Lớp 4',
+    updatedAt: '5 giờ trước', color: 'from-blue-400 to-indigo-500',
+    emoji: '🐾',
+  },
+  {
+    id: 3, title: 'Con cò bé bé — Đọc hiểu',
+    type: 'Bài giảng', subject: 'Tiếng Việt', grade: 'Lớp 2',
+    updatedAt: 'Hôm qua', color: 'from-amber-400 to-orange-500',
+    emoji: '🐦',
+  },
+  {
+    id: 4, title: 'Hình học — Tam giác & Tứ giác',
+    type: 'Bài giảng', subject: 'Toán', grade: 'Lớp 5',
+    updatedAt: 'Hôm qua', color: 'from-teal-400 to-cyan-500',
+    emoji: '📐',
+  },
+  {
+    id: 5, title: 'My Family — Listening Test',
+    type: 'Bài kiểm tra', subject: 'Tiếng Anh', grade: 'Lớp 3',
+    updatedAt: '2 ngày trước', color: 'from-violet-400 to-purple-500',
+    emoji: '👨‍👩‍👧‍👦',
+  },
+  {
+    id: 6, title: 'Bảng nhân 2, 3, 4, 5',
+    type: 'Bài giảng', subject: 'Toán', grade: 'Lớp 3',
+    updatedAt: '3 ngày trước', color: 'from-emerald-400 to-green-500',
+    emoji: '✖️',
+  },
+  {
+    id: 7, title: 'Luyện phát âm — Fruits & Vegetables',
+    type: 'Phát âm', subject: 'Tiếng Anh', grade: 'Lớp 2',
+    updatedAt: '4 ngày trước', color: 'from-pink-400 to-rose-500',
+    emoji: '🍎',
+  },
+];

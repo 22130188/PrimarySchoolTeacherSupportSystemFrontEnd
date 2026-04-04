@@ -5,17 +5,53 @@ import RegisterPage       from '../views/RegisterPage';
 import OAuth2CallbackPage from '../views/OAuth2CallbackPage';
 import ProfilePage        from '../views/ProfilePage';
 import AdminPage          from '../views/AdminPage';
+import DashboardPage      from '../views/DashboardPage';
+import LessonsPage        from '../views/LessonsPage';
+import TestsPage          from '../views/TestsPage';
+import AIToolsPage        from '../views/AIToolsPage';
+import ClassroomsPage     from '../views/ClassroomsPage';
+import { useAuthStore } from '../stores/authStore';
+
 export default function AppRouter() {
+    const token = useAuthStore((s) => s.token);
+    const roleId = useAuthStore((s) => s.roleId);
+
+    const defaultAuthenticatedPath = !token
+        ? '/'
+        : roleId === 3
+            ? '/admin'
+            : roleId === 2
+                ? '/dashboard'
+                : '/profile';
+
+    const renderPublicRoute = (element) => {
+        if (token) return <Navigate to={defaultAuthenticatedPath} replace />;
+        return element;
+    };
+
+    const renderPrivateRoute = (element, allowedRoles = null) => {
+        if (!token) return <Navigate to="/login" replace />;
+        if (allowedRoles && !allowedRoles.includes(roleId)) {
+            return <Navigate to={defaultAuthenticatedPath} replace />;
+        }
+        return element;
+    };
+
     return (
         <BrowserRouter>
             <Routes>
-                <Route path="/"                element={<HomePage />} />
-                <Route path="/login"           element={<LoginPage />} />
-                <Route path="/register"        element={<RegisterPage />} />
+                <Route path="/"                element={renderPublicRoute(<HomePage />)} />
+                <Route path="/login"           element={renderPublicRoute(<LoginPage />)} />
+                <Route path="/register"        element={renderPublicRoute(<RegisterPage />)} />
                 <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
-                <Route path="/profile"         element={<ProfilePage />} />
-                <Route path="/admin"           element={<AdminPage />} />
-                <Route path="*"                element={<Navigate to="/" replace />} />
+                <Route path="/profile"         element={renderPrivateRoute(<ProfilePage />, [1, 2])} />
+                <Route path="/admin"           element={renderPrivateRoute(<AdminPage />, [3])} />
+                <Route path="/dashboard"       element={renderPrivateRoute(<DashboardPage />, [1, 2])} />
+                <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [1, 2])} />
+                <Route path="/tests"           element={renderPrivateRoute(<TestsPage />, [1, 2])} />
+                <Route path="/ai-tools"        element={renderPrivateRoute(<AIToolsPage />, [1, 2])} />
+                <Route path="/classrooms"      element={renderPrivateRoute(<ClassroomsPage />, [1, 2])} />
+                <Route path="*"                element={<Navigate to={token ? defaultAuthenticatedPath : '/'} replace />} />
             </Routes>
         </BrowserRouter>
     );
