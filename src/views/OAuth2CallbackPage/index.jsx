@@ -33,6 +33,8 @@ export default function OAuth2CallbackPage() {
                     // Chuyển hướng dựa trên vai trò
                     if (roleId === 3) {
                         navigate('/admin', { replace: true });
+                    } else if (roleId === 2) {
+                        navigate('/dashboard', { replace: true });
                     } else {
                         navigate('/profile', { replace: true });
                     }

@@ -5,6 +5,12 @@ import RegisterPage       from '../views/RegisterPage';
 import OAuth2CallbackPage from '../views/OAuth2CallbackPage';
 import ProfilePage        from '../views/ProfilePage';
 import AdminPage          from '../views/AdminPage';
+import DashboardPage      from '../views/DashboardPage';
+import LessonsPage        from '../views/LessonsPage';
+import TestsPage          from '../views/TestsPage';
+import AIToolsPage        from '../views/AIToolsPage';
+import ClassroomsPage     from '../views/ClassroomsPage';
+
 export default function AppRouter() {
     return (
         <BrowserRouter>
@@ -15,6 +21,11 @@ export default function AppRouter() {
                 <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
                 <Route path="/profile"         element={<ProfilePage />} />
                 <Route path="/admin"           element={<AdminPage />} />
+                <Route path="/dashboard"       element={<DashboardPage />} />
+                <Route path="/lessons"         element={<LessonsPage />} />
+                <Route path="/tests"           element={<TestsPage />} />
+                <Route path="/ai-tools"        element={<AIToolsPage />} />
+                <Route path="/classrooms"      element={<ClassroomsPage />} />
                 <Route path="*"                element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
