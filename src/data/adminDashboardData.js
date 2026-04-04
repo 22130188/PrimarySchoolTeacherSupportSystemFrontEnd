@@ -2,12 +2,13 @@ import {
   LayoutDashboard, Users, School, Settings,
   TrendingUp, TrendingDown, GraduationCap, FileText,
   BookOpen, ShieldCheck, FolderOpen,
-  Image, Volume2, Globe, Shield, BellRing,
+  Image, Volume2, Globe, Shield, BellRing, User,
 } from 'lucide-react';
 
 
 export const ADMIN_MENU = [
   { key: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+  { key: 'profile', label: 'Hồ sơ', icon: User },
   { key: 'users', label: 'Người dùng', icon: Users },
   { key: 'classrooms', label: 'Lớp học', icon: School },
   { key: 'subjects', label: 'Danh mục môn học', icon: BookOpen },
