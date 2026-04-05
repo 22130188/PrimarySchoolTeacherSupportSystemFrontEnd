@@ -1,9 +1,12 @@
 import { useLocation, Link } from 'react-router-dom';
 import { Home, BookOpen, ClipboardCheck, Sparkles, School, Plus, MoreHorizontal, Bell } from 'lucide-react';
-import { SIDEBAR_MENU as MENU } from '../data/mockDashboardData';
+import { SIDEBAR_MENU } from '../data/mockDashboardData';
+import { useAuthStore } from '../stores/authStore';
 
 export default function DashboardSidebar() {
   const location = useLocation();
+  const roleId = useAuthStore(s => s.roleId);
+  const MENU = SIDEBAR_MENU.filter(item => roleId === 1 ? item.id !== 'ai' : true);
 
   return (
     <aside className="fixed left-0 top-16 bottom-0 w-[72px] bg-white border-r border-gray-100 z-40 flex flex-col items-center py-4 gap-1">

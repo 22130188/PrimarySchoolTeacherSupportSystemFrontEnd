@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, BookOpen } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { NAV_LINKS } from '../data/homePageData';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
@@ -8,6 +8,7 @@ import { getMeAPI } from '../services/userApi';
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isMobileMenuOpen, toggleMobileMenu, setMobileMenuOpen } = useUIStore();
   const token = useAuthStore((s) => s.token);
   const roleId = useAuthStore((s) => s.roleId);
@@ -47,9 +48,13 @@ export default function Navbar() {
     ? '/'
     : roleId === 3
       ? '/admin'
-      : roleId === 2
+      : location.pathname === '/profile'
         ? '/dashboard'
-        : '/profile';
+        : roleId === 2
+          ? '/dashboard'
+          : '/profile';
+
+  const navLinks = NAV_LINKS.filter(link => roleId === 1 ? link.label !== 'Công cụ AI' : true);
 
   const handleLogout = () => {
     logout();
@@ -76,7 +81,7 @@ export default function Navbar() {
 
 
           <div className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
