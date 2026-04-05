@@ -35,15 +35,13 @@ export default function OAuth2CallbackPage() {
                     // Chuyển hướng dựa trên vai trò
                     if (roleId === 3) {
                         navigate('/admin', { replace: true });
-                    } else if (roleId === 2) {
-                        navigate('/dashboard', { replace: true });
                     } else {
-                        navigate('/profile', { replace: true });
+                        navigate('/dashboard', { replace: true });
                     }
                 } catch (error) {
                     console.error('Error fetching user data:', error);
-                    // Nếu getMeAPI thất bại, hãy chuyển hướng đến trang hồ sơ và để trang đó xử lý xác thực.
-                    navigate('/profile', { replace: true });
+                    // Nếu getMeAPI thất bại, hãy chuyển hướng đến trang dashboard và để trang đó xử lý xác thực.
+                    navigate('/dashboard', { replace: true });
                 }
             }, 100); // Trì hoãn nhỏ để đảm bảo mã thông báo được lưu
         } else {

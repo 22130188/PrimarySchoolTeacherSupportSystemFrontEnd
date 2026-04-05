@@ -40,10 +40,8 @@ export default function LoginPage() {
             
             if (roleId === 3) {
                 navigate('/admin');
-            } else if (roleId === 2) {
-                navigate('/dashboard');
             } else {
-                navigate('/profile');
+                navigate('/dashboard');
             }
         } catch (err) {
             setError(err.message);

@@ -20,9 +20,7 @@ export default function AppRouter() {
         ? '/'
         : roleId === 3
             ? '/admin'
-            : roleId === 2
-                ? '/dashboard'
-                : '/profile';
+            : '/dashboard';
 
     const renderPublicRoute = (element) => {
         if (token) return <Navigate to={defaultAuthenticatedPath} replace />;
