@@ -1,6 +1,6 @@
 import { 
   Home, BookOpen, ClipboardCheck, Sparkles, School,
-  Volume2, Globe, Mic, Wand2, FileAudio
+  Volume2, Globe, Mic, Wand2, FileAudio, Image
 } from 'lucide-react';
 
 export const SIDEBAR_MENU = [
@@ -92,13 +92,13 @@ export const AI_TOOLS = [
   },
   {
     id: 'audio-gen',
-    icon: <FileAudio className="w-7 h-7" />,
-    title: 'Tạo Audio Bài Giảng',
-    desc: 'Biến mọi nội dung text thành file audio MP3 chất lượng cao để học sinh nghe lại.',
-    tag: 'Audio AI',
+    icon: <Image className="w-7 h-7" />,
+    title: 'Tạo Hình Ảnh',
+    desc: 'Tạo hình ảnh minh họa, biểu đồ và hình ảnh giáo dục từ mô tả văn bản bằng AI.',
+    tag: 'Image AI',
     tagColor: 'bg-pink-100 text-pink-700',
     gradient: 'from-pink-500 to-rose-600',
-    stats: 'Xuất file .mp3',
+    stats: 'Xuất file .png/.jpg',
   },
   {
     id: 'auto-grade',

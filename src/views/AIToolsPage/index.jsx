@@ -3,8 +3,21 @@ import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { Sparkles } from 'lucide-react';
 import { AI_TOOLS } from '../../data/mockDashboardData';
+import { useNavigate } from 'react-router-dom';
 
 export default function AIToolsPage() {
+  const navigate = useNavigate();
+
+  const handleToolClick = (toolId) => {
+    switch (toolId) {
+      case 'tts':
+        navigate('/tts');
+        break;
+      default:
+        console.log(`Tool ${toolId} clicked - implement navigation`);
+        break;
+    }
+  };
   return (
     <div className="min-h-screen bg-[#f8f7ff]">
       <Navbar />
@@ -31,6 +44,7 @@ export default function AIToolsPage() {
                     key={tool.id}
                     id={`ai-tool-${tool.id}`}
                     className="group bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer relative overflow-hidden"
+                    onClick={() => handleToolClick(tool.id)}
                   >
                     <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br ${tool.gradient} opacity-5 group-hover:opacity-10 group-hover:scale-150 transition-all duration-500`} />
 
