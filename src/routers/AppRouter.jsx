@@ -10,6 +10,9 @@ import LessonsPage        from '../views/LessonsPage';
 import TestsPage          from '../views/TestsPage';
 import AIToolsPage        from '../views/AIToolsPage';
 import ClassroomsPage     from '../views/ClassroomsPage';
+import ClassroomDetail    from '../views/ClassroomsPage/ClassroomDetail';
+import JoinByLinkPage     from '../views/JoinClassroom/JoinByLinkPage';
+import JoinByInvitationPage from '../views/JoinClassroom/JoinByInvitationPage';
 import { useAuthStore } from '../stores/authStore';
 
 export default function AppRouter() {
@@ -49,6 +52,9 @@ export default function AppRouter() {
                 <Route path="/tests"           element={renderPrivateRoute(<TestsPage />, [1, 2])} />
                 <Route path="/ai-tools"        element={renderPrivateRoute(<AIToolsPage />, [1, 2])} />
                 <Route path="/classrooms"      element={renderPrivateRoute(<ClassroomsPage />, [1, 2])} />
+                <Route path="/classrooms/:id"  element={renderPrivateRoute(<ClassroomDetail />, [1, 2])} />
+                <Route path="/join/link"        element={<JoinByLinkPage />} />
+                <Route path="/join/invitation"  element={<JoinByInvitationPage />} />
                 <Route path="*"                element={<Navigate to={token ? defaultAuthenticatedPath : '/'} replace />} />
             </Routes>
         </BrowserRouter>
