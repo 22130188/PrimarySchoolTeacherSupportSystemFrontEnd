@@ -13,6 +13,9 @@ export default function AIToolsPage() {
       case 'tts':
         navigate('/tts');
         break;
+      case 'audio-gen':
+        navigate('/image');
+        break;
       default:
         console.log(`Tool ${toolId} clicked - implement navigation`);
         break;

@@ -11,6 +11,7 @@ import TestsPage          from '../views/TestsPage';
 import AIToolsPage        from '../views/AIToolsPage';
 import ClassroomsPage     from '../views/ClassroomsPage';
 import TTSPage            from '../views/TTSPage';
+import ImagePage          from '../views/ImagePage';
 import { useAuthStore } from '../stores/authStore';
 
 export default function AppRouter() {
@@ -47,6 +48,7 @@ export default function AppRouter() {
                 <Route path="/admin"           element={renderPrivateRoute(<AdminPage />, [3])} />
                 <Route path="/dashboard"       element={renderPrivateRoute(<DashboardPage />, [1, 2])} />
                 <Route path="/tts"             element={renderPrivateRoute(<TTSPage />, [1, 2])} />
+                <Route path="/image"           element={<ImagePage />} />
                 <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [1, 2])} />
                 <Route path="/tests"           element={renderPrivateRoute(<TestsPage />, [1, 2])} />
                 <Route path="/ai-tools"        element={renderPrivateRoute(<AIToolsPage />, [1, 2])} />
