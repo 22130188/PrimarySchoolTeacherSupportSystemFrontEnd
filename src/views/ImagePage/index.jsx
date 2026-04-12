@@ -5,6 +5,7 @@ import DashboardSidebar from '../../components/DashboardSidebar';
 import { Image, Upload, Download, Trash2, Palette, X, Plus } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api.config.js';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function ImagePage() {
   const [icons, setIcons] = useState([]);
@@ -16,19 +17,21 @@ export default function ImagePage() {
   const [isLoadingIcons, setIsLoadingIcons] = useState(true);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [canvasSaveForm, setCanvasSaveForm] = useState({ description: '', subject: '' });
   const canvasRef = useRef(null);
   const canvasContainerRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageCache = useRef({});
 
-  const userId = 1;
+  const { user } = useAuthStore();
   const CANVAS_API_URL = API_CONFIG.CANVAS_API_URL;
   const IMAGE_API_URL = API_CONFIG.IMAGE_API_URL;
 
   useEffect(() => {
     loadIcons();
     loadSavedImages();
-  }, []);
+  }, [user?.id]);
 
   const loadIcons = async () => {
     setIsLoadingIcons(true);
@@ -51,9 +54,14 @@ export default function ImagePage() {
   };
 
   const loadSavedImages = async () => {
+    if (!user?.id) {
+      setSavedImages([]);
+      return;
+    }
+
     setIsLoadingImages(true);
     try {
-      const response = await axios.get(`${IMAGE_API_URL}/images/${userId}`);
+      const response = await axios.get(`${IMAGE_API_URL}/images/${user.id}`);
       if (response.data.success) {
         setSavedImages(response.data.data || []);
       }
@@ -309,15 +317,33 @@ export default function ImagePage() {
     setPlacedItems([]);
   };
 
-  const handleSaveCanvas = async () => {
+  const openSaveCanvasModal = () => {
     if (placedItems.length === 0) {
       alert('Vui lòng đặt ít nhất một thành phần trước khi lưu');
+      return;
+    }
+    if (!user?.id) {
+      alert('Vui lòng đăng nhập để lưu ảnh');
+      return;
+    }
+    setCanvasSaveForm({ description: `Canvas with ${placedItems.length} items`, subject: '' });
+    setShowSaveModal(true);
+  };
+
+  const handleSaveCanvas = async () => {
+    if (!canvasSaveForm.description.trim() || !canvasSaveForm.subject.trim()) {
+      alert('Vui lòng nhập mô tả và môn học cho ảnh');
       return;
     }
 
     try {
       const canvas = canvasRef.current;
       canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert('Không thể tạo ảnh từ bảng vẽ');
+          return;
+        }
+
         const formData = new FormData();
         formData.append('file', blob, 'canvas.png');
 
@@ -327,17 +353,18 @@ export default function ImagePage() {
 
         if (response.data.success) {
           const imagePath = response.data.image_path;
-          
           await axios.post(`${IMAGE_API_URL}/save`, {
-            description: `Canvas with ${placedItems.length} items`,
+            description: canvasSaveForm.description,
+            subject: canvasSaveForm.subject,
             imageUrl: imagePath,
-            userId: userId,
-            userName: 'Canvas User'
+            userId: user.id,
+            userName: user?.fullName || user?.name || user?.username || 'Unknown'
           });
 
           alert('Lưu ảnh thành công!');
           setPlacedItems([]);
           setSelectedIconId(null);
+          setShowSaveModal(false);
           loadSavedImages();
         }
       });
@@ -402,9 +429,10 @@ export default function ImagePage() {
         // Save image metadata to database
         await axios.post(`${IMAGE_API_URL}/save`, {
           description: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+          subject: '',
           imageUrl: cloudinaryResponse.data.image_url,
-          userId: userId,
-          userName: 'Canvas User'
+          userId: user?.id || 0,
+          userName: user?.fullName || user?.name || user?.username || 'Unknown'
         });
 
         alert('Tải ảnh thành công!');
@@ -498,16 +526,17 @@ export default function ImagePage() {
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                   />
                                 )}
-                                <div className="flex items-start justify-between gap-2">
-                                  <p className="text-xs text-gray-600 truncate flex-1">{img.description}</p>
-                                  <button
-                                    onClick={() => handleDeleteImage(img.id)}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 font-bold text-sm flex-shrink-0"
-                                    title="Xóa ảnh"
-                                  >
-                                    ✕
-                                  </button>
+                                <div className="space-y-1">
+                                  <p className="text-xs text-gray-600 truncate">{img.description}</p>
+                                  {img.subject && <p className="text-[11px] text-slate-400">Môn: {img.subject}</p>}
                                 </div>
+                                <button
+                                  onClick={() => handleDeleteImage(img.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 font-bold text-sm flex-shrink-0"
+                                  title="Xóa ảnh"
+                                >
+                                  ✕
+                                </button>
                               </div>
                             ))
                           )}
@@ -626,7 +655,7 @@ export default function ImagePage() {
 
                       <div className="flex gap-2">
                         <button
-                          onClick={handleSaveCanvas}
+                          onClick={openSaveCanvasModal}
                           disabled={placedItems.length === 0}
                           className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
                         >
@@ -649,6 +678,65 @@ export default function ImagePage() {
               </div>
             </div>
           </main>
+
+          {showSaveModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+              <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+                <div className="flex items-start justify-between gap-3 mb-5">
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-900">Lưu ảnh bản vẽ</h2>
+                    <p className="text-sm text-slate-500">Nhập mô tả và môn học trước khi lưu vào hệ thống.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSaveModal(false)}
+                    className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Mô tả ảnh</label>
+                    <textarea
+                      rows={3}
+                      value={canvasSaveForm.description}
+                      onChange={(e) => setCanvasSaveForm((prev) => ({ ...prev, description: e.target.value }))}
+                      className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Môn học</label>
+                    <input
+                      value={canvasSaveForm.subject}
+                      onChange={(e) => setCanvasSaveForm((prev) => ({ ...prev, subject: e.target.value }))}
+                      placeholder="Ví dụ: Toán, Tiếng Việt, Tiếng Anh"
+                      className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowSaveModal(false)}
+                      className="inline-flex items-center justify-center rounded-3xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveCanvas}
+                      className="inline-flex items-center justify-center rounded-3xl bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                    >
+                      Lưu ảnh
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Footer />
         </div>

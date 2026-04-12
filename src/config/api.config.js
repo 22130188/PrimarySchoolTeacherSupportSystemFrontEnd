@@ -7,7 +7,7 @@ const getImageApiUrl = () => {
 };
 
 const getTtsApiUrl = () => {
-  return import.meta.env.VITE_TTS_API_URL || 'http://localhost:8001';
+  return import.meta.env.VITE_TTS_API_URL || 'http://localhost:8084/api/tts';
 };
 
 const getGatewayUrl = () => {
