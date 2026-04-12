@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -7,135 +7,261 @@ import {
   getPaginationRowModel,
   flexRender,
 } from '@tanstack/react-table';
-import { Search, Image, Volume2, Upload, Trash2, Download, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
-import { MOCK_IMAGES, MOCK_AUDIO_FILES, RESOURCE_TABS } from '../../../data/adminDashboardData';
+import { Search, Image, Volume2, Upload, Trash2, Download, Eye, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
+import { RESOURCE_TABS } from '../../../data/adminDashboardData';
 import SortIcon from '../../../components/SortIcon';
+import resourceService from '../../../services/resourceService';
 
 export default function ResourceManagement() {
   const [activeTab, setActiveTab] = useState('images');
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
+  const [images, setImages] = useState([]);
+  const [audios, setAudios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [viewImageModal, setViewImageModal] = useState({ open: false, image: null });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [imagesRes, audiosRes] = await Promise.all([
+          resourceService.getAllImages(),
+          resourceService.getAllAudios()
+        ]);
+
+        if (imagesRes.success) {
+          setImages(imagesRes.data.map(img => ({
+            id: img.id,
+            fileName: img.description || `Image ${img.id}`,
+            uploadedBy: img.userName,
+            subject: img.subject,
+            createdAt: new Date(img.createdAt).toLocaleDateString('vi-VN'),
+            url: img.imageUrl,
+            mimeType: 'image/*'
+          })));
+        }
+
+        if (audiosRes.success) {
+          setAudios(audiosRes.data.map(audio => ({
+            id: audio.id,
+            fileName: audio.audioName || `Audio ${audio.id}`,
+            uploadedBy: audio.userName,
+            subject: audio.subject,
+            createdAt: new Date(audio.createdAt).toLocaleDateString('vi-VN'),
+            url: audio.audioUrl,
+            mimeType: 'audio/*',
+            text: audio.text
+          })));
+        }
+      } catch (err) {
+        setError('Không thể tải dữ liệu tài nguyên');
+        console.error('Error fetching resources:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const isImageTab = activeTab === 'images';
-  const data = isImageTab ? MOCK_IMAGES : MOCK_AUDIO_FILES;
+  const data = isImageTab ? images : audios;
 
-  const imageColumns = useMemo(() => [
-    {
-      accessorKey: 'fileName',
-      header: 'Tên file',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-            <Image className="w-5 h-5 text-indigo-500" />
+  const imageColumns = useMemo(() => {
+    const baseColumns = [
+      {
+        accessorKey: 'fileName',
+        header: 'Tên file',
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+              <Image className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{row.original.fileName}</p>
+              <p className="text-xs text-gray-400">{row.original.mimeType}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{row.original.fileName}</p>
-            <p className="text-xs text-gray-400">{row.original.mimeType}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'fileSize',
-      header: 'Kích thước',
-      cell: ({ getValue }) => <span className="text-sm text-gray-600">{getValue()}</span>,
-    },
-    {
-      accessorKey: 'subject',
-      header: 'Môn học',
-      cell: ({ getValue }) => {
-        const colors = {
-          'Toán': 'bg-rose-100 text-rose-600',
-          'Tiếng Anh': 'bg-indigo-100 text-indigo-600',
-          'Tiếng Việt': 'bg-amber-100 text-amber-600',
-        };
-        const color = colors[getValue()] || 'bg-gray-100 text-gray-600';
-        return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${color}`}>{getValue()}</span>;
+        ),
       },
-    },
-    {
-      accessorKey: 'uploadedBy',
-      header: 'Người tải lên',
-      cell: ({ getValue }) => <span className="text-sm text-gray-600">{getValue()}</span>,
-    },
-    {
-      accessorKey: 'createdAt',
-      header: 'Ngày tải',
-      cell: ({ getValue }) => <span className="text-sm text-gray-500">{getValue()}</span>,
-    },
-    {
-      id: 'actions',
-      header: '',
-      enableSorting: false,
-      cell: () => (
-        <div className="flex items-center gap-1">
-          <button className="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors" title="Xem"><Eye className="w-4 h-4" /></button>
-          <button className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Tải xuống"><Download className="w-4 h-4" /></button>
-          <button className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Xóa"><Trash2 className="w-4 h-4" /></button>
-        </div>
-      ),
-    },
-  ], []);
+      {
+        accessorKey: 'subject',
+        header: 'Môn học',
+        cell: ({ getValue }) => {
+          const colors = {
+            'Toán': 'bg-rose-100 text-rose-600',
+            'Tiếng Anh': 'bg-indigo-100 text-indigo-600',
+            'Tiếng Việt': 'bg-amber-100 text-amber-600',
+          };
+          const color = colors[getValue()] || 'bg-gray-100 text-gray-600';
+          return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${color}`}>{getValue()}</span>;
+        },
+      },
+      {
+        accessorKey: 'uploadedBy',
+        header: 'Người tải lên',
+        cell: ({ getValue }) => <span className="text-sm text-gray-600">{getValue()}</span>,
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Ngày tải',
+        cell: ({ getValue }) => <span className="text-sm text-gray-500">{getValue()}</span>,
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handleViewImage(row.original)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+              title="Xem"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleDownload(row.original.url, row.original.fileName)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              title="Tải xuống"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleDelete(row.original.id, true)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Xóa"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ),
+      },
+    ];
 
-  const audioColumns = useMemo(() => [
-    {
-      accessorKey: 'fileName',
-      header: 'Tên file',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
-            <Volume2 className="w-5 h-5 text-teal-500" />
+    return baseColumns;
+  }, []);
+
+  const audioColumns = useMemo(() => {
+    const baseColumns = [
+      {
+        accessorKey: 'fileName',
+        header: 'Tên file',
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+              <Volume2 className="w-5 h-5 text-teal-500" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{row.original.fileName}</p>
+              <p className="text-xs text-gray-400">{row.original.mimeType}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{row.original.fileName}</p>
-            <p className="text-xs text-gray-400">{row.original.mimeType}</p>
+        ),
+      },
+      {
+        accessorKey: 'subject',
+        header: 'Môn học',
+        cell: ({ getValue }) => {
+          const colors = {
+            'Toán': 'bg-rose-100 text-rose-600',
+            'Tiếng Anh': 'bg-indigo-100 text-indigo-600',
+            'Tiếng Việt': 'bg-amber-100 text-amber-600',
+          };
+          const color = colors[getValue()] || 'bg-gray-100 text-gray-600';
+          return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${color}`}>{getValue()}</span>;
+        },
+      },
+      {
+        accessorKey: 'uploadedBy',
+        header: 'Người tải lên',
+        cell: ({ getValue }) => <span className="text-sm text-gray-600">{getValue()}</span>,
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Ngày tải',
+        cell: ({ getValue }) => <span className="text-sm text-gray-500">{getValue()}</span>,
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handlePlayAudio(row.original.url)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+              title="Phát"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleDownload(row.original.url, row.original.fileName)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+              title="Tải xuống"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleDelete(row.original.id, false)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Xóa"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'fileSize',
-      header: 'Kích thước',
-      cell: ({ getValue }) => <span className="text-sm text-gray-600">{getValue()}</span>,
-    },
-    {
-      accessorKey: 'duration',
-      header: 'Thời lượng',
-      cell: ({ getValue }) => <span className="text-sm font-medium text-gray-700">{getValue()}</span>,
-    },
-    {
-      accessorKey: 'language',
-      header: 'Ngôn ngữ',
-      cell: ({ getValue }) => (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getValue() === 'vi' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-          }`}>
-          {getValue() === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'uploadedBy',
-      header: 'Người tải lên',
-      cell: ({ getValue }) => <span className="text-sm text-gray-600">{getValue()}</span>,
-    },
-    {
-      accessorKey: 'createdAt',
-      header: 'Ngày tải',
-      cell: ({ getValue }) => <span className="text-sm text-gray-500">{getValue()}</span>,
-    },
-    {
-      id: 'actions',
-      header: '',
-      enableSorting: false,
-      cell: () => (
-        <div className="flex items-center gap-1">
-          <button className="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors" title="Phát"><Volume2 className="w-4 h-4" /></button>
-          <button className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Tải xuống"><Download className="w-4 h-4" /></button>
-          <button className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Xóa"><Trash2 className="w-4 h-4" /></button>
-        </div>
-      ),
-    },
-  ], []);
+        ),
+      },
+    ];
+
+    return baseColumns;
+  }, []);
+
+  const handleDelete = async (id, isImage) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa tài nguyên này?')) return;
+
+    try {
+      if (isImage) {
+        await resourceService.deleteImage(id);
+        setImages(prev => prev.filter(img => img.id !== id));
+      } else {
+        await resourceService.deleteAudio(id);
+        setAudios(prev => prev.filter(audio => audio.id !== id));
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Không thể xóa tài nguyên: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleViewImage = (image) => {
+    setViewImageModal({ open: true, image });
+  };
+
+  const handleDownload = async (url, fileName) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName || 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download error:', error);
+      // Fallback to opening in new tab
+      window.open(url, '_blank');
+    }
+  };
+
+  const handlePlayAudio = (url) => {
+    window.open(url, '_blank');
+  };
 
   const columns = isImageTab ? imageColumns : audioColumns;
 
@@ -154,12 +280,40 @@ export default function ResourceManagement() {
     },
   });
 
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
+            <span className="text-gray-600">Đang tải dữ liệu...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <X className="w-6 h-6 text-red-500" />
+            </div>
+            <p className="text-gray-600">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Quản lý tài nguyên</h2>
-          <p className="text-sm text-gray-500 mt-1">{MOCK_IMAGES.length} ảnh · {MOCK_AUDIO_FILES.length} file âm thanh</p>
+          <p className="text-sm text-gray-500 mt-1">{images.length} ảnh · {audios.length} file âm thanh</p>
         </div>
         <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 hover:-translate-y-0.5 transition-all duration-200">
           <Upload className="w-4 h-4" />
@@ -169,23 +323,26 @@ export default function ResourceManagement() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
-          {RESOURCE_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => { setActiveTab(tab.key); setGlobalFilter(''); table.setPageIndex(0); }}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200
-                ${activeTab === tab.key
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-md ${activeTab === tab.key ? 'bg-violet-100 text-violet-600' : 'bg-gray-200 text-gray-500'}`}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
+          {RESOURCE_TABS.map((tab) => {
+            const count = tab.key === 'images' ? images.length : audios.length;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => { setActiveTab(tab.key); setGlobalFilter(''); table.setPageIndex(0); }}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200
+                  ${activeTab === tab.key
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+                <span className={`text-xs px-1.5 py-0.5 rounded-md ${activeTab === tab.key ? 'bg-violet-100 text-violet-600' : 'bg-gray-200 text-gray-500'}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="relative">
@@ -266,6 +423,30 @@ export default function ResourceManagement() {
           </div>
         )}
       </div>
+
+      {/* Image View Modal */}
+      {viewImageModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl p-6 max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">{viewImageModal.image?.fileName}</h3>
+              <button
+                onClick={() => setViewImageModal({ open: false, image: null })}
+                className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <img
+                src={viewImageModal.image?.url}
+                alt={viewImageModal.image?.fileName}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
