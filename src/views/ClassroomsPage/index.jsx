@@ -9,7 +9,7 @@ import CreateClassroomDialog from './components/CreateClassroomDialog';
 import JoinClassroomDialog from './components/JoinClassroomDialog';
 import { useAuthStore } from '../../stores/authStore';
 import {
-  getMyClassrooms, createClassroom, deleteClassroom,
+  getMyClassrooms, createClassroom,
   getMyJoinedClassrooms, joinByClassCode,
   getMyInvitations, acceptInvitation, rejectInvitation,
 } from '../../services/classroomApi';
@@ -60,16 +60,6 @@ export default function ClassroomsPage() {
     fetchData();
   };
 
-  const handleDelete = async (cls) => {
-    if (!confirm(`Xóa lớp "${cls.name}"? Thao tác này không thể hoàn tác.`)) return;
-    try {
-      await deleteClassroom(cls.id);
-      fetchData();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
   const handleCopyLink = (cls) => {
     navigator.clipboard.writeText(cls.inviteLink);
   };
@@ -116,7 +106,6 @@ export default function ClassroomsPage() {
           <main className="flex-1 p-6">
             <div className="max-w-6xl mx-auto">
 
-              {/* Header */}
               <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
@@ -138,7 +127,6 @@ export default function ClassroomsPage() {
                 </button>
               </div>
 
-              {/* Pending invitations for students */}
               {!isTeacher && invitations.length > 0 && (
                 <div className="mb-6 space-y-3">
                   <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
@@ -182,7 +170,6 @@ export default function ClassroomsPage() {
                 </div>
               )}
 
-              {/* Search */}
               {classrooms.length > 0 && (
                 <div className="relative mb-6">
                   <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -196,7 +183,6 @@ export default function ClassroomsPage() {
                 </div>
               )}
 
-              {/* Loading */}
               {loading && (
                 <div className="flex flex-col items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 text-teal-500 animate-spin mb-3" />
@@ -204,7 +190,6 @@ export default function ClassroomsPage() {
                 </div>
               )}
 
-              {/* Empty state */}
               {!loading && classrooms.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-20">
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center mb-4">
@@ -226,7 +211,6 @@ export default function ClassroomsPage() {
                 </div>
               )}
 
-              {/* Classroom grid */}
               {!loading && filtered.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filtered.map(cls => (
@@ -237,7 +221,6 @@ export default function ClassroomsPage() {
                       onViewDetail={(id) => navigate(`/classrooms/${id}`)}
                       onCopyLink={handleCopyLink}
                       onCopyCode={handleCopyCode}
-                      onDelete={handleDelete}
                     />
                   ))}
                 </div>

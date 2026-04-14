@@ -33,6 +33,15 @@ export async function getClassroom(id) {
   return handleRes(res);
 }
 
+export async function updateClassroom(id, data) {
+  const res = await fetch(`${BASE}/api/classrooms/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+}
+
 export async function deleteClassroom(id) {
   const res = await fetch(`${BASE}/api/classrooms/${id}`, {
     method: 'DELETE',
