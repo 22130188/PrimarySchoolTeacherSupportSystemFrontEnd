@@ -1,4 +1,4 @@
-import { MoreVertical, Users, Copy, Link2, RefreshCw, Trash2, Eye } from 'lucide-react';
+import { MoreVertical, Users, Copy, Link2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { BANNER_COLORS } from '../../../data/classroomData';
 
@@ -11,7 +11,7 @@ function getInitials(name) {
   return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 }
 
-export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCopyLink, onCopyCode, onDelete }) {
+export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCopyLink, onCopyCode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -54,11 +54,6 @@ export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCo
                   <button onClick={(e) => { e.stopPropagation(); onCopyCode?.(classroom); setMenuOpen(false); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                     <Copy className="w-4 h-6 text-gray-400" /> Sao chép mã lớp
-                  </button>
-                  <div className="h-px bg-gray-100 my-1" />
-                  <button onClick={(e) => { e.stopPropagation(); onDelete?.(classroom); setMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                    <Trash2 className="w-4 h-6" /> Xóa lớp học
                   </button>
                 </div>
               )}

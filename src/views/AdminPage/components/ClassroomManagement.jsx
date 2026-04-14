@@ -1,99 +1,507 @@
-import { Users, Plus, Eye, Edit3, Trash2, Calendar } from 'lucide-react';
-import { MOCK_CLASSROOMS } from '../../../data/adminDashboardData';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  flexRender,
+} from '@tanstack/react-table';
+import {
+  Search, MoreHorizontal, Eye, Edit3, Trash2, RotateCcw,
+  ChevronLeft, ChevronRight, Loader2, School, Users,
+  Hash, AlertTriangle, Archive, CheckCircle2, XCircle,
+} from 'lucide-react';
+import SortIcon from '../../../components/SortIcon';
+import { useAdminClassrooms, useAdminClassroomStats } from '../../../hooks/useAdminClassrooms';
+import * as adminClassroomApi from '../../../services/adminClassroomApi';
+import ClassroomEditModal from './ClassroomEditModal';
+import ClassroomDetailModal from './ClassroomDetailModal';
+import ConfirmModal from '../../../common/ConfirmModal';
+import { formatDate } from '../../../helpers/formatDate';
+
+const CLASSROOM_TABS = [
+  { key: 'active', label: 'Hoạt động' },
+  { key: 'all', label: 'Tất cả' },
+];
 
 export default function ClassroomManagement() {
+  const [activeTab, setActiveTab] = useState('active');
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [sorting, setSorting] = useState([]);
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const includeDeleted = activeTab === 'all';
+  const { classrooms, loading, error, refetch } = useAdminClassrooms(includeDeleted);
+  const { stats } = useAdminClassroomStats();
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editClassroom, setEditClassroom] = useState(null);
+
+  const [detailClassroom, setDetailClassroom] = useState(null);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [confirmAction, setConfirmAction] = useState('softDelete');
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const data = useMemo(() => classrooms, [classrooms]);
+
+  const handleEdit = async (payload) => {
+    await adminClassroomApi.updateAdminClassroom(editClassroom.id, payload);
+    refetch();
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmTarget) return;
+    setConfirmLoading(true);
+    try {
+      if (confirmAction === 'softDelete') {
+        await adminClassroomApi.softDeleteClassroom(confirmTarget.id);
+      } else if (confirmAction === 'hardDelete') {
+        await adminClassroomApi.hardDeleteClassroom(confirmTarget.id);
+      } else if (confirmAction === 'restore') {
+        await adminClassroomApi.restoreClassroom(confirmTarget.id);
+      }
+      refetch();
+      setConfirmOpen(false);
+      setConfirmTarget(null);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const openEditModal = (cls) => {
+    setEditClassroom(cls);
+    setEditOpen(true);
+    setOpenMenuId(null);
+  };
+
+  const openDetail = (cls) => {
+    setDetailClassroom(cls);
+    setOpenMenuId(null);
+  };
+
+  const openSoftDeleteConfirm = (cls) => {
+    setConfirmTarget(cls);
+    setConfirmAction('softDelete');
+    setConfirmOpen(true);
+    setOpenMenuId(null);
+  };
+
+  const openHardDeleteConfirm = (cls) => {
+    setConfirmTarget(cls);
+    setConfirmAction('hardDelete');
+    setConfirmOpen(true);
+    setOpenMenuId(null);
+  };
+
+  const openRestoreConfirm = (cls) => {
+    setConfirmTarget(cls);
+    setConfirmAction('restore');
+    setConfirmOpen(true);
+    setOpenMenuId(null);
+  };
+
+  const columns = useMemo(() => [
+    {
+      accessorKey: 'name',
+      header: 'Lớp học',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
+            <School className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">{row.original.name}</p>
+            {row.original.description && (
+              <p className="text-xs text-gray-400 line-clamp-1 max-w-[200px]">{row.original.description}</p>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'classCode',
+      header: 'Mã lớp',
+      cell: ({ getValue }) => (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-xs font-mono font-semibold text-gray-700">
+          <Hash className="w-3 h-3 text-gray-400" />
+          {getValue()}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'teacherName',
+      header: 'Giáo viên',
+      cell: ({ row }) => (
+        <div>
+          <p className="text-sm font-medium text-gray-800">{row.original.teacherName}</p>
+          <p className="text-xs text-gray-400">{row.original.teacherEmail}</p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'studentCount',
+      header: 'Học sinh',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 text-sm">
+            <Users className="w-3.5 h-3.5 text-teal-500" />
+            <span className="font-semibold text-gray-800">{row.original.studentCount}</span>
+          </div>
+          {row.original.pendingInvitationCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
+              +{row.original.pendingInvitationCount} chờ
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Ngày tạo',
+      cell: ({ getValue }) => <span className="text-sm text-gray-500">{formatDate(getValue())}</span>,
+    },
+    {
+      accessorKey: 'isDeleted',
+      header: 'Trạng thái',
+      cell: ({ getValue }) => (
+        getValue()
+          ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"><XCircle className="w-3 h-3" />Đã xóa</span>
+          : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"><CheckCircle2 className="w-3 h-3" />Hoạt động</span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const cls = row.original;
+        return (
+          <div className="relative" ref={openMenuId === cls.id ? menuRef : null}>
+            <button
+              onClick={() => setOpenMenuId(openMenuId === cls.id ? null : cls.id)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {openMenuId === cls.id && (
+              <div className="absolute right-0 bottom-0 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-10 max-h-[84px] overflow-y-auto">
+                <button
+                  onClick={() => openDetail(cls)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                  Xem chi tiết
+                </button>
+                {!cls.isDeleted && (
+                  <>
+                    <button
+                      onClick={() => openEditModal(cls)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Chỉnh sửa
+                    </button>
+                    <button
+                      onClick={() => openSoftDeleteConfirm(cls)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                    >
+                      <Archive className="w-4 h-4" />
+                      Xóa tạm thời
+                    </button>
+                  </>
+                )}
+                {cls.isDeleted && (
+                  <button
+                    onClick={() => openRestoreConfirm(cls)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Khôi phục
+                  </button>
+                )}
+                <div className="my-1 border-t border-gray-100" />
+                <button
+                  onClick={() => openHardDeleteConfirm(cls)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Xóa vĩnh viễn
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+  ], [openMenuId]);
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: { globalFilter, sorting },
+    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: { pageSize: 8 },
+    },
+  });
+
+  const getConfirmTitle = () => {
+    if (confirmAction === 'softDelete') return 'Xóa tạm thời lớp học';
+    if (confirmAction === 'hardDelete') return 'Xóa vĩnh viễn lớp học';
+    return 'Khôi phục lớp học';
+  };
+
+  const getConfirmMessage = () => {
+    const name = confirmTarget?.name || '';
+    if (confirmAction === 'softDelete')
+      return `Bạn có chắc muốn xóa tạm thời lớp "${name}"? Lớp có thể được khôi phục sau.`;
+    if (confirmAction === 'hardDelete')
+      return `Bạn có chắc muốn xóa vĩnh viễn lớp "${name}"? Hành động này KHÔNG thể hoàn tác!`;
+    return `Bạn có chắc muốn khôi phục lớp "${name}"?`;
+  };
+
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const pageState = table.getState().pagination;
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      {stats && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Lớp hoạt động"
+            value={stats.totalClassrooms}
+            icon={School}
+            gradient="from-violet-500 to-indigo-600"
+          />
+          <StatCard
+            label="Đã xóa"
+            value={stats.totalDeletedClassrooms}
+            icon={Archive}
+            gradient="from-rose-500 to-pink-600"
+          />
+          <StatCard
+            label="Tổng thành viên"
+            value={stats.totalMembers}
+            icon={Users}
+            gradient="from-teal-500 to-cyan-600"
+          />
+          <StatCard
+            label="Lời mời chờ"
+            value={stats.totalPendingInvitations}
+            icon={AlertTriangle}
+            gradient="from-amber-500 to-orange-600"
+          />
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Quản lý lớp học</h2>
-          <p className="text-sm text-gray-500 mt-1">{MOCK_CLASSROOMS.length} lớp học trong hệ thống</p>
+          <p className="text-sm text-gray-500 mt-1">{classrooms.length} lớp học{includeDeleted ? ' (bao gồm đã xóa)' : ''}</p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 hover:-translate-y-0.5 transition-all duration-200">
-          <Plus className="w-4 h-4" />
-          Tạo lớp học
-        </button>
       </div>
 
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        {MOCK_CLASSROOMS.map((cls) => {
-          const pct = Math.round((cls.students / cls.maxStudents) * 100);
-          const barColor = pct > 85 ? 'bg-rose-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500';
-          return (
-            <div
-              key={cls.id}
-              className="group bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-0.5 transition-all duration-300"
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+          {CLASSROOM_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key); table.setPageIndex(0); }}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200
+                ${activeTab === tab.key
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
             >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-gray-900">{cls.name}</h3>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide
-                      ${cls.status === 'active'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-gray-100 text-gray-500'
-                      }`}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={globalFilter ?? ''}
+            onChange={(e) => { setGlobalFilter(e.target.value); table.setPageIndex(0); }}
+            placeholder="Tìm tên lớp, mã lớp, giáo viên..."
+            className="w-full sm:w-72 pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all duration-200 placeholder-gray-400"
+          />
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="border-b border-gray-100">
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider"
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${cls.status === 'active' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                      {cls.status === 'active' ? 'Hoạt động' : 'Tạm ngừng'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-0.5">Khối {cls.grade}</p>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-violet-600 group-hover:scale-110 transition-transform duration-200">
-                  <Users className="w-5 h-5" />
-                </div>
-              </div>
-
-
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Giáo viên</span>
-                  <span className="font-medium text-gray-800">{cls.teacherName}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Niên khóa</span>
-                  <span className="font-medium text-gray-800">{cls.academicYear}</span>
-                </div>
-              </div>
-
-
-              {cls.description && (
-                <p className="text-xs text-gray-400 mb-3 line-clamp-1">{cls.description}</p>
+                      {header.isPlaceholder ? null : (
+                        <button
+                          className={`flex items-center gap-1.5 ${header.column.getCanSort() ? 'cursor-pointer select-none hover:text-gray-700' : ''}`}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getCanSort() && <SortIcon column={header.column} />}
+                        </button>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-5 py-12 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-violet-500 mx-auto" />
+                    <p className="text-sm text-gray-400 mt-2">Đang tải dữ liệu...</p>
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  {table.getRowModel().rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150 ${row.original.isDeleted ? 'opacity-60' : ''}`}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-5 py-4">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  {table.getRowModel().rows.length === 0 && (
+                    <tr>
+                      <td colSpan={columns.length} className="px-5 py-12 text-center">
+                        <School className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm text-gray-400">Không tìm thấy lớp học nào</p>
+                      </td>
+                    </tr>
+                  )}
+                </>
               )}
+            </tbody>
+          </table>
+        </div>
 
-
-              <div className="mb-4">
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-gray-500">Sĩ số</span>
-                  <span className="font-semibold text-gray-700">{cls.students}/{cls.maxStudents}</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${barColor} transition-all duration-500`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-
-
-              <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                <button className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet-100 transition-colors">
-                  <Eye className="w-3.5 h-3.5" /> Chi tiết
+        {filteredCount > 0 && (
+          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
+            <p className="text-sm text-gray-500">
+              Hiển thị{' '}
+              {pageState.pageIndex * pageState.pageSize + 1}–
+              {Math.min(
+                (pageState.pageIndex + 1) * pageState.pageSize,
+                filteredCount
+              )}{' '}
+              / {filteredCount}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: table.getPageCount() }, (_, i) => i).map((pageIndex) => (
+                <button
+                  key={pageIndex}
+                  onClick={() => table.setPageIndex(pageIndex)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200
+                    ${pageIndex === pageState.pageIndex
+                      ? 'bg-violet-600 text-white shadow-md'
+                      : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                >
+                  {pageIndex + 1}
                 </button>
-                <button className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Sửa">
-                  <Edit3 className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Xóa">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+              ))}
+              <button
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          );
-        })}
+          </div>
+        )}
+      </div>
+
+      <ClassroomEditModal
+        isOpen={editOpen}
+        onClose={() => { setEditOpen(false); setEditClassroom(null); }}
+        onSubmit={handleEdit}
+        classroom={editClassroom}
+      />
+
+      <ClassroomDetailModal
+        isOpen={!!detailClassroom}
+        onClose={() => setDetailClassroom(null)}
+        classroom={detailClassroom}
+        onRefresh={refetch}
+      />
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setConfirmTarget(null); }}
+        onConfirm={handleConfirm}
+        title={getConfirmTitle()}
+        message={getConfirmMessage()}
+        loading={confirmLoading}
+      />
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, gradient }) {
+  return (
+    <div className="group bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-lg hover:shadow-gray-200/50 hover:-translate-y-0.5 transition-all duration-300">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+        </div>
+        <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-200`}>
+          <Icon className="w-5 h-5" />
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import PeopleTab from './components/PeopleTab';
 import InviteDialog from './components/InviteDialog';
 import ClassroomSettings from './components/ClassroomSettings';
 import { useAuthStore } from '../../stores/authStore';
-import { getClassroom, getRoster, getStudentClassroom, getStudentRoster } from '../../services/classroomApi';
+import { getClassroom, getRoster, getStudentClassroom, getStudentRoster, deleteClassroom } from '../../services/classroomApi';
 import { BANNER_COLORS } from '../../data/classroomData';
 
 function getInitials(name) {
@@ -61,6 +61,16 @@ export default function ClassroomDetail() {
 
   const handleClassroomUpdate = (updated) => {
     setClassroom(updated);
+  };
+
+  const handleClassroomDelete = async () => {
+    if (!confirm(`Xóa lớp "${classroom?.name}"? Thao tác này không thể hoàn tác.`)) return;
+    try {
+      await deleteClassroom(classroom.id);
+      navigate('/classrooms');
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const copyToClipboard = (text, type) => {
@@ -118,7 +128,6 @@ export default function ClassroomDetail() {
         <DashboardSidebar />
         <div className="flex-1 flex flex-col min-h-[calc(100vh-64px)]" style={{ marginLeft: '72px' }}>
           <main className="flex-1">
-            {/* Banner */}
             <div className={`bg-gradient-to-r ${bannerColor} px-6 py-6 relative`}>
               <div className="max-w-5xl mx-auto">
                 <button
@@ -151,7 +160,6 @@ export default function ClassroomDetail() {
               </div>
             </div>
 
-            {/* Tabs */}
             <div className="bg-white border-b border-gray-100 shadow-sm sticky top-16 z-30">
               <div className="max-w-5xl mx-auto px-6 flex gap-1">
                 {tabs.map(t => (
@@ -169,7 +177,6 @@ export default function ClassroomDetail() {
               </div>
             </div>
 
-            {/* Tab content */}
             <div className="max-w-5xl mx-auto p-6">
               {activeTab === 'stream' && (
                 <div className="text-center py-16">
@@ -197,6 +204,7 @@ export default function ClassroomDetail() {
                 <ClassroomSettings
                   classroom={classroom}
                   onUpdate={handleClassroomUpdate}
+                  onDelete={handleClassroomDelete}
                 />
               )}
             </div>
