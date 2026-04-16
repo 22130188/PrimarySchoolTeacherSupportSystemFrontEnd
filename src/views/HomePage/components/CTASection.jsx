@@ -15,10 +15,6 @@ export default function CTASection() {
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
 
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium mb-8">
-          Miễn phí
-        </div>
-
 
         <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
           Sẵn sàng nâng tầm
@@ -35,7 +31,7 @@ export default function CTASection() {
             href="/register"
             className="px-10 py-4 rounded-full bg-white text-violet-700 font-bold text-base shadow-2xl hover:shadow-white/30 hover:-translate-y-1 transition-all duration-300 hover:bg-violet-50"
           >
-            Bắt đầu miễn phí ngay
+            Bắt đầu
           </a>
           <a
             href="/login"

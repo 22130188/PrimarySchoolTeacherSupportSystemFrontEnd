@@ -38,7 +38,6 @@ export default function AIToolsPage() {
                   </div>
                   Công cụ AI
                 </h1>
-                <p className="text-sm text-gray-500 ml-[52px]">Sức mạnh AI hỗ trợ soạn bài, chấm điểm, phát âm và dịch thuật</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -73,8 +72,6 @@ export default function AIToolsPage() {
               </div>
             </div>
           </main>
-
-          <Footer />
         </div>
       </div>
     </div>

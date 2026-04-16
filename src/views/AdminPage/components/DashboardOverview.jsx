@@ -1,14 +1,87 @@
-import { TrendingUp, TrendingDown, Plus, BookOpen, Users, School } from 'lucide-react';
-import { STAT_CARDS, MONTHLY_DATA, RECENT_ACTIVITIES } from '../../../data/adminDashboardData';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, BookOpen, Users, School, GraduationCap, FolderOpen } from 'lucide-react';
+import { MONTHLY_DATA, RECENT_ACTIVITIES } from '../../../data/adminDashboardData';
+import { getUsers } from '../../../services/userApi';
+import { getAdminDashboardStats } from '../../../services/adminClassroomApi';
+import resourceService from '../../../services/resourceService';
+
+const normalizeArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.content)) return value.content;
+  return [];
+};
+
+const formatCount = (value) => new Intl.NumberFormat('en-US').format(Number(value || 0));
 
 export default function DashboardOverview() {
+  const [overviewStats, setOverviewStats] = useState({
+    teachers: 0,
+    students: 0,
+    classrooms: 0,
+    resources: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
   const maxSessions = Math.max(...MONTHLY_DATA.map((d) => d.sessions));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchOverviewStats = async () => {
+      setStatsLoading(true);
+
+      const [teachersRes, studentsRes, classroomsRes, imagesRes, audiosRes] = await Promise.allSettled([
+        getUsers(null, 'TEACHER'),
+        getUsers(null, 'STUDENT'),
+        getAdminDashboardStats(),
+        resourceService.getAllImages(),
+        resourceService.getAllAudios(),
+      ]);
+
+      if (!isMounted) return;
+
+      const teachers = teachersRes.status === 'fulfilled'
+        ? normalizeArray(teachersRes.value).length
+        : 0;
+      const students = studentsRes.status === 'fulfilled'
+        ? normalizeArray(studentsRes.value).length
+        : 0;
+      const classrooms = classroomsRes.status === 'fulfilled'
+        ? Number(
+            classroomsRes.value?.totalClassrooms ??
+            classroomsRes.value?.classroomCount ??
+            classroomsRes.value?.total ??
+            0,
+          )
+        : 0;
+      const resources =
+        (imagesRes.status === 'fulfilled' ? normalizeArray(imagesRes.value).length : 0) +
+        (audiosRes.status === 'fulfilled' ? normalizeArray(audiosRes.value).length : 0);
+
+      setOverviewStats({ teachers, students, classrooms, resources });
+      setStatsLoading(false);
+    };
+
+    fetchOverviewStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const statCards = useMemo(() => ([
+    { id: 1, label: 'Giáo viên', value: formatCount(overviewStats.teachers), icon: Users, gradient: 'from-violet-500 to-indigo-600' },
+    { id: 2, label: 'Học sinh', value: formatCount(overviewStats.students), icon: GraduationCap, gradient: 'from-teal-500 to-cyan-600' },
+    { id: 3, label: 'Lớp học', value: formatCount(overviewStats.classrooms), icon: School, gradient: 'from-rose-500 to-pink-600' },
+    { id: 4, label: 'Tài nguyên', value: formatCount(overviewStats.resources), icon: FolderOpen, gradient: 'from-amber-500 to-orange-600' },
+  ]), [overviewStats]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-        {STAT_CARDS.map((card) => {
+        {statCards.map((card) => {
           const Icon = card.icon;
           return (
             <div
@@ -18,14 +91,9 @@ export default function DashboardOverview() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">{card.label}</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
-                  <div className={`flex items-center gap-1 mt-2 text-xs font-semibold ${card.trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {card.trend === 'up'
-                      ? <TrendingUp className="w-3.5 h-3.5" />
-                      : <TrendingDown className="w-3.5 h-3.5" />
-                    }
-                    <span>{card.change} so với tháng trước</span>
-                  </div>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                    {statsLoading ? '...' : card.value}
+                  </p>
                 </div>
                 <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                   <Icon className="w-6 h-6 text-white" />

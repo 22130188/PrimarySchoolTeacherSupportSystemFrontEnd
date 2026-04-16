@@ -88,8 +88,6 @@ export default function TestsPage() {
               </div>
             </div>
           </main>
-
-          <Footer />
         </div>
       </div>
     </div>

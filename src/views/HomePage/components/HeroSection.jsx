@@ -32,8 +32,7 @@ export default function HeroSection() {
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
 
         <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
-          <span className="text-base">✨</span>
-          Tích hợp AI thông minh
+          Tích hợp AI hỗ trợ giáo viên
         </div>
 
 
@@ -53,7 +52,7 @@ export default function HeroSection() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <a href="/register" className="px-8 py-4 rounded-full bg-white text-violet-700 font-bold text-base shadow-2xl hover:shadow-white/30 hover:-translate-y-1 transition-all duration-300 hover:bg-violet-50">
-            Bắt đầu miễn phí
+            Bắt đầu
           </a>
           <a href="#demo" className="px-8 py-4 rounded-full bg-white/15 backdrop-blur-sm text-white font-semibold text-base border border-white/40 hover:bg-white/25 hover:-translate-y-1 transition-all duration-300">
             Xem demo →
