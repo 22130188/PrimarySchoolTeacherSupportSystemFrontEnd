@@ -98,8 +98,6 @@ export default function LessonsPage() {
               </div>
             </div>
           </main>
-
-          <Footer />
         </div>
       </div>
     </div>

@@ -290,24 +290,12 @@ export default function ClassroomManagement() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <StatCard
             label="Lớp hoạt động"
             value={stats.totalClassrooms}
             icon={School}
             gradient="from-violet-500 to-indigo-600"
-          />
-          <StatCard
-            label="Đã xóa"
-            value={stats.totalDeletedClassrooms}
-            icon={Archive}
-            gradient="from-rose-500 to-pink-600"
-          />
-          <StatCard
-            label="Tổng thành viên"
-            value={stats.totalMembers}
-            icon={Users}
-            gradient="from-teal-500 to-cyan-600"
           />
           <StatCard
             label="Lời mời chờ"

@@ -16,13 +16,7 @@ export default function HeroSearch() {
 
       <div className="relative z-10 px-6 pt-10 pb-6 max-w-4xl mx-auto text-center">
 
-        <button
-          id="hero-cta-badge"
-          className="inline-flex items-center gap-1.5 px-4 py-1.5 mb-6 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200"
-        >
-          <Star className="w-3.5 h-3.5 fill-white" />
-          Bắt đầu dùng thử miễn phí
-        </button>
+
 
         <h1
           className="text-3xl sm:text-4xl md:text-[42px] font-extrabold leading-tight mb-8"

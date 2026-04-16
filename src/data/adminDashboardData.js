@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, School, Settings,
-  TrendingUp, TrendingDown, GraduationCap, FileText,
+  GraduationCap, FileText,
   BookOpen, ShieldCheck, FolderOpen,
   Image, Volume2, Globe, Shield, BellRing, User,
 } from 'lucide-react';
@@ -19,10 +19,10 @@ export const ADMIN_MENU = [
 
 
 export const STAT_CARDS = [
-  { id: 1, label: 'Giáo viên', value: '1,248', change: '+12%', trend: 'up', icon: Users, gradient: 'from-violet-500 to-indigo-600' },
-  { id: 2, label: 'Học sinh', value: '28,450', change: '+8%', trend: 'up', icon: GraduationCap, gradient: 'from-teal-500 to-cyan-600' },
-  { id: 3, label: 'Lớp học', value: '456', change: '+5%', trend: 'up', icon: School, gradient: 'from-rose-500 to-pink-600' },
-  { id: 4, label: 'Tài nguyên', value: '12,840', change: '+18%', trend: 'up', icon: FolderOpen, gradient: 'from-amber-500 to-orange-600' },
+  { id: 1, label: 'Giáo viên', value: '1,248', icon: Users, gradient: 'from-violet-500 to-indigo-600' },
+  { id: 2, label: 'Học sinh', value: '28,450', icon: GraduationCap, gradient: 'from-teal-500 to-cyan-600' },
+  { id: 3, label: 'Lớp học', value: '456', icon: School, gradient: 'from-rose-500 to-pink-600' },
+  { id: 4, label: 'Tài nguyên', value: '12,840', icon: FolderOpen, gradient: 'from-amber-500 to-orange-600' },
 ];
 
 
