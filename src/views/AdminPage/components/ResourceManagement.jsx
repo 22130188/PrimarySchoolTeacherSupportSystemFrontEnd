@@ -11,8 +11,11 @@ import { Search, Image, Volume2, Upload, Trash2, Download, Eye, ChevronLeft, Che
 import { RESOURCE_TABS } from '../../../data/adminDashboardData';
 import SortIcon from '../../../components/SortIcon';
 import resourceService from '../../../services/resourceService';
+import { useAuthStore } from '../../../stores/authStore';
+import UploadResourceModal from './UploadResourceModal';
 
 export default function ResourceManagement() {
+  const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState('images');
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
@@ -21,6 +24,7 @@ export default function ResourceManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [viewImageModal, setViewImageModal] = useState({ open: false, image: null });
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -315,7 +319,9 @@ export default function ResourceManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Quản lý tài nguyên</h2>
           <p className="text-sm text-gray-500 mt-1">{images.length} ảnh · {audios.length} file âm thanh</p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 hover:-translate-y-0.5 transition-all duration-200">
+        <button 
+          onClick={() => setShowUploadModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 hover:-translate-y-0.5 transition-all duration-200">
           <Upload className="w-4 h-4" />
           Tải lên tài nguyên
         </button>
@@ -447,6 +453,50 @@ export default function ResourceManagement() {
           </div>
         </div>
       )}
+
+      <UploadResourceModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUploadSuccess={() => {
+          const fetchData = async () => {
+            try {
+              const [imagesRes, audiosRes] = await Promise.all([
+                resourceService.getAllImages(),
+                resourceService.getAllAudios()
+              ]);
+
+              if (imagesRes.success) {
+                setImages(imagesRes.data.map(img => ({
+                  id: img.id,
+                  fileName: img.description || `Image ${img.id}`,
+                  uploadedBy: img.userName,
+                  subject: img.subject,
+                  createdAt: new Date(img.createdAt).toLocaleDateString('vi-VN'),
+                  url: img.imageUrl,
+                  mimeType: 'image/*'
+                })));
+              }
+
+              if (audiosRes.success) {
+                setAudios(audiosRes.data.map(audio => ({
+                  id: audio.id,
+                  fileName: audio.audioName || `Audio ${audio.id}`,
+                  uploadedBy: audio.userName,
+                  subject: audio.subject,
+                  createdAt: new Date(audio.createdAt).toLocaleDateString('vi-VN'),
+                  url: audio.audioUrl,
+                  mimeType: 'audio/*',
+                  text: audio.text
+                })));
+              }
+            } catch (err) {
+              console.error('Error refreshing resources:', err);
+            }
+          };
+          fetchData();
+        }}
+        user={user}
+      />
     </div>
   );
 }
