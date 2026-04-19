@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { API_CONFIG } from '../config/api.config.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-const TTS_SERVICE_URL = `${API_BASE_URL}/tts`;
+const TTS_SERVICE_URL = API_CONFIG.TTS_API_URL;
 
 class TTSService {
   static async convertTextToSpeech(text) {

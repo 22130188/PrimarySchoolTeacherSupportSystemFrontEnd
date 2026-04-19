@@ -1,0 +1,34 @@
+import axios from 'axios';
+import { API_CONFIG } from '../config/api.config.js';
+
+const PRONUNCIATION_SERVICE_URL = API_CONFIG.PRONUNCIATION_API_URL;
+
+class PronunciationService {
+  static async checkPronunciation(targetText, audioFile) {
+    try {
+      const formData = new FormData();
+      formData.append('target_text', targetText);
+      formData.append('audio_file', audioFile, audioFile.name || 'recorded.wav');
+
+      const response = await axios.post(
+        `${PRONUNCIATION_SERVICE_URL}/check`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data.data || response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Lỗi kiểm tra phát âm'
+      );
+    }
+  }
+}
+
+export default PronunciationService;

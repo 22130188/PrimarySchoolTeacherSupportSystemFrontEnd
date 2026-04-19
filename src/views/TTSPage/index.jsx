@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Volume2, Download, Loader, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Volume2, Download, Loader, AlertCircle, CheckCircle, X, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import TTSService from '../../services/TTSService';
-import Navbar from '../../components/Navbar';
-import DashboardSidebar from '../../components/DashboardSidebar';
-import Footer from '../../components/Footer';
+import AIToolPageLayout from '../../components/AIToolPageLayout';
 
 export default function TTSPage() {
   const { user } = useAuthStore();
@@ -34,6 +32,8 @@ export default function TTSPage() {
   const handleConvertTTS = async () => {
     setError('');
     setSuccess('');
+    setAudioUrl('');
+    setConvertedText('');
     
     if (!validateInput()) return;
 
@@ -132,229 +132,223 @@ export default function TTSPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
+    <AIToolPageLayout
+      icon={<Volume2 className="w-6 h-6" />}
+      iconBgClass="bg-violet-100"
+      iconTextClass="text-violet-600"
+      title="Chuyển Text thành Giọng nói"
+      description="Nhập văn bản tiếng Việt & nghe giọng đọc tự nhiên, lưu lại lịch sử audio."
+    >
+      <div className="grid gap-6 xl:grid-cols-[1.8fr_1fr]">
+        <div>
+          {error && (
+            <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700 mb-6">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+          {success && (
+            <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 mb-6">
+              <CheckCircle className="w-5 h-5 shrink-0" />
+              <p className="text-sm">{success}</p>
+            </div>
+          )}
 
-      <div className="flex pt-16">
-        <DashboardSidebar />
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Nhập văn bản tiếng Việt</label>
+              <textarea
+                className="min-h-[180px] w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setError('');
+                }}
+                placeholder="Ví dụ: Đây là một quả táo đỏ..."
+                disabled={isLoading}
+              />
+              <div className="mt-2 text-right text-xs text-slate-500">{text.length} / 5000 ký tự</div>
+            </div>
 
-        <div className="flex-1 flex flex-col min-h-[calc(100vh-64px)] ml-[72px]">
-          <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid gap-6 xl:grid-cols-[1.8fr_1fr]">
-              <section className="rounded-[28px] border border-gray-200 bg-white shadow-sm p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-5 mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center shadow-sm">
-                      <Volume2 className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h1 className="text-2xl font-semibold text-slate-900">Chuyển Text thành Giọng nói</h1>
-                      <p className="text-sm text-slate-500">Nhập văn bản tiếng Việt & nghe giọng đọc tự nhiên, lưu lại lịch sử audio.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700 mb-6">
-                    <AlertCircle className="w-5 h-5 shrink-0" />
-                    <p className="text-sm">{error}</p>
-                  </div>
-                )}
-                {success && (
-                  <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 mb-6">
-                    <CheckCircle className="w-5 h-5 shrink-0" />
-                    <p className="text-sm">{success}</p>
-                  </div>
-                )}
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Nhập văn bản tiếng Việt</label>
-                    <textarea
-                      className="min-h-[180px] w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                      value={text}
-                      onChange={(e) => {
-                        setText(e.target.value);
-                        setError('');
-                      }}
-                      placeholder="Ví dụ: Đây là một quả táo đỏ..."
-                      disabled={isLoading}
-                    />
-                    <div className="mt-2 text-right text-xs text-slate-500">{text.length} / 5000 ký tự</div>
-                  </div>
-
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      className="inline-flex items-center justify-center gap-2 rounded-3xl bg-gradient-to-r from-violet-600 to-teal-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
-                      onClick={handleConvertTTS}
-                      disabled={isLoading || !text.trim()}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader className="h-4 w-4 animate-spin" />
-                          Đang xử lý...
-                        </>
-                      ) : (
-                        <>
-                          <Volume2 className="h-4 w-4" />
-                          Chuyển đổi
-                        </>
-                      )}
-                    </button>
-                    <p className="text-sm text-slate-500">Bạn có thể nghe trước và lưu kết quả vào lịch sử.</p>
-                  </div>
-                </div>
-
-                {audioUrl && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-3xl bg-gradient-to-r from-violet-600 to-teal-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleConvertTTS}
+                disabled={isLoading || !text.trim()}
+              >
+                {isLoading ? (
                   <>
-                    <div className="mt-8 rounded-[24px] border border-violet-100 bg-violet-50/80 p-6">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h2 className="text-lg font-semibold text-slate-900">Kết quả âm thanh</h2>
-                        <div className="flex flex-wrap gap-3">
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = audioUrl;
-                              link.download = `audio_${Date.now()}.mp3`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                            }}
-                          >
-                            <Download className="h-4 w-4" />
-                            Tải xuống
-                          </button>
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-2 rounded-3xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700"
-                            onClick={handleSaveAudio}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            Lưu âm thanh
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-4">
-                        <audio controls className="w-full" crossOrigin="anonymous">
-                          <source src={audioUrl} type="audio/mpeg" />
-                          Trình duyệt không hỗ trợ audio.
-                        </audio>
-                      </div>
-                    </div>
-
-                    {showSaveAudioModal && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
-                        <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
-                          <div className="flex items-start justify-between gap-3 mb-5">
-                            <div>
-                              <h2 className="text-xl font-semibold text-slate-900">Lưu audio</h2>
-                              <p className="text-sm text-slate-500">Nhập tên audio và môn học để lưu vào database.</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setShowSaveAudioModal(false)}
-                              className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-2">Tên audio</label>
-                              <input
-                                value={audioSaveForm.audioName}
-                                onChange={(e) => setAudioSaveForm((prev) => ({ ...prev, audioName: e.target.value }))}
-                                placeholder="Nhập tên audio"
-                                className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-2">Môn học</label>
-                              <input
-                                value={audioSaveForm.subject}
-                                onChange={(e) => setAudioSaveForm((prev) => ({ ...prev, subject: e.target.value }))}
-                                placeholder="Ví dụ: Toán, Tiếng Anh"
-                                className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                              />
-                            </div>
-
-                            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                              <button
-                                type="button"
-                                onClick={() => setShowSaveAudioModal(false)}
-                                className="inline-flex items-center justify-center rounded-3xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                              >
-                                Hủy
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleConfirmSaveAudio}
-                                className="inline-flex items-center justify-center rounded-3xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700"
-                              >
-                                Lưu audio
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <Loader className="h-4 w-4 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="h-4 w-4" />
+                    Chuyển đổi
                   </>
                 )}
-              </section>
+              </button>
+              <p className="text-sm text-slate-500">Bạn có thể nghe trước và lưu kết quả vào lịch sử.</p>
+            </div>
+          </div>
 
-              <aside className="rounded-[28px] border border-gray-200 bg-white shadow-sm p-6">
-                <div className="flex items-center justify-between gap-3 mb-5">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">Lịch sử âm thanh</h2>
-                    <p className="text-sm text-slate-500">Các tệp đã lưu từ database của bạn.</p>
+          {audioUrl && (
+            <>
+              <div className="mt-8 rounded-[24px] border border-violet-100 bg-violet-50/80 p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="text-lg font-semibold text-slate-900">Kết quả âm thanh</h2>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = audioUrl;
+                        link.download = `audio_${Date.now()}.mp3`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                      Tải xuống
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-3xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700"
+                      onClick={handleSaveAudio}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Lưu âm thanh
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-3xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                      onClick={() => {
+                        setAudioUrl('');
+                        setConvertedText('');
+                        setSuccess('');
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Xóa
+                    </button>
                   </div>
-                  {isLoadingHistory && <Loader className="h-5 w-5 text-slate-400 animate-spin" />}
                 </div>
 
-                {savedAudios.length === 0 ? (
-                  <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 text-slate-500">
-                    <Volume2 className="h-10 w-10" />
-                    <p className="text-sm">Chưa có âm thanh được lưu trong hệ thống.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {savedAudios.map((audio) => (
-                      <div key={audio.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-slate-900 line-clamp-2">{audio.audioName || audio.text}</p>
-                            {audio.subject && <p className="text-xs text-slate-500">Môn: {audio.subject}</p>}
-                            <p className="text-xs text-slate-500">{new Date(audio.createdAt).toLocaleDateString('vi-VN')}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <audio controls className="h-10 w-[180px] rounded-2xl bg-white" crossOrigin="anonymous">
-                              <source src={audio.audioUrl} type="audio/mpeg" />
-                            </audio>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteAudio(audio.id)}
-                              className="rounded-2xl bg-rose-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-600"
-                            >
-                              Xóa
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </aside>
-            </div>
-          </main>
+                <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-4">
+                  <audio controls className="w-full" crossOrigin="anonymous">
+                    <source src={audioUrl} type="audio/mpeg" />
+                    Trình duyệt không hỗ trợ audio.
+                  </audio>
+                </div>
+              </div>
 
-          <Footer />
+              {showSaveAudioModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+                  <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+                    <div className="flex items-start justify-between gap-3 mb-5">
+                      <div>
+                        <h2 className="text-xl font-semibold text-slate-900">Lưu audio</h2>
+                        <p className="text-sm text-slate-500">Nhập tên audio và môn học để lưu vào database.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowSaveAudioModal(false)}
+                        className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Tên audio</label>
+                        <input
+                          value={audioSaveForm.audioName}
+                          onChange={(e) => setAudioSaveForm((prev) => ({ ...prev, audioName: e.target.value }))}
+                          placeholder="Nhập tên audio"
+                          className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Môn học</label>
+                        <input
+                          value={audioSaveForm.subject}
+                          onChange={(e) => setAudioSaveForm((prev) => ({ ...prev, subject: e.target.value }))}
+                          placeholder="Ví dụ: Toán, Tiếng Anh"
+                          className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setShowSaveAudioModal(false)}
+                          className="inline-flex items-center justify-center rounded-3xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConfirmSaveAudio}
+                          className="inline-flex items-center justify-center rounded-3xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700"
+                        >
+                          Lưu audio
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
+
+        <aside className="rounded-[28px] border border-gray-200 bg-white shadow-sm p-6">
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Lịch sử âm thanh</h2>
+              <p className="text-sm text-slate-500">Các tệp đã lưu từ database của bạn.</p>
+            </div>
+            {isLoadingHistory && <Loader className="h-5 w-5 text-slate-400 animate-spin" />}
+          </div>
+
+          {savedAudios.length === 0 ? (
+            <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 text-slate-500">
+              <Volume2 className="h-10 w-10" />
+              <p className="text-sm">Chưa có âm thanh được lưu trong hệ thống.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {savedAudios.map((audio) => (
+                <div key={audio.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-slate-900 line-clamp-2">{audio.audioName || audio.text}</p>
+                      {audio.subject && <p className="text-xs text-slate-500">Môn: {audio.subject}</p>}
+                      <p className="text-xs text-slate-500">{new Date(audio.createdAt).toLocaleDateString('vi-VN')}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <audio controls className="h-10 w-[180px] rounded-2xl bg-white" crossOrigin="anonymous">
+                        <source src={audio.audioUrl} type="audio/mpeg" />
+                      </audio>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAudio(audio.id)}
+                        className="rounded-2xl bg-rose-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-600"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
       </div>
-    </div>
+    </AIToolPageLayout>
   );
 }
