@@ -1,20 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, Link2, CheckCircle2, Keyboard } from 'lucide-react';
+import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard } from 'lucide-react';
 import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import PeopleTab from './components/PeopleTab';
 import InviteDialog from './components/InviteDialog';
 import ClassroomSettings from './components/ClassroomSettings';
+import StreamTab from './components/StreamTab';
 import { useAuthStore } from '../../stores/authStore';
-import { getClassroom, getRoster, getStudentClassroom, getStudentRoster, deleteClassroom } from '../../services/classroomApi';
+import {
+  getClassroom,
+  getRoster,
+  getStudentClassroom,
+  getStudentRoster,
+  deleteClassroom,
+  getClassroomPosts,
+  createClassroomPost,
+  deleteClassroomPost,
+} from '../../services/classroomApi';
 import { BANNER_COLORS } from '../../data/classroomData';
-
-function getInitials(name) {
-  if (!name) return '?';
-  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-}
 
 export default function ClassroomDetail() {
   const { id } = useParams();
@@ -28,6 +32,10 @@ export default function ClassroomDetail() {
   const [activeTab, setActiveTab] = useState('stream');
   const [showInvite, setShowInvite] = useState(false);
   const [copied, setCopied] = useState('');
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postSubmitting, setPostSubmitting] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState(null);
 
   const bannerColor = BANNER_COLORS[(parseInt(id) || 0) % BANNER_COLORS.length];
 
@@ -49,11 +57,23 @@ export default function ClassroomDetail() {
     }
   }, [id, isTeacher]);
 
+  const fetchPosts = useCallback(async () => {
+    setPostsLoading(true);
+    try {
+      const data = await getClassroomPosts(id, 50);
+      setPosts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err.message);
+    } finally {
+      setPostsLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchClassroom(), fetchRoster()])
+    Promise.all([fetchClassroom(), fetchRoster(), fetchPosts()])
       .finally(() => setLoading(false));
-  }, [fetchClassroom, fetchRoster]);
+  }, [fetchClassroom, fetchRoster, fetchPosts]);
 
   const handleRefreshRoster = () => {
     fetchRoster();
@@ -77,6 +97,32 @@ export default function ClassroomDetail() {
     navigator.clipboard.writeText(text);
     setCopied(type);
     setTimeout(() => setCopied(''), 2000);
+  };
+
+  const handleCreatePost = async (payload) => {
+    setPostSubmitting(true);
+    try {
+      await createClassroomPost(id, payload);
+      await fetchPosts();
+    } catch (err) {
+      alert(err.message || 'Không thể đăng bài');
+      throw err;
+    } finally {
+      setPostSubmitting(false);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!confirm('Bạn có chắc muốn xóa bài đăng này?')) return;
+    setDeletingPostId(postId);
+    try {
+      await deleteClassroomPost(id, postId);
+      await fetchPosts();
+    } catch (err) {
+      alert(err.message || 'Không thể xóa bài đăng');
+    } finally {
+      setDeletingPostId(null);
+    }
   };
 
   const tabs = [
@@ -179,15 +225,16 @@ export default function ClassroomDetail() {
 
             <div className="max-w-5xl mx-auto p-6">
               {activeTab === 'stream' && (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center mx-auto mb-4">
-                    <MessageSquare className="w-9 h-9 text-teal-300" />
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-700 mb-1">Bảng tin lớp học</h3>
-                  <p className="text-sm text-gray-400 max-w-sm mx-auto">
-                    Đây là nơi giáo viên và học sinh trao đổi thông tin. Tính năng này sẽ được phát triển thêm.
-                  </p>
-                </div>
+                <StreamTab
+                  classroom={classroom}
+                  isTeacher={isTeacher}
+                  posts={posts}
+                  loading={postsLoading}
+                  submitting={postSubmitting}
+                  deletingId={deletingPostId}
+                  onCreatePost={handleCreatePost}
+                  onDeletePost={handleDeletePost}
+                />
               )}
 
               {activeTab === 'people' && (

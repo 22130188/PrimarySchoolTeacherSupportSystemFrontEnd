@@ -210,3 +210,27 @@ export async function getInvitationByToken(token) {
   const res = await fetch(`${BASE}/api/internal/invitations/by-token/${token}`);
   return handleRes(res);
 }
+
+export async function getClassroomPosts(classroomId, limit = 30) {
+  const res = await fetch(`${BASE}/api/classrooms/${classroomId}/posts?limit=${limit}`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+}
+
+export async function createClassroomPost(classroomId, data) {
+  const res = await fetch(`${BASE}/api/classrooms/${classroomId}/posts`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+}
+
+export async function deleteClassroomPost(classroomId, postId) {
+  const res = await fetch(`${BASE}/api/classrooms/${classroomId}/posts/${postId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+}
