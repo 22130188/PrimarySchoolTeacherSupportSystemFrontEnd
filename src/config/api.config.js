@@ -10,6 +10,10 @@ const getTtsApiUrl = () => {
   return import.meta.env.VITE_TTS_API_URL || 'http://localhost:8084/api/tts';
 };
 
+const getPronunciationApiUrl = () => {
+  return import.meta.env.VITE_PRONUNCIATION_API_URL || 'http://localhost:8080/api/pronunciation';
+};
+
 const getGatewayUrl = () => {
   return import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080';
 };
@@ -18,6 +22,7 @@ export const API_CONFIG = {
   CANVAS_API_URL: getCanvasApiUrl(),
   IMAGE_API_URL: getImageApiUrl(),
   TTS_API_URL: getTtsApiUrl(),
+  PRONUNCIATION_API_URL: getPronunciationApiUrl(),
   GATEWAY_URL: getGatewayUrl(),
 };
 

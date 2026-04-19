@@ -16,6 +16,9 @@ export default function AIToolsPage() {
       case 'audio-gen':
         navigate('/image');
         break;
+      case 'pronunciation':
+        navigate('/pronunciation');
+        break;
       default:
         console.log(`Tool ${toolId} clicked - implement navigation`);
         break;
