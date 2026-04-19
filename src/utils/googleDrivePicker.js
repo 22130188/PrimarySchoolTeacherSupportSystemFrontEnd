@@ -70,7 +70,7 @@ function mapPickerDoc(doc) {
   };
 }
 
-function createPicker(accessToken, apiKey, appId, onPicked) {
+function createPicker(accessToken, apiKey, appId, onPicked, onCancel) {
   const picker = window.google.picker;
 
   const recentView = new picker.DocsView(picker.ViewId.RECENTLY_PICKED)
@@ -106,6 +106,11 @@ function createPicker(accessToken, apiKey, appId, onPicked) {
       if (data.action === picker.Action.PICKED) {
         const docs = (data.docs || []).map(mapPickerDoc).filter((item) => item.driveUrl);
         onPicked(docs);
+        return;
+      }
+
+      if (data.action === picker.Action.CANCEL) {
+        onCancel?.();
       }
     });
 
@@ -116,7 +121,7 @@ function createPicker(accessToken, apiKey, appId, onPicked) {
   builder.build().setVisible(true);
 }
 
-export async function openGoogleDrivePicker({ apiKey, clientId, appId, onPicked }) {
+export async function openGoogleDrivePicker({ apiKey, clientId, appId, onPicked, loginHint }) {
   if (!apiKey) {
     throw new Error('Thiếu VITE_GOOGLE_API_KEY cho Google Picker.');
   }
@@ -128,23 +133,37 @@ export async function openGoogleDrivePicker({ apiKey, clientId, appId, onPicked 
   await ensureGooglePickerReady();
 
   return new Promise((resolve, reject) => {
+    const normalizedLoginHint = typeof loginHint === 'string' ? loginHint.trim() : '';
+
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: clientId,
       scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file',
+      ...(normalizedLoginHint ? { hint: normalizedLoginHint } : {}),
       callback: (response) => {
         if (!response?.access_token) {
           reject(new Error('Không lấy được access token từ Google.'));
           return;
         }
 
-        createPicker(response.access_token, apiKey, appId, (docs) => {
-          onPicked(docs);
-          resolve(docs);
-        });
+        createPicker(
+          response.access_token,
+          apiKey,
+          appId,
+          (docs) => {
+            onPicked(docs);
+            resolve(docs);
+          },
+          () => {
+            resolve([]);
+          },
+        );
       },
       error_callback: () => reject(new Error('Google OAuth bị từ chối hoặc lỗi.')),
     });
 
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+    tokenClient.requestAccessToken({
+      prompt: '',
+      ...(normalizedLoginHint ? { hint: normalizedLoginHint } : {}),
+    });
   });
 }

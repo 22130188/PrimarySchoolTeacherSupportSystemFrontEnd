@@ -34,12 +34,24 @@ export default function ClassroomsPage() {
         const data = await getMyClassrooms();
         setClassrooms(data);
       } else {
-        const [joined, invites] = await Promise.all([
+        const [joinedResult, invitesResult] = await Promise.allSettled([
           getMyJoinedClassrooms(),
           getMyInvitations(),
         ]);
-        setClassrooms(joined);
-        setInvitations(invites);
+
+        if (joinedResult.status === 'fulfilled') {
+          setClassrooms(joinedResult.value);
+        } else {
+          setClassrooms([]);
+          console.error('Failed to load joined classrooms:', joinedResult.reason?.message || joinedResult.reason);
+        }
+
+        if (invitesResult.status === 'fulfilled') {
+          setInvitations(invitesResult.value);
+        } else {
+          setInvitations([]);
+          console.error('Failed to load invitations:', invitesResult.reason?.message || invitesResult.reason);
+        }
       }
     } catch (err) {
       console.error('Failed to load classrooms:', err.message);

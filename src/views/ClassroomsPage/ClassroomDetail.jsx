@@ -113,6 +113,15 @@ export default function ClassroomDetail() {
   };
 
   const handleDeletePost = async (postId) => {
+    const postToDelete = posts.find((post) => post.id === postId);
+    const normalizedTeacherName = (classroom?.teacherName || '').trim().toLowerCase();
+    const normalizedAuthorName = (postToDelete?.authorName || '').trim().toLowerCase();
+
+    if (!isTeacher && normalizedTeacherName && normalizedAuthorName === normalizedTeacherName) {
+      alert('Học sinh không có quyền xóa bài đăng của giáo viên quản lý lớp.');
+      return;
+    }
+
     if (!confirm('Bạn có chắc muốn xóa bài đăng này?')) return;
     setDeletingPostId(postId);
     try {

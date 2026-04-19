@@ -4,6 +4,7 @@ import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import DOMPurify from 'dompurify';
 import { Link2, Loader2, MessageSquare, Send, Trash2, X, Paperclip } from 'lucide-react';
 import { openGoogleDrivePicker } from '../../../utils/googleDrivePicker';
+import { useAuthStore } from '../../../stores/authStore';
 
 const GOOGLE_PICKER_CONFIG = {
   apiKey: 'AIzaSyD4jN3KFoefV9npftw0m0N0ZKeOlY8N9iQ',
@@ -47,7 +48,20 @@ function stripHtml(html) {
   return (doc.body.textContent || '').trim();
 }
 
+function canDeletePost({ post, isTeacher, teacherName }) {
+  if (!post?.canDelete) return false;
+  if (isTeacher) return true;
+
+  const normalizedTeacherName = (teacherName || '').trim().toLowerCase();
+  const normalizedAuthorName = (post?.authorName || '').trim().toLowerCase();
+
+  if (!normalizedTeacherName || !normalizedAuthorName) return Boolean(post?.canDelete);
+  return normalizedAuthorName !== normalizedTeacherName;
+}
+
 export default function StreamTab({
+  classroom,
+  isTeacher,
   posts,
   loading,
   submitting,
@@ -55,10 +69,12 @@ export default function StreamTab({
   onCreatePost,
   onDeletePost,
 }) {
+  const user = useAuthStore((state) => state.user);
   const [content, setContent] = useState('');
   const [driveUrlInput, setDriveUrlInput] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [pickerOpening, setPickerOpening] = useState(false);
+  const teacherName = classroom?.teacherName;
 
   const canSubmit = useMemo(() => {
     return stripHtml(content).length > 0 || attachments.length > 0;
@@ -102,6 +118,7 @@ export default function StreamTab({
         apiKey,
         clientId,
         appId,
+        loginHint: user?.email,
         onPicked: (docs) => {
           setAttachments((prev) => {
             const seen = new Set(prev.map((item) => item.driveUrl));
@@ -269,7 +286,7 @@ export default function StreamTab({
                     <p className="text-xs text-slate-500">{formatTime(post.createdAt)}</p>
                   </div>
                 </div>
-                {post.canDelete && (
+                {canDeletePost({ post, isTeacher, teacherName }) && (
                   <button
                     type="button"
                     onClick={() => onDeletePost(post.id)}
