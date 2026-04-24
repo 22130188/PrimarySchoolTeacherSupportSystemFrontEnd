@@ -144,6 +144,7 @@ export default function TestsPage() {
                   {filteredTests.map((test) => (
                     <div
                       key={test.id}
+                      onClick={() => navigate(`/tests/${test.id}/edit`)}
                       className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                     >
                       <div className={`h-28 bg-gradient-to-br ${test.color} flex items-center justify-center relative`}>

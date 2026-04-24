@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { Plus, X, Trash2, Mic, Send } from 'lucide-react';
+import { Plus, X, Trash2, Mic, Send, Loader2 } from 'lucide-react';
 import testApi from '../../services/testApi';
 
 export default function CreateTestPage() {
   const navigate = useNavigate();
+  const { id } = useParams();  // Get test ID from URL if editing
+  const isEditing = !!id;
+  
   const [testInfo, setTestInfo] = useState({
     name: '',
     subject: '',
@@ -19,6 +22,64 @@ export default function CreateTestPage() {
   const [showQuestionTypeModal, setShowQuestionTypeModal] = useState(false);
   const [recordingId, setRecordingId] = useState(null);
   const [isRecording, setIsRecording] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(isEditing);
+
+  // Load test data if editing
+  useEffect(() => {
+    if (isEditing && id) {
+      loadTestData();
+    }
+  }, [id]);
+
+  const loadTestData = async () => {
+    try {
+      setInitialLoading(true);
+      const response = await testApi.getTestById(id);
+      const test = response.data || response;
+      
+      if (test) {
+        setTestInfo({
+          name: test.name || '',
+          subject: test.subject || '',
+          grade: test.grade || '',
+          duration: test.duration || '',
+        });
+        
+        // Load questions
+        if (test.questions && test.questions.length > 0) {
+          const loadedQuestions = test.questions.map((q, idx) => ({
+            id: q.id || Date.now() + idx,
+            type: q.type === 'MULTIPLE_CHOICE' ? 'multiple-choice' : 'audio',
+            content: q.content || '',
+            points: q.points || '',
+            title: q.title || '',
+            numberQuestions: q.numberQuestions || '',
+            answers: q.answers ? q.answers.map((a, aIdx) => ({
+              id: a.id || aIdx + 1,
+              label: a.label || String.fromCharCode(65 + aIdx),
+              content: a.content || '',
+              isCorrect: a.isCorrect || false,
+            })) : [
+              { id: 1, label: 'A', content: '', isCorrect: false },
+              { id: 2, label: 'B', content: '', isCorrect: false },
+              { id: 3, label: 'C', content: '', isCorrect: false },
+              { id: 4, label: 'D', content: '', isCorrect: false },
+            ],
+            audioUrl: q.audioUrl || null,
+            transcript: q.transcript || '',
+          }));
+          setQuestions(loadedQuestions);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading test:', error);
+      alert('Lỗi khi tải thông tin bài kiểm tra');
+      navigate('/tests');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   // Thêm câu hỏi trắc nghiệm
   const addMultipleChoiceQuestion = () => {
@@ -150,6 +211,7 @@ export default function CreateTestPage() {
     }
 
     try {
+      setLoading(true);
       const testData = {
         name: testInfo.name,
         subject: testInfo.subject,
@@ -158,15 +220,28 @@ export default function CreateTestPage() {
         questions: questions.map((q) => ({
           ...q,
           type: q.type === 'multiple-choice' ? 'MULTIPLE_CHOICE' : 'AUDIO',
+          content: q.content || "",  // Ensure content is always a string
+          points: q.points ? parseInt(q.points) : 0,  // Ensure points is a number
+          title: q.title || "",
+          numberQuestions: q.numberQuestions ? parseInt(q.numberQuestions) : 0,
         })),
       };
 
-      const response = await testApi.createTest(testData);
-      alert('Lưu bài kiểm tra thành công!');
+      if (isEditing && id) {
+        // Update existing test
+        await testApi.updateTest(id, testData);
+        alert('Cập nhật bài kiểm tra thành công!');
+      } else {
+        // Create new test
+        await testApi.createTest(testData);
+        alert('Lưu bài kiểm tra thành công!');
+      }
       navigate('/tests');
     } catch (error) {
       console.error('Error saving test:', error);
       alert('Lỗi khi lưu bài kiểm tra');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -186,6 +261,20 @@ export default function CreateTestPage() {
         questions: questions.map((q) => ({
           ...q,
           type: q.type === 'multiple-choice' ? 'MULTIPLE_CHOICE' : 'AUDIO',
+          content: q.content || q.title || "",  // Use content or title
+          points: q.points ? parseInt(q.points) : 0,
+          title: q.title || "",
+          numberQuestions: q.numberQuestions ? parseInt(q.numberQuestions) : 0,
+          // Include answers for multiple choice questions
+          answers: q.type === 'multiple-choice' ? (q.answers || []).map((a, aIdx) => ({
+            id: a.id || aIdx + 1,
+            label: a.label || String.fromCharCode(65 + aIdx),
+            content: a.content || "",
+            isCorrect: a.isCorrect || false,
+          })) : null,
+          // Include audio fields
+          audioUrl: q.audioUrl || null,
+          transcript: q.transcript || "",
         })),
       };
 

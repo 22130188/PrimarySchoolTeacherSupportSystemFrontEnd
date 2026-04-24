@@ -35,14 +35,16 @@ Update your router configuration to include the TTS page:
 **File:** `src/routers/AppRouter.jsx` (or your routing file)
 
 ```jsx
-import TTSPage from '../views/TTSPage';
+import TTSPage from './index';
 
 // Inside your routes configuration:
 {
-  path: '/tts',
-  element: <TTSPage />,
-  // Optional: Add role-based protection
-  // requiresAuth: true
+    path: '/tts',
+        element
+:
+    <TTSPage/>,
+    // Optional: Add role-based protection
+    // requiresAuth: true
 }
 ```
 
