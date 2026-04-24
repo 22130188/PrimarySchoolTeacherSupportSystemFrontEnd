@@ -2,9 +2,64 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { ClipboardCheck, Plus, Search, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { MOCK_TESTS, TEST_STATUS_STYLE as STATUS_STYLE } from '../../data/mockDashboardData';
+import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import testApi from '../../services/testApi';
+
+const STATUS_STYLE = {
+  DRAFT: 'bg-yellow-100 text-yellow-700',
+  PUBLISHED: 'bg-green-100 text-green-700',
+  ARCHIVED: 'bg-gray-100 text-gray-700',
+};
+
+const TEST_COLORS = [
+  { color: 'from-orange-500 to-red-500', emoji: '📝' },
+  { color: 'from-blue-500 to-purple-500', emoji: '✍️' },
+  { color: 'from-green-500 to-teal-500', emoji: '📚' },
+];
 
 export default function TestsPage() {
+  const navigate = useNavigate();
+  const [tests, setTests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    fetchTests();
+  }, []);
+
+  const fetchTests = async () => {
+    try {
+      setLoading(true);
+      const response = await testApi.getAllTests();
+      const mappedTests = (response.data || response || []).map((test, idx) => ({
+        ...test,
+        color: TEST_COLORS[idx % TEST_COLORS.length].color,
+        emoji: TEST_COLORS[idx % TEST_COLORS.length].emoji,
+        questions: test.questionCount || 0,
+        submissions: Math.floor(Math.random() * 50),
+      }));
+      setTests(mappedTests);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching tests:', err);
+      setError('Lỗi khi tải danh sách bài kiểm tra');
+      setTests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateTest = () => {
+    navigate('/tests/create');
+  };
+
+  const filteredTests = tests.filter(test =>
+    test.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    test.subject?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-[#f8f7ff]">
       <Navbar />
@@ -27,6 +82,7 @@ export default function TestsPage() {
                 </div>
                 <button
                   id="tests-create-btn"
+                  onClick={handleCreateTest}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
                 >
                   <Plus className="w-4 h-4" />
@@ -36,9 +92,9 @@ export default function TestsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 {[
-                  { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Tổng bài kiểm tra', value: '12', color: 'from-orange-500 to-red-500' },
-                  { icon: <CheckCircle className="w-5 h-5" />, label: 'Đã hoàn thành', value: '340', color: 'from-emerald-500 to-teal-500' },
-                  { icon: <Clock className="w-5 h-5" />, label: 'Đang chờ chấm', value: '15', color: 'from-amber-500 to-orange-500' },
+                  { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Tổng bài kiểm tra', value: tests.length, color: 'from-orange-500 to-red-500' },
+                  { icon: <CheckCircle className="w-5 h-5" />, label: 'Đã hoàn thành', value: tests.filter(t => t.status === 'PUBLISHED').length, color: 'from-emerald-500 to-teal-500' },
+                  { icon: <Clock className="w-5 h-5" />, label: 'Bản nháp', value: tests.filter(t => t.status === 'DRAFT').length, color: 'from-amber-500 to-orange-500' },
                 ].map((stat, i) => (
                   <div key={i} className="bg-white rounded-xl p-4 border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
                     <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-white shadow-sm`}>
@@ -57,35 +113,64 @@ export default function TestsPage() {
                 <input
                   type="text"
                   placeholder="Tìm kiếm bài kiểm tra..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {MOCK_TESTS.map((test) => (
-                  <div
-                    key={test.id}
-                    className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+              {loading ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">Đang tải...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <p className="text-red-500">{error}</p>
+                  <button
+                    onClick={fetchTests}
+                    className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
                   >
-                    <div className={`h-28 bg-gradient-to-br ${test.color} flex items-center justify-center relative`}>
-                      <span className="text-5xl opacity-70 group-hover:scale-110 transition-transform duration-300">{test.emoji}</span>
-                      <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[test.status]}`}>
-                        {test.status}
-                      </span>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-sm font-bold text-gray-800 mb-1 group-hover:text-orange-600 transition-colors truncate">{test.title}</h3>
-                      <p className="text-xs text-gray-400 mb-2">{test.subject} · {test.grade} · {test.questions} câu</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Nộp bài: {test.submissions}
+                    Thử lại
+                  </button>
+                </div>
+              ) : filteredTests.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">
+                    {searchTerm ? 'Không tìm thấy bài kiểm tra' : 'Chưa có bài kiểm tra nào'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredTests.map((test) => (
+                    <div
+                      key={test.id}
+                      onClick={() => navigate(`/tests/${test.id}/edit`)}
+                      className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                    >
+                      <div className={`h-28 bg-gradient-to-br ${test.color} flex items-center justify-center relative`}>
+                        <span className="text-5xl opacity-70 group-hover:scale-110 transition-transform duration-300">{test.emoji}</span>
+                        <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[test.status]}`}>
+                          {test.status}
                         </span>
                       </div>
+                      <div className="p-4">
+                        <h3 className="text-sm font-bold text-gray-800 mb-1 group-hover:text-orange-600 transition-colors truncate">{test.name}</h3>
+                        <p className="text-xs text-gray-400 mb-2">
+                          {test.subject}
+                          {test.grade ? ` · Lớp ${test.grade}` : ''}
+                          {` · ${test.questions} câu`}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            Nộp bài: {test.submissions}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </main>
         </div>

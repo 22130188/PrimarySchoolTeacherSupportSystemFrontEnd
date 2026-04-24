@@ -8,6 +8,7 @@ import AdminPage          from '../views/AdminPage';
 import DashboardPage      from '../views/DashboardPage';
 import LessonsPage        from '../views/LessonsPage';
 import TestsPage          from '../views/TestsPage';
+import CreateTestPage     from '../views/TestsPage/CreateTestPage';
 import AIToolsPage        from '../views/AIToolsPage';
 import ClassroomsPage     from '../views/ClassroomsPage';
 import TTSPage            from '../views/TTSPage';
@@ -56,6 +57,8 @@ export default function AppRouter() {
                 <Route path="/pronunciation"   element={renderPrivateRoute(<PronunciationPage />, [1, 2])} />
                 <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [1, 2])} />
                 <Route path="/tests"           element={renderPrivateRoute(<TestsPage />, [1, 2])} />
+                <Route path="/tests/create"    element={renderPrivateRoute(<CreateTestPage />, [1, 2])} />
+                <Route path="/tests/:id/edit"  element={renderPrivateRoute(<CreateTestPage />, [1, 2])} />
                 <Route path="/ai-tools"        element={renderPrivateRoute(<AIToolsPage />, [1, 2])} />
                 <Route path="/classrooms"      element={renderPrivateRoute(<ClassroomsPage />, [1, 2])} />
                 <Route path="/classrooms/:id"  element={renderPrivateRoute(<ClassroomDetail />, [1, 2])} />
