@@ -1,6 +1,9 @@
-import { useRef, useState } from 'react';
-import { ImagePlus, Plus, X } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { ImagePlus, Plus, X, Loader2, Upload } from 'lucide-react';
 import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES } from './editorConstants';
+import axios from 'axios';
+import { API_CONFIG } from '../../config/api.config';
+import { useAuthStore } from '../../stores/authStore';
 
 const TABLE_QUICK = [
   { r: 2, c: 2, label: 'Bảng 2×2' },
@@ -50,6 +53,33 @@ export default function LeftSidebar({
   pages, currentPageIndex, onSwitchPage, onAddPage, onDeletePage,
 }) {
   const fileInputRef = useRef(null);
+  const libraryUploadRef = useRef(null);
+  const { user } = useAuthStore();
+  const [libraryImages, setLibraryImages] = useState([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [uploadingToLibrary, setUploadingToLibrary] = useState(false);
+
+  // Load image library when images tab opens
+  useEffect(() => {
+    if (activeTab === 'images' && expanded && user?.id) {
+      loadLibraryImages();
+    }
+  }, [activeTab, expanded, user?.id]);
+
+  const loadLibraryImages = async () => {
+    if (!user?.id) return;
+    setLoadingLibrary(true);
+    try {
+      const response = await axios.get(`${API_CONFIG.IMAGE_API_URL}/images/${user.id}`);
+      if (response.data.success) {
+        setLibraryImages(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to load image library:', error);
+    } finally {
+      setLoadingLibrary(false);
+    }
+  };
 
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
@@ -59,6 +89,48 @@ export default function LeftSidebar({
     reader.onload = () => onAddImage(reader.result);
     reader.readAsDataURL(file);
     e.target.value = '';
+  };
+
+  const handleLibraryImageClick = (imageUrl) => {
+    if (imageUrl) {
+      onAddImage(imageUrl);
+    }
+  };
+
+  const handleUploadToLibrary = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Vui lòng chọn file ảnh'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('File ảnh không được vượt quá 5MB'); return; }
+
+    setUploadingToLibrary(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const cloudRes = await axios.post(
+        `${API_CONFIG.CANVAS_API_URL}/api/canvas/upload-image`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      if (cloudRes.data.success) {
+        await axios.post(`${API_CONFIG.IMAGE_API_URL}/save`, {
+          description: file.name.replace(/\.[^/.]+$/, ''),
+          subject: '',
+          imageUrl: cloudRes.data.image_url,
+          userId: user?.id || 0,
+          userName: user?.fullName || user?.name || user?.username || 'Unknown',
+        });
+        loadLibraryImages();
+      }
+    } catch (error) {
+      console.error('Upload to library failed:', error);
+      alert('Lỗi tải ảnh lên thư viện');
+    } finally {
+      setUploadingToLibrary(false);
+      if (libraryUploadRef.current) libraryUploadRef.current.value = '';
+    }
   };
 
   const handleTabClick = (tabId) => {
@@ -129,6 +201,82 @@ export default function LeftSidebar({
                     <ImagePlus size={32} className="mx-auto" />
                     <p className="mt-2 text-[13px] font-medium">Tải lên hình ảnh</p>
                     <span className="text-[11px] text-gray-400 block mt-1">PNG, JPG, GIF, SVG</span>
+                  </div>
+
+                  {/* Image Library Section */}
+                  <div className="mt-5 border-t border-gray-100 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Thư viện ảnh</p>
+                      <button
+                        onClick={loadLibraryImages}
+                        className="text-[11px] text-indigo-500 hover:text-indigo-700 font-medium transition-colors cursor-pointer bg-transparent border-none"
+                        title="Tải lại"
+                      >
+                        Tải lại
+                      </button>
+                    </div>
+
+                    {loadingLibrary && (
+                      <div className="flex items-center justify-center py-6 text-gray-400">
+                        <Loader2 size={20} className="animate-spin mr-2" />
+                        <span className="text-xs">Đang tải...</span>
+                      </div>
+                    )}
+
+                    {!loadingLibrary && libraryImages.length === 0 && (
+                      <div className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-lg">
+                        Chưa có ảnh nào trong thư viện.
+                        <br />
+                        <span className="text-[10px]">Tạo ảnh từ <strong>Công cụ AI</strong> để thêm vào thư viện</span>
+                      </div>
+                    )}
+
+                    {!loadingLibrary && libraryImages.length > 0 && (
+                      <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-0.5 [scrollbar-width:thin]">
+                        {libraryImages.map((img) => (
+                          <button
+                            key={img.id}
+                            type="button"
+                            onClick={() => handleLibraryImageClick(img.imageUrl)}
+                            className="w-full text-left border border-gray-200 rounded-xl overflow-hidden cursor-pointer transition-all duration-200 hover:border-indigo-400 hover:shadow-[0_2px_12px_rgba(99,102,241,0.12)] hover:-translate-y-0.5 group bg-white block"
+                            title="Nhấp để thêm vào bài giảng"
+                          >
+                            {img.imageUrl && (
+                              <img
+                                src={img.imageUrl}
+                                alt={img.description}
+                                className="w-full h-[100px] object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            )}
+                            <div className="px-3 py-2">
+                              <p className="text-[12px] font-medium text-gray-700 truncate group-hover:text-indigo-600 transition-colors">
+                                {img.description || 'Ảnh không tên'}
+                              </p>
+                              {img.subject && (
+                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                  Môn: {img.subject}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <input type="file" accept="image/*" ref={libraryUploadRef} onChange={handleUploadToLibrary} className="hidden" id="library-upload-input" />
+                    <button
+                      onClick={() => libraryUploadRef.current?.click()}
+                      disabled={uploadingToLibrary}
+                      className="w-full mt-3 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white border-none rounded-xl text-[13px] font-semibold cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                      id="library-upload-btn"
+                    >
+                      {uploadingToLibrary ? (
+                        <><Loader2 size={15} className="animate-spin" /> Đang tải...</>
+                      ) : (
+                        <><Upload size={15} /> Tải ảnh lên thư viện</>
+                      )}
+                    </button>
                   </div>
                 </div>
               )}
