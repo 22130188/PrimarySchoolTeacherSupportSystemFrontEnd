@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { BookOpen, Plus, Search, FolderOpen, Star, FileText } from 'lucide-react';
+import { BookOpen, Plus, Search, FolderOpen, Star, FileText, Presentation } from 'lucide-react';
 import { LESSON_STATUS_STYLE as STATUS_STYLE } from '../../data/mockDashboardData';
 import CreateLessonModal from './CreateLessonModal';
 import lessonDraftApi from '../../services/lessonDraftApi';
@@ -83,10 +83,11 @@ export default function LessonsPage() {
     title: draft.title || 'Bài giảng không tên',
     subject: draft.subject || 'Chưa chọn môn',
     grade: draft.grade || 'Chưa chọn lớp',
+    type: draft.type || 'DOCX',
     status: 'Bản nháp',
     date: formatDate(draft.updatedAt || draft.createdAt),
-    color: DRAFT_COLORS[index % DRAFT_COLORS.length],
-    emoji: SUBJECT_EMOJI[draft.subject] || DRAFT_EMOJIS[index % DRAFT_EMOJIS.length],
+    color: (draft.type === 'PPTX') ? 'from-amber-400 to-orange-500' : DRAFT_COLORS[index % DRAFT_COLORS.length],
+    emoji: (draft.type === 'PPTX') ? '📊' : (SUBJECT_EMOJI[draft.subject] || DRAFT_EMOJIS[index % DRAFT_EMOJIS.length]),
   })), [drafts]);
 
   return (
@@ -200,7 +201,10 @@ export default function LessonsPage() {
                   <button
                     key={lesson.id}
                     type="button"
-                    onClick={() => navigate(`/lessons/docx-editor?draftId=${lesson.id}`)}
+                    onClick={() => {
+                      const editorPath = lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
+                      navigate(`${editorPath}?draftId=${lesson.id}`);
+                    }}
                     className="text-left group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                   >
                     <div className={`h-32 bg-gradient-to-br ${lesson.color} flex items-center justify-center relative`}>
