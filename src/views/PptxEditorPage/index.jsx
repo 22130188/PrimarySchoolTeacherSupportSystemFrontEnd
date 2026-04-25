@@ -1,27 +1,27 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import EditorToolbar from './EditorToolbar';
-import LeftSidebar from './LeftSidebar';
-import FabricCanvas from './FabricCanvas';
-import PropertiesPanel from './PropertiesPanel';
-import { useDocxExport } from '../../hooks/useDocxExport';
-import { DEFAULT_TEXT_FORMAT, CUSTOM_SERIALIZATION_PROPS } from './editorConstants';
+import PptxToolbar from './PptxToolbar';
+import PptxSidebar from './PptxSidebar';
+import SlideCanvas from './SlideCanvas';
+import PptxPropertiesPanel from './PptxPropertiesPanel';
+import SlidePanel from './SlidePanel';
+import { DEFAULT_TEXT_FORMAT, CUSTOM_SERIALIZATION_PROPS } from './pptxConstants';
 import lessonDraftApi from '../../services/lessonDraftApi';
-import './DocxEditor.css';
+import './PptxEditor.css';
 
-export default function DocxEditorPage() {
+export default function PptxEditorPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const canvasRef = useRef(null);
-  const pagesRef = useRef([{ id: 1, json: null, thumbnail: null }]);
+  const slidesRef = useRef([{ id: 1, json: null, thumbnail: null, notes: '' }]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
 
-  const [fileName, setFileName] = useState('Bài giảng không tên');
+  const [fileName, setFileName] = useState('Trình chiếu không tên');
   const [subject, setSubject] = useState('');
   const [grade, setGrade] = useState('');
-  const [pages, setPages] = useState([{ id: 1, json: null, thumbnail: null }]);
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
-  const [zoom, setZoom] = useState(1);
+  const [slides, setSlides] = useState([{ id: 1, json: null, thumbnail: null, notes: '' }]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [zoom, setZoom] = useState(0.85);
   const [selectedObject, setSelectedObject] = useState(null);
   const [textFormat, setTextFormat] = useState({ ...DEFAULT_TEXT_FORMAT });
   const [activeSidebarTab, setActiveSidebarTab] = useState('text');
@@ -29,11 +29,11 @@ export default function DocxEditorPage() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
 
-  const { exportToDocx } = useDocxExport();
+  useEffect(() => { slidesRef.current = slides; }, [slides]);
 
-  useEffect(() => { pagesRef.current = pages; }, [pages]);
-
+  // Load draft
   useEffect(() => {
     const loadDraft = async () => {
       const id = draftIdRef.current;
@@ -41,22 +41,23 @@ export default function DocxEditorPage() {
       try {
         setSaveStatus('Đang tải...');
         const draft = await lessonDraftApi.getDraft(id);
-        setFileName(draft.title || 'Bài giảng không tên');
+        setFileName(draft.title || 'Trình chiếu không tên');
         setSubject(draft.subject || '');
         setGrade(draft.grade || '');
         if (draft.canvasJson) {
           const parsed = JSON.parse(draft.canvasJson);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const loadedPages = parsed.map((p, i) => ({
+            const loadedSlides = parsed.map((p, i) => ({
               id: p.id || Date.now() + i,
               json: p.json || null,
               thumbnail: null,
+              notes: p.notes || '',
             }));
-            pagesRef.current = loadedPages;
-            setPages(loadedPages);
-            setCurrentPageIndex(0);
-            if (loadedPages[0]?.json) {
-              canvasRef.current.loadFromJSON(loadedPages[0].json);
+            slidesRef.current = loadedSlides;
+            setSlides(loadedSlides);
+            setCurrentSlideIndex(0);
+            if (loadedSlides[0]?.json) {
+              canvasRef.current.loadFromJSON(loadedSlides[0].json);
             }
           }
         }
@@ -76,7 +77,7 @@ export default function DocxEditorPage() {
     setSelectedObject(obj);
     if (obj && (obj.type === 'i-text' || obj.type === 'textbox')) {
       setTextFormat({
-        fontFamily: obj.fontFamily || 'Inter', fontSize: obj.fontSize || 14,
+        fontFamily: obj.fontFamily || 'Inter', fontSize: obj.fontSize || 24,
         bold: obj.fontWeight === 'bold' || obj.fontWeight === '700',
         italic: obj.fontStyle === 'italic', underline: !!obj.underline,
         strikethrough: !!obj.linethrough, color: obj.fill || '#000000',
@@ -98,18 +99,13 @@ export default function DocxEditorPage() {
 
   const handleHistoryChange = useCallback((u, r) => { setCanUndo(u); setCanRedo(r); }, []);
 
+  // Global keyboard shortcuts
   useEffect(() => {
     const h = (e) => {
       const target = e.target;
-      const isTypingInFormField =
-        target instanceof HTMLElement &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable);
-
-      if (isTypingInFormField) return;
-
+      const isTyping = target instanceof HTMLElement &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
+      if (isTyping) return;
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); canvasRef.current?.undo(); }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); canvasRef.current?.redo(); }
     };
@@ -117,85 +113,92 @@ export default function DocxEditorPage() {
     return () => document.removeEventListener('keydown', h);
   }, []);
 
-  const saveCurrentPage = useCallback(() => {
+  const saveCurrentSlide = useCallback(() => {
     if (!canvasRef.current) return;
     const json = canvasRef.current.toJSON();
     const thumbnail = canvasRef.current.toDataURL();
-    const np = [...pagesRef.current];
-    np[currentPageIndex] = { ...np[currentPageIndex], json, thumbnail };
-    pagesRef.current = np;
-    setPages(np);
-  }, [currentPageIndex]);
+    const ns = [...slidesRef.current];
+    ns[currentSlideIndex] = { ...ns[currentSlideIndex], json, thumbnail };
+    slidesRef.current = ns;
+    setSlides(ns);
+  }, [currentSlideIndex]);
 
-  const switchToPage = useCallback((index) => {
-    if (index === currentPageIndex || !canvasRef.current) return;
+  const switchToSlide = useCallback((index) => {
+    if (index === currentSlideIndex || !canvasRef.current) return;
     const json = canvasRef.current.toJSON();
     const thumbnail = canvasRef.current.toDataURL();
-    const np = [...pagesRef.current];
-    np[currentPageIndex] = { ...np[currentPageIndex], json, thumbnail };
-    const target = np[index];
+    const ns = [...slidesRef.current];
+    ns[currentSlideIndex] = { ...ns[currentSlideIndex], json, thumbnail };
+    const target = ns[index];
     if (target?.json) canvasRef.current.loadFromJSON(target.json);
     else canvasRef.current.clearCanvas();
-    pagesRef.current = np;
-    setPages(np);
-    setCurrentPageIndex(index);
+    slidesRef.current = ns;
+    setSlides(ns);
+    setCurrentSlideIndex(index);
     setSelectedObject(null);
-  }, [currentPageIndex]);
+  }, [currentSlideIndex]);
 
-  const addPage = useCallback(() => {
-    saveCurrentPage();
-    const newPage = { id: Date.now(), json: null, thumbnail: null };
-    const np = [...pagesRef.current, newPage];
-    pagesRef.current = np;
-    setPages(np);
-    setCurrentPageIndex(np.length - 1);
+  const addSlide = useCallback(() => {
+    saveCurrentSlide();
+    const newSlide = { id: Date.now(), json: null, thumbnail: null, notes: '' };
+    const ns = [...slidesRef.current, newSlide];
+    slidesRef.current = ns;
+    setSlides(ns);
+    setCurrentSlideIndex(ns.length - 1);
     canvasRef.current?.clearCanvas();
     setSelectedObject(null);
-  }, [saveCurrentPage]);
+  }, [saveCurrentSlide]);
 
-  const deletePage = useCallback((index) => {
-    if (pagesRef.current.length <= 1) return;
-    const np = pagesRef.current.filter((_, i) => i !== index);
-    let ni = currentPageIndex;
-    if (index === currentPageIndex) {
-      ni = Math.min(currentPageIndex, np.length - 1);
-      const t = np[ni];
+  const deleteSlide = useCallback((index) => {
+    if (slidesRef.current.length <= 1) return;
+    const ns = slidesRef.current.filter((_, i) => i !== index);
+    let ni = currentSlideIndex;
+    if (index === currentSlideIndex) {
+      ni = Math.min(currentSlideIndex, ns.length - 1);
+      const t = ns[ni];
       if (t?.json) canvasRef.current?.loadFromJSON(t.json);
       else canvasRef.current?.clearCanvas();
-    } else if (index < currentPageIndex) { ni = currentPageIndex - 1; }
-    pagesRef.current = np;
-    setPages(np);
-    setCurrentPageIndex(ni);
+    } else if (index < currentSlideIndex) { ni = currentSlideIndex - 1; }
+    slidesRef.current = ns;
+    setSlides(ns);
+    setCurrentSlideIndex(ni);
     setSelectedObject(null);
-  }, [currentPageIndex]);
+  }, [currentSlideIndex]);
+
+  const handleSpeakerNotesChange = useCallback((text) => {
+    const ns = [...slidesRef.current];
+    ns[currentSlideIndex] = { ...ns[currentSlideIndex], notes: text };
+    slidesRef.current = ns;
+    setSlides(ns);
+  }, [currentSlideIndex]);
 
   const handleExport = useCallback(async () => {
-    saveCurrentPage();
-    try {
-      await exportToDocx({ canvasRef: { current: canvasRef.current }, pages: pagesRef.current, currentPageIndex, fileName });
-    } catch (err) { console.error('Export failed:', err); alert('Xuất file thất bại. Vui lòng thử lại.'); }
-  }, [saveCurrentPage, exportToDocx, currentPageIndex, fileName]);
+    saveCurrentSlide();
+    // TODO: implement PPTX export
+    alert('PPTX');
+  }, [saveCurrentSlide]);
 
   const handleSaveDraft = useCallback(async () => {
-    saveCurrentPage();
+    saveCurrentSlide();
     try {
       setSaveStatus('Đang lưu...');
-      const pagesData = pagesRef.current.map(p => ({
-        id: p.id,
-        json: p.json,
-      }));
       if (!subject || !grade) {
         setSaveStatus('Vui lòng chọn môn học và lớp');
         setTimeout(() => setSaveStatus(''), 3000);
         return;
       }
+      const slidesData = slidesRef.current.map(s => ({
+        id: s.id,
+        json: s.json,
+        notes: s.notes || '',
+      }));
       const result = await lessonDraftApi.saveDraft({
         draftId: draftIdRef.current,
         title: fileName,
         subject,
         grade,
-        type: 'DOCX',
-        canvasJson: JSON.stringify(pagesData),
+        type: 'PPTX',
+        canvasJson: JSON.stringify(slidesData),
       });
       draftIdRef.current = result.id;
       setSearchParams({ draftId: result.id }, { replace: true });
@@ -206,7 +209,7 @@ export default function DocxEditorPage() {
       setSaveStatus('Lỗi lưu');
       setTimeout(() => setSaveStatus(''), 3000);
     }
-  }, [saveCurrentPage, fileName, subject, grade, setSearchParams]);
+  }, [saveCurrentSlide, fileName, subject, grade, setSearchParams]);
 
   const handleUpdateObject = useCallback((props) => {
     canvasRef.current?.updateActiveObject(props);
@@ -215,8 +218,8 @@ export default function DocxEditorPage() {
   }, []);
 
   return (
-    <div className="fixed inset-0 flex flex-col z-[9999] font-[Inter,sans-serif] overflow-hidden bg-gray-100" id="docx-editor-page">
-      <EditorToolbar
+    <div className="fixed inset-0 flex flex-col z-[9999] font-[Inter,sans-serif] overflow-hidden bg-gray-100" id="pptx-editor-page">
+      <PptxToolbar
         fileName={fileName} onFileNameChange={setFileName}
         subject={subject} onSubjectChange={setSubject}
         grade={grade} onGradeChange={setGrade}
@@ -232,35 +235,47 @@ export default function DocxEditorPage() {
       />
 
       <div className="flex-1 flex overflow-hidden relative">
-        <LeftSidebar
+        <PptxSidebar
           activeTab={activeSidebarTab} onTabChange={setActiveSidebarTab}
           expanded={sidebarExpanded} onToggle={setSidebarExpanded}
           onAddText={(p) => canvasRef.current?.addText(p)}
           onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
+          onAddShape={(s) => canvasRef.current?.addShape(s)}
           onAddImage={(d) => canvasRef.current?.addImage(d)}
-          pages={pages} currentPageIndex={currentPageIndex}
-          onSwitchPage={switchToPage} onAddPage={addPage} onDeletePage={deletePage}
+          onSetBackground={(c) => canvasRef.current?.setBackgroundColor(c)}
         />
 
-        <FabricCanvas
+        <SlideCanvas
           ref={canvasRef} zoom={zoom}
           onSelectionChange={handleSelectionChange}
-          onObjectModified={() => {}}
+          onObjectModified={() => { }}
           onHistoryChange={handleHistoryChange}
         />
 
-        <PropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />
+        <PptxPropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />
       </div>
+
+      <SlidePanel
+        slides={slides}
+        currentSlideIndex={currentSlideIndex}
+        onSwitchSlide={switchToSlide}
+        onAddSlide={addSlide}
+        onDeleteSlide={deleteSlide}
+        speakerNotes={slides[currentSlideIndex]?.notes || ''}
+        onSpeakerNotesChange={handleSpeakerNotesChange}
+        showNotes={showNotes}
+        onToggleNotes={() => setShowNotes(!showNotes)}
+      />
 
       <div className="h-8 min-h-[32px] bg-white border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-[100]">
         <div className="flex items-center gap-3">
-          <span>Trang {currentPageIndex + 1} / {pages.length}</span>
+          <span>Slide {currentSlideIndex + 1} / {slides.length}</span>
           <span>·</span>
-          <span>A4 (595 × 842)</span>
+          <span>16:9 (960 × 540)</span>
         </div>
         <div className="flex items-center gap-3">
           <span>{Math.round(zoom * 100)}%</span>
-          {saveStatus && <span className="text-indigo-500 font-medium">{saveStatus}</span>}
+          {saveStatus && <span className="text-orange-500 font-medium">{saveStatus}</span>}
         </div>
       </div>
     </div>

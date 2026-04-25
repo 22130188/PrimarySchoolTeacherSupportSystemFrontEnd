@@ -9,6 +9,11 @@ export default function CreateLessonModal({ onClose }) {
     navigate('/lessons/docx-editor');
   };
 
+  const handleSelectPptx = () => {
+    onClose();
+    navigate('/lessons/pptx-editor');
+  };
+
   return (
     <div className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center z-[9999] animate-[fadeIn_0.2s_ease]"
       onClick={onClose} id="create-lesson-modal-overlay">
@@ -40,9 +45,8 @@ export default function CreateLessonModal({ onClose }) {
           </div>
         </div>
 
-        {/* PowerPoint (disabled) */}
-        <div id="lesson-type-pptx"
-          className="p-5 border-2 border-gray-200 rounded-2xl flex items-center gap-4 mb-3 bg-white opacity-45 cursor-not-allowed pointer-events-none">
+        <div onClick={handleSelectPptx} id="lesson-type-pptx"
+          className="p-5 border-2 border-gray-200 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white hover:border-orange-400 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(249,115,22,0.14)]">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
             <Presentation size={28} color="#ffffff" />
           </div>
@@ -50,7 +54,6 @@ export default function CreateLessonModal({ onClose }) {
             <h3 className="text-base font-semibold text-gray-800 mb-1">Trình chiếu PowerPoint</h3>
             <p className="text-[13px] text-gray-500 m-0">Tạo slide trình chiếu cho bài giảng trên lớp</p>
           </div>
-          <span className="text-[10px] font-semibold px-2 py-[3px] rounded-md bg-amber-100 text-amber-800 ml-auto shrink-0">Sắp ra mắt</span>
         </div>
 
         <button onClick={onClose} id="modal-close-btn"

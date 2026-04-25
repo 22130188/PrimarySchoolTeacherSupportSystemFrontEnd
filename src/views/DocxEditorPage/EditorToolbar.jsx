@@ -1,43 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import {
   ArrowLeft, Undo2, Redo2, Download, Save, Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   ZoomIn, ZoomOut, Maximize, Type, Trash2, Copy, Minus, Plus, ChevronDown,
 } from 'lucide-react';
-import { FONT_LIST, FONT_SIZES, COLOR_PRESETS, EDITOR_BTN, EDITOR_BTN_ACTIVE } from './editorConstants';
+import { FONT_LIST, FONT_SIZES, EDITOR_BTN, EDITOR_BTN_ACTIVE } from './editorConstants';
+import ColorPicker from '../../common/ColorPicker';
 
-function ColorPicker({ color, onChange, onClose }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
-
-  return (
-    <div ref={ref}
-      className="absolute top-full left-1/2 mt-1.5 bg-white border border-gray-200 rounded-xl p-3.5 shadow-[0_10px_40px_rgba(0,0,0,0.15)] z-[200]"
-      style={{ animation: 'fadeInScale 0.15s ease', transform: 'translateX(-50%)' }}>
-      <div className="grid grid-cols-10 gap-[3px]">
-        {COLOR_PRESETS.map((c) => (
-          <button key={c}
-            className={`w-[22px] h-[22px] rounded border border-black/[0.06] cursor-pointer transition-all duration-100 hover:scale-125 hover:shadow-md hover:z-10 hover:relative ${c === color ? 'ring-2 ring-indigo-600 ring-offset-1' : ''}`}
-            style={{ backgroundColor: c }}
-            onClick={() => { onChange(c); onClose(); }} />
-        ))}
-      </div>
-      <div className="mt-2.5 pt-2.5 border-t border-gray-100 flex items-center gap-2">
-        <input type="color" value={color || '#000000'} onChange={(e) => onChange(e.target.value)}
-          className="w-7 h-7 border border-gray-200 rounded-md cursor-pointer p-0.5" />
-        <input type="text" value={color || '#000000'} onChange={(e) => onChange(e.target.value)} placeholder="#000000"
-          className="flex-1 h-7 border border-gray-200 rounded-md px-2 text-xs font-mono text-gray-700 outline-none focus:border-indigo-500" />
-      </div>
-    </div>
-  );
-}
 
 export default function EditorToolbar({
-  fileName, onFileNameChange, textFormat, onTextFormatChange,
+  fileName, onFileNameChange, subject, onSubjectChange, grade, onGradeChange,
+  textFormat, onTextFormatChange,
   canUndo, canRedo, onUndo, onRedo, zoom, onZoomChange,
   onExport, onSaveDraft, saveStatus, onBack, hasSelection, selectionType, onDeleteSelected, onDuplicateSelected,
 }) {
@@ -72,6 +45,31 @@ export default function EditorToolbar({
               className="border-none outline-none text-[15px] font-semibold text-gray-800 bg-transparent py-1 px-2.5 rounded-lg min-w-[180px] max-w-[320px] transition-all duration-150 hover:bg-gray-100 focus:bg-indigo-50 focus:ring-2 focus:ring-indigo-200"
               value={fileName} onChange={(e) => onFileNameChange(e.target.value)} id="editor-file-name" />
           </div>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          <select
+            id="editor-subject-select"
+            value={subject}
+            onChange={(e) => onSubjectChange(e.target.value)}
+            className="h-8 px-2.5 border border-gray-200 rounded-lg text-[13px] text-gray-600 bg-white outline-none cursor-pointer transition-all hover:border-violet-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+          >
+            <option value="">Chọn môn</option>
+            <option value="Toán">Toán</option>
+            <option value="Tiếng Việt">Tiếng Việt</option>
+            <option value="Tiếng Anh">Tiếng Anh</option>
+          </select>
+          <select
+            id="editor-grade-select"
+            value={grade}
+            onChange={(e) => onGradeChange(e.target.value)}
+            className="h-8 px-2.5 border border-gray-200 rounded-lg text-[13px] text-gray-600 bg-white outline-none cursor-pointer transition-all hover:border-violet-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+          >
+            <option value="">Chọn lớp</option>
+            <option value="Lớp 1">Lớp 1</option>
+            <option value="Lớp 2">Lớp 2</option>
+            <option value="Lớp 3">Lớp 3</option>
+            <option value="Lớp 4">Lớp 4</option>
+            <option value="Lớp 5">Lớp 5</option>
+          </select>
         </div>
 
         <div className="flex-1 flex items-center justify-center gap-1">
