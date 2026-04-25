@@ -9,10 +9,12 @@ const getAuthHeader = () => {
 };
 
 const lessonDraftApi = {
-  saveDraft: async ({ draftId, title, type, canvasJson }) => {
+  saveDraft: async ({ draftId, title, subject, grade, type, canvasJson }) => {
     const response = await axios.post(BASE_URL, {
       draftId: draftId || null,
       title,
+      subject,
+      grade,
       type,
       canvasJson,
     }, { headers: getAuthHeader() });
@@ -21,6 +23,18 @@ const lessonDraftApi = {
 
   getDrafts: async () => {
     const response = await axios.get(BASE_URL, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  searchDrafts: async ({ title, subject, grade } = {}) => {
+    const params = {};
+    if (title) params.title = title;
+    if (subject) params.subject = subject;
+    if (grade) params.grade = grade;
+    const response = await axios.get(`${BASE_URL}/search`, {
+      headers: getAuthHeader(),
+      params,
+    });
     return response.data;
   },
 

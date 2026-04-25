@@ -17,6 +17,8 @@ export default function DocxEditorPage() {
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
 
   const [fileName, setFileName] = useState('Bài giảng không tên');
+  const [subject, setSubject] = useState('');
+  const [grade, setGrade] = useState('');
   const [pages, setPages] = useState([{ id: 1, json: null, thumbnail: null }]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -40,6 +42,8 @@ export default function DocxEditorPage() {
         setSaveStatus('Đang tải...');
         const draft = await lessonDraftApi.getDraft(id);
         setFileName(draft.title || 'Bài giảng không tên');
+        setSubject(draft.subject || '');
+        setGrade(draft.grade || '');
         if (draft.canvasJson) {
           const parsed = JSON.parse(draft.canvasJson);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -180,9 +184,16 @@ export default function DocxEditorPage() {
         id: p.id,
         json: p.json,
       }));
+      if (!subject || !grade) {
+        setSaveStatus('Vui lòng chọn môn học và lớp');
+        setTimeout(() => setSaveStatus(''), 3000);
+        return;
+      }
       const result = await lessonDraftApi.saveDraft({
         draftId: draftIdRef.current,
         title: fileName,
+        subject,
+        grade,
         type: 'DOCX',
         canvasJson: JSON.stringify(pagesData),
       });
@@ -195,7 +206,7 @@ export default function DocxEditorPage() {
       setSaveStatus('Lỗi lưu');
       setTimeout(() => setSaveStatus(''), 3000);
     }
-  }, [saveCurrentPage, fileName, setSearchParams]);
+  }, [saveCurrentPage, fileName, subject, grade, setSearchParams]);
 
   const handleUpdateObject = useCallback((props) => {
     canvasRef.current?.updateActiveObject(props);
@@ -207,6 +218,8 @@ export default function DocxEditorPage() {
     <div className="fixed inset-0 flex flex-col z-[9999] font-[Inter,sans-serif] overflow-hidden bg-gray-100" id="docx-editor-page">
       <EditorToolbar
         fileName={fileName} onFileNameChange={setFileName}
+        subject={subject} onSubjectChange={setSubject}
+        grade={grade} onGradeChange={setGrade}
         textFormat={textFormat} onTextFormatChange={handleTextFormatChange}
         canUndo={canUndo} canRedo={canRedo}
         onUndo={() => canvasRef.current?.undo()} onRedo={() => canvasRef.current?.redo()}

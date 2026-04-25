@@ -37,7 +37,8 @@ function ColorPicker({ color, onChange, onClose }) {
 }
 
 export default function EditorToolbar({
-  fileName, onFileNameChange, textFormat, onTextFormatChange,
+  fileName, onFileNameChange, subject, onSubjectChange, grade, onGradeChange,
+  textFormat, onTextFormatChange,
   canUndo, canRedo, onUndo, onRedo, zoom, onZoomChange,
   onExport, onSaveDraft, saveStatus, onBack, hasSelection, selectionType, onDeleteSelected, onDuplicateSelected,
 }) {
@@ -72,6 +73,31 @@ export default function EditorToolbar({
               className="border-none outline-none text-[15px] font-semibold text-gray-800 bg-transparent py-1 px-2.5 rounded-lg min-w-[180px] max-w-[320px] transition-all duration-150 hover:bg-gray-100 focus:bg-indigo-50 focus:ring-2 focus:ring-indigo-200"
               value={fileName} onChange={(e) => onFileNameChange(e.target.value)} id="editor-file-name" />
           </div>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          <select
+            id="editor-subject-select"
+            value={subject}
+            onChange={(e) => onSubjectChange(e.target.value)}
+            className="h-8 px-2.5 border border-gray-200 rounded-lg text-[13px] text-gray-600 bg-white outline-none cursor-pointer transition-all hover:border-violet-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+          >
+            <option value="">Chọn môn</option>
+            <option value="Toán">Toán</option>
+            <option value="Tiếng Việt">Tiếng Việt</option>
+            <option value="Tiếng Anh">Tiếng Anh</option>
+          </select>
+          <select
+            id="editor-grade-select"
+            value={grade}
+            onChange={(e) => onGradeChange(e.target.value)}
+            className="h-8 px-2.5 border border-gray-200 rounded-lg text-[13px] text-gray-600 bg-white outline-none cursor-pointer transition-all hover:border-violet-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+          >
+            <option value="">Chọn lớp</option>
+            <option value="Lớp 1">Lớp 1</option>
+            <option value="Lớp 2">Lớp 2</option>
+            <option value="Lớp 3">Lớp 3</option>
+            <option value="Lớp 4">Lớp 4</option>
+            <option value="Lớp 5">Lớp 5</option>
+          </select>
         </div>
 
         <div className="flex-1 flex items-center justify-center gap-1">

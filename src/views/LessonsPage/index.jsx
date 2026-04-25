@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -7,6 +7,9 @@ import { BookOpen, Plus, Search, FolderOpen, Star, FileText } from 'lucide-react
 import { LESSON_STATUS_STYLE as STATUS_STYLE } from '../../data/mockDashboardData';
 import CreateLessonModal from './CreateLessonModal';
 import lessonDraftApi from '../../services/lessonDraftApi';
+
+const SUBJECTS = ['Toán', 'Tiếng Việt', 'Tiếng Anh'];
+const GRADES = ['Lớp 1', 'Lớp 2', 'Lớp 3', 'Lớp 4', 'Lớp 5'];
 
 const DRAFT_COLORS = [
   'from-blue-400 to-indigo-500',
@@ -18,6 +21,12 @@ const DRAFT_COLORS = [
 ];
 
 const DRAFT_EMOJIS = ['📝', '📘', '📚', '🧠', '🧩', '✏️'];
+
+const SUBJECT_EMOJI = {
+  'Toán': '🔢',
+  'Tiếng Việt': '📖',
+  'Tiếng Anh': '🌍',
+};
 
 const formatDate = (value) => {
   if (!value) return 'Chưa cập nhật';
@@ -33,33 +42,51 @@ export default function LessonsPage() {
   const [loadingDrafts, setLoadingDrafts] = useState(true);
   const [draftError, setDraftError] = useState('');
 
-  useEffect(() => {
-    const loadDrafts = async () => {
-      try {
-        setLoadingDrafts(true);
-        setDraftError('');
-        const data = await lessonDraftApi.getDrafts();
-        setDrafts(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Failed to load lesson drafts:', error);
-        setDraftError('Không tải được bản nháp. Vui lòng thử lại.');
-      } finally {
-        setLoadingDrafts(false);
-      }
-    };
+  const [searchTitle, setSearchTitle] = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterGrade, setFilterGrade] = useState('');
+  const debounceRef = useRef(null);
 
-    loadDrafts();
+  const fetchDrafts = useCallback(async (title, subject, grade) => {
+    try {
+      setLoadingDrafts(true);
+      setDraftError('');
+      const hasFilter = title || subject || grade;
+      const data = hasFilter
+        ? await lessonDraftApi.searchDrafts({ title: title || undefined, subject: subject || undefined, grade: grade || undefined })
+        : await lessonDraftApi.getDrafts();
+      setDrafts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to load lesson drafts:', error);
+      setDraftError('Không tải được bản nháp. Vui lòng thử lại.');
+    } finally {
+      setLoadingDrafts(false);
+    }
   }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchDrafts('', '', '');
+  }, [fetchDrafts]);
+
+  // Debounced search on title change
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchDrafts(searchTitle, filterSubject, filterGrade);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchTitle, filterSubject, filterGrade, fetchDrafts]);
 
   const lessonCards = useMemo(() => drafts.map((draft, index) => ({
     id: draft.id,
     title: draft.title || 'Bài giảng không tên',
-    subject: 'Bài giảng',
-    grade: 'Đang soạn',
+    subject: draft.subject || 'Chưa chọn môn',
+    grade: draft.grade || 'Chưa chọn lớp',
     status: 'Bản nháp',
     date: formatDate(draft.updatedAt || draft.createdAt),
     color: DRAFT_COLORS[index % DRAFT_COLORS.length],
-    emoji: DRAFT_EMOJIS[index % DRAFT_EMOJIS.length],
+    emoji: SUBJECT_EMOJI[draft.subject] || DRAFT_EMOJIS[index % DRAFT_EMOJIS.length],
   })), [drafts]);
 
   return (
@@ -98,24 +125,35 @@ export default function LessonsPage() {
                 <div className="flex-1 min-w-[200px] relative">
                   <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
+                    id="lessons-search-input"
                     type="text"
                     placeholder="Tìm kiếm bài giảng..."
+                    value={searchTitle}
+                    onChange={(e) => setSearchTitle(e.target.value)}
                     className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all"
                   />
                 </div>
-                <select className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-violet-300">
-                  <option>Tất cả môn</option>
-                  <option>Toán</option>
-                  <option>Tiếng Việt</option>
-                  <option>Tiếng Anh</option>
+                <select
+                  id="lessons-filter-subject"
+                  value={filterSubject}
+                  onChange={(e) => setFilterSubject(e.target.value)}
+                  className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-violet-300"
+                >
+                  <option value="">Tất cả môn</option>
+                  {SUBJECTS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
                 </select>
-                <select className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-violet-300">
-                  <option>Tất cả lớp</option>
-                  <option>Lớp 1</option>
-                  <option>Lớp 2</option>
-                  <option>Lớp 3</option>
-                  <option>Lớp 4</option>
-                  <option>Lớp 5</option>
+                <select
+                  id="lessons-filter-grade"
+                  value={filterGrade}
+                  onChange={(e) => setFilterGrade(e.target.value)}
+                  className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-violet-300"
+                >
+                  <option value="">Tất cả lớp</option>
+                  {GRADES.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
                 </select>
               </div>
 
@@ -152,7 +190,9 @@ export default function LessonsPage() {
 
                 {!loadingDrafts && !draftError && lessonCards.length === 0 && (
                   <div className="col-span-full rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">
-                    Chưa có bản nháp nào. Hãy bấm "Tạo bài giảng" để bắt đầu.
+                    {(searchTitle || filterSubject || filterGrade)
+                      ? 'Không tìm thấy bài giảng phù hợp.'
+                      : 'Chưa có bản nháp nào. Hãy bấm "Tạo bài giảng" để bắt đầu.'}
                   </div>
                 )}
 
