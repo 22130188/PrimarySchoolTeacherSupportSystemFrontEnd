@@ -15,13 +15,15 @@ export default function PptxEditorPage() {
   const canvasRef = useRef(null);
   const slidesRef = useRef([{ id: 1, json: null, thumbnail: null, notes: '' }]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
+  const isDirtyRef = useRef(false);
+  const isSavingRef = useRef(false);
 
   const [fileName, setFileName] = useState('Trình chiếu không tên');
   const [subject, setSubject] = useState('');
   const [grade, setGrade] = useState('');
   const [slides, setSlides] = useState([{ id: 1, json: null, thumbnail: null, notes: '' }]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [zoom, setZoom] = useState(0.85);
+  const [zoom, setZoom] = useState(0.75);
   const [selectedObject, setSelectedObject] = useState(null);
   const [textFormat, setTextFormat] = useState({ ...DEFAULT_TEXT_FORMAT });
   const [activeSidebarTab, setActiveSidebarTab] = useState('text');
@@ -32,6 +34,8 @@ export default function PptxEditorPage() {
   const [showNotes, setShowNotes] = useState(false);
 
   useEffect(() => { slidesRef.current = slides; }, [slides]);
+
+  const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
 
   // Load draft
   useEffect(() => {
@@ -95,9 +99,10 @@ export default function PptxEditorPage() {
     if (prop === 'bold') fv = value ? 'bold' : 'normal';
     if (prop === 'italic') fv = value ? 'italic' : 'normal';
     canvasRef.current?.updateActiveObject({ [fp]: fv });
-  }, []);
+    markDirty();
+  }, [markDirty]);
 
-  const handleHistoryChange = useCallback((u, r) => { setCanUndo(u); setCanRedo(r); }, []);
+  const handleHistoryChange = useCallback((u, r) => { setCanUndo(u); setCanRedo(r); markDirty(); }, [markDirty]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -147,7 +152,8 @@ export default function PptxEditorPage() {
     setCurrentSlideIndex(ns.length - 1);
     canvasRef.current?.clearCanvas();
     setSelectedObject(null);
-  }, [saveCurrentSlide]);
+    markDirty();
+  }, [saveCurrentSlide, markDirty]);
 
   const deleteSlide = useCallback((index) => {
     if (slidesRef.current.length <= 1) return;
@@ -163,14 +169,16 @@ export default function PptxEditorPage() {
     setSlides(ns);
     setCurrentSlideIndex(ni);
     setSelectedObject(null);
-  }, [currentSlideIndex]);
+    markDirty();
+  }, [currentSlideIndex, markDirty]);
 
   const handleSpeakerNotesChange = useCallback((text) => {
     const ns = [...slidesRef.current];
     ns[currentSlideIndex] = { ...ns[currentSlideIndex], notes: text };
     slidesRef.current = ns;
     setSlides(ns);
-  }, [currentSlideIndex]);
+    markDirty();
+  }, [currentSlideIndex, markDirty]);
 
   const handleExport = useCallback(async () => {
     saveCurrentSlide();
@@ -178,15 +186,22 @@ export default function PptxEditorPage() {
     alert('PPTX');
   }, [saveCurrentSlide]);
 
-  const handleSaveDraft = useCallback(async () => {
-    saveCurrentSlide();
+  const fileNameRef = useRef(fileName);
+  const subjectRef = useRef(subject);
+  const gradeRef = useRef(grade);
+  useEffect(() => { fileNameRef.current = fileName; }, [fileName]);
+  useEffect(() => { subjectRef.current = subject; }, [subject]);
+  useEffect(() => { gradeRef.current = grade; }, [grade]);
+
+  const performAutoSave = useCallback(async () => {
+    if (!isDirtyRef.current || isSavingRef.current) return;
+    const curSubject = subjectRef.current;
+    const curGrade = gradeRef.current;
+    if (!curSubject || !curGrade) return;
+    isSavingRef.current = true;
     try {
-      setSaveStatus('Đang lưu...');
-      if (!subject || !grade) {
-        setSaveStatus('Vui lòng chọn môn học và lớp');
-        setTimeout(() => setSaveStatus(''), 3000);
-        return;
-      }
+      saveCurrentSlide();
+      setSaveStatus('Đang tự động lưu...');
       const slidesData = slidesRef.current.map(s => ({
         id: s.id,
         json: s.json,
@@ -194,22 +209,38 @@ export default function PptxEditorPage() {
       }));
       const result = await lessonDraftApi.saveDraft({
         draftId: draftIdRef.current,
-        title: fileName,
-        subject,
-        grade,
+        title: fileNameRef.current,
+        subject: curSubject,
+        grade: curGrade,
         type: 'PPTX',
         canvasJson: JSON.stringify(slidesData),
       });
       draftIdRef.current = result.id;
       setSearchParams({ draftId: result.id }, { replace: true });
-      setSaveStatus('Đã lưu');
+      isDirtyRef.current = false;
+      setSaveStatus('Đã tự động lưu');
       setTimeout(() => setSaveStatus(''), 2000);
     } catch (err) {
-      console.error('Save draft failed:', err);
-      setSaveStatus('Lỗi lưu');
+      console.error('Auto-save failed:', err);
+      setSaveStatus('Lỗi tự động lưu');
       setTimeout(() => setSaveStatus(''), 3000);
+    } finally {
+      isSavingRef.current = false;
     }
-  }, [saveCurrentSlide, fileName, subject, grade, setSearchParams]);
+  }, [saveCurrentSlide, setSearchParams]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      performAutoSave();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [performAutoSave]);
+
+  const isLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!isLoadedRef.current) { isLoadedRef.current = true; return; }
+    markDirty();
+  }, [fileName, subject, grade, markDirty]);
 
   const handleUpdateObject = useCallback((props) => {
     canvasRef.current?.updateActiveObject(props);
@@ -227,12 +258,26 @@ export default function PptxEditorPage() {
         canUndo={canUndo} canRedo={canRedo}
         onUndo={() => canvasRef.current?.undo()} onRedo={() => canvasRef.current?.redo()}
         zoom={zoom} onZoomChange={setZoom}
-        onExport={handleExport} onSaveDraft={handleSaveDraft} saveStatus={saveStatus}
+        onExport={handleExport} saveStatus={saveStatus}
         onBack={() => navigate('/lessons')}
         hasSelection={!!selectedObject} selectionType={selectedObject?.type}
         onDeleteSelected={() => canvasRef.current?.deleteSelected()}
         onDuplicateSelected={() => canvasRef.current?.duplicateSelected()}
       />
+
+      {(!subject || !grade) && (
+        <div className="absolute inset-0 top-[96px] z-[200] bg-gray-100/80 backdrop-blur-sm flex items-center justify-center" id="pptx-gate-overlay">
+          <div className="bg-white rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-4 max-w-md mx-4 border border-gray-200">
+            <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">Chọn môn học và lớp</h3>
+            <p className="text-sm text-gray-500 text-center leading-relaxed">
+              Vui lòng chọn <span className="font-semibold text-orange-600">môn học</span> và <span className="font-semibold text-orange-600">lớp</span> trên thanh công cụ trước khi bắt đầu soạn slide.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden relative">
         <PptxSidebar
@@ -248,7 +293,7 @@ export default function PptxEditorPage() {
         <SlideCanvas
           ref={canvasRef} zoom={zoom}
           onSelectionChange={handleSelectionChange}
-          onObjectModified={() => { }}
+          onObjectModified={markDirty}
           onHistoryChange={handleHistoryChange}
         />
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  ArrowLeft, Undo2, Redo2, Download, Save, Bold, Italic, Underline, Strikethrough,
+  ArrowLeft, Undo2, Redo2, Download, Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   ZoomIn, ZoomOut, Maximize, Type, Trash2, Copy, Minus, Plus, ChevronDown,
 } from 'lucide-react';
@@ -12,7 +12,7 @@ export default function EditorToolbar({
   fileName, onFileNameChange, subject, onSubjectChange, grade, onGradeChange,
   textFormat, onTextFormatChange,
   canUndo, canRedo, onUndo, onRedo, zoom, onZoomChange,
-  onExport, onSaveDraft, saveStatus, onBack, hasSelection, selectionType, onDeleteSelected, onDuplicateSelected,
+  onExport, saveStatus, onBack, hasSelection, selectionType, onDeleteSelected, onDuplicateSelected,
 }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const isTextSelected = hasSelection && (selectionType === 'i-text' || selectionType === 'textbox');
@@ -101,10 +101,11 @@ export default function EditorToolbar({
               <div className="w-px h-6 bg-gray-200 mx-1" />
             </>
           )}
-          <button onClick={onSaveDraft} id="editor-save-btn"
-            className="h-9 px-4 bg-white text-indigo-600 border border-indigo-300 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:bg-indigo-50 hover:border-indigo-400 active:bg-indigo-100 whitespace-nowrap">
-            <Save size={15} /> Lưu nháp
-          </button>
+          {saveStatus && (
+            <span className="text-[13px] text-gray-500 font-medium whitespace-nowrap animate-pulse" id="editor-auto-save-status">
+              {saveStatus}
+            </span>
+          )}
           <button onClick={onExport} id="editor-export-btn"
             className="h-9 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-none rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 shadow-md shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/40 hover:-translate-y-px active:translate-y-0 whitespace-nowrap">
             <Download size={15} /> Xuất DOCX
