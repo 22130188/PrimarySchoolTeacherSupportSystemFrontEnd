@@ -14,12 +14,12 @@ export default function HeroSearch() {
         }}
       />
 
-      <div className="relative z-10 px-6 pt-10 pb-6 max-w-4xl mx-auto text-center">
+      <div className="relative z-10 px-6 pt-20 pb-12 max-w-4xl mx-auto text-center">
 
 
 
         <h1
-          className="text-3xl sm:text-4xl md:text-[42px] font-extrabold leading-tight mb-8"
+          className="text-3xl sm:text-4xl md:text-[46px] font-extrabold leading-tight mb-10"
           style={{
             background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 40%, #0ea5e9 100%)',
             WebkitBackgroundClip: 'text',
@@ -29,7 +29,7 @@ export default function HeroSearch() {
           Bạn muốn tạo bài giảng gì?
         </h1>
 
-        <div className="relative max-w-2xl mx-auto mb-6">
+        <div className="relative max-w-2xl mx-auto mb-8">
           <div className="flex items-center bg-white rounded-2xl shadow-lg border border-gray-200/80 hover:shadow-xl hover:border-violet-200 transition-all duration-300">
             <Search className="w-5 h-5 text-gray-400 ml-5 flex-shrink-0" />
             <input

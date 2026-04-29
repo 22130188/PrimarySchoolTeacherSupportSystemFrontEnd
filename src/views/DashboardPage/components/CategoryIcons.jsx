@@ -22,9 +22,9 @@ export default function CategoryIcons() {
   );
 
   return (
-    <div className="px-6 py-6">
+    <div className="px-6 py-10">
       <div className="max-w-5xl mx-auto">
-        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-8">
+        <div className="flex flex-wrap justify-center gap-6 sm:gap-8 md:gap-10">
           {categories.map((cat) => (
             <button
               key={cat.id}

@@ -15,6 +15,8 @@ export default function DocxEditorPage() {
   const canvasRef = useRef(null);
   const pagesRef = useRef([{ id: 1, json: null, thumbnail: null }]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
+  const isDirtyRef = useRef(false);
+  const isSavingRef = useRef(false);
 
   const [fileName, setFileName] = useState('Bài giảng không tên');
   const [subject, setSubject] = useState('');
@@ -33,6 +35,8 @@ export default function DocxEditorPage() {
   const { exportToDocx } = useDocxExport();
 
   useEffect(() => { pagesRef.current = pages; }, [pages]);
+
+  const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
 
   useEffect(() => {
     const loadDraft = async () => {
@@ -94,9 +98,10 @@ export default function DocxEditorPage() {
     if (prop === 'bold') fv = value ? 'bold' : 'normal';
     if (prop === 'italic') fv = value ? 'italic' : 'normal';
     canvasRef.current?.updateActiveObject({ [fp]: fv });
-  }, []);
+    markDirty();
+  }, [markDirty]);
 
-  const handleHistoryChange = useCallback((u, r) => { setCanUndo(u); setCanRedo(r); }, []);
+  const handleHistoryChange = useCallback((u, r) => { setCanUndo(u); setCanRedo(r); markDirty(); }, [markDirty]);
 
   useEffect(() => {
     const h = (e) => {
@@ -151,7 +156,8 @@ export default function DocxEditorPage() {
     setCurrentPageIndex(np.length - 1);
     canvasRef.current?.clearCanvas();
     setSelectedObject(null);
-  }, [saveCurrentPage]);
+    markDirty();
+  }, [saveCurrentPage, markDirty]);
 
   const deletePage = useCallback((index) => {
     if (pagesRef.current.length <= 1) return;
@@ -167,7 +173,8 @@ export default function DocxEditorPage() {
     setPages(np);
     setCurrentPageIndex(ni);
     setSelectedObject(null);
-  }, [currentPageIndex]);
+    markDirty();
+  }, [currentPageIndex, markDirty]);
 
   const handleExport = useCallback(async () => {
     saveCurrentPage();
@@ -176,37 +183,60 @@ export default function DocxEditorPage() {
     } catch (err) { console.error('Export failed:', err); alert('Xuất file thất bại. Vui lòng thử lại.'); }
   }, [saveCurrentPage, exportToDocx, currentPageIndex, fileName]);
 
-  const handleSaveDraft = useCallback(async () => {
-    saveCurrentPage();
+  const fileNameRef = useRef(fileName);
+  const subjectRef = useRef(subject);
+  const gradeRef = useRef(grade);
+  useEffect(() => { fileNameRef.current = fileName; }, [fileName]);
+  useEffect(() => { subjectRef.current = subject; }, [subject]);
+  useEffect(() => { gradeRef.current = grade; }, [grade]);
+
+  const performAutoSave = useCallback(async () => {
+    if (!isDirtyRef.current || isSavingRef.current) return;
+    const curSubject = subjectRef.current;
+    const curGrade = gradeRef.current;
+    if (!curSubject || !curGrade) return;
+    isSavingRef.current = true;
     try {
-      setSaveStatus('Đang lưu...');
+      saveCurrentPage();
+      setSaveStatus('Đang tự động lưu...');
       const pagesData = pagesRef.current.map(p => ({
         id: p.id,
         json: p.json,
       }));
-      if (!subject || !grade) {
-        setSaveStatus('Vui lòng chọn môn học và lớp');
-        setTimeout(() => setSaveStatus(''), 3000);
-        return;
-      }
       const result = await lessonDraftApi.saveDraft({
         draftId: draftIdRef.current,
-        title: fileName,
-        subject,
-        grade,
+        title: fileNameRef.current,
+        subject: curSubject,
+        grade: curGrade,
         type: 'DOCX',
         canvasJson: JSON.stringify(pagesData),
       });
       draftIdRef.current = result.id;
       setSearchParams({ draftId: result.id }, { replace: true });
-      setSaveStatus('Đã lưu');
+      isDirtyRef.current = false;
+      setSaveStatus('Đã tự động lưu');
       setTimeout(() => setSaveStatus(''), 2000);
     } catch (err) {
-      console.error('Save draft failed:', err);
-      setSaveStatus('Lỗi lưu');
+      console.error('Auto-save failed:', err);
+      setSaveStatus('Lỗi tự động lưu');
       setTimeout(() => setSaveStatus(''), 3000);
+    } finally {
+      isSavingRef.current = false;
     }
-  }, [saveCurrentPage, fileName, subject, grade, setSearchParams]);
+  }, [saveCurrentPage, setSearchParams]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      performAutoSave();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [performAutoSave]);
+
+  const isLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!isLoadedRef.current) { isLoadedRef.current = true; return; }
+    markDirty();
+  }, [fileName, subject, grade, markDirty]);
 
   const handleUpdateObject = useCallback((props) => {
     canvasRef.current?.updateActiveObject(props);
@@ -224,12 +254,26 @@ export default function DocxEditorPage() {
         canUndo={canUndo} canRedo={canRedo}
         onUndo={() => canvasRef.current?.undo()} onRedo={() => canvasRef.current?.redo()}
         zoom={zoom} onZoomChange={setZoom}
-        onExport={handleExport} onSaveDraft={handleSaveDraft} saveStatus={saveStatus}
+        onExport={handleExport} saveStatus={saveStatus}
         onBack={() => navigate('/lessons')}
         hasSelection={!!selectedObject} selectionType={selectedObject?.type}
         onDeleteSelected={() => canvasRef.current?.deleteSelected()}
         onDuplicateSelected={() => canvasRef.current?.duplicateSelected()}
       />
+
+      {(!subject || !grade) && (
+        <div className="absolute inset-0 top-[96px] z-[200] bg-gray-100/80 backdrop-blur-sm flex items-center justify-center" id="docx-gate-overlay">
+          <div className="bg-white rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-4 max-w-md mx-4 border border-gray-200">
+            <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">Chọn môn học và lớp</h3>
+            <p className="text-sm text-gray-500 text-center leading-relaxed">
+              Vui lòng chọn <span className="font-semibold text-indigo-600">môn học</span> và <span className="font-semibold text-indigo-600">lớp</span> trên thanh công cụ trước khi bắt đầu soạn bài giảng.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden relative">
         <LeftSidebar
@@ -245,7 +289,7 @@ export default function DocxEditorPage() {
         <FabricCanvas
           ref={canvasRef} zoom={zoom}
           onSelectionChange={handleSelectionChange}
-          onObjectModified={() => {}}
+          onObjectModified={markDirty}
           onHistoryChange={handleHistoryChange}
         />
 
