@@ -9,7 +9,7 @@ export default function HeroSection() {
       ref={heroRef}
       className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16"
       style={{
-        background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 25%, #0ea5e9 60%, #06b6d4 80%, #99f6e4 100%)',
+        background: 'linear-gradient(180deg, #ede9fe 0%, #f3e8ff 30%, #fdf4ff 60%, #ffffff 100%)',
       }}
     >
 
@@ -24,47 +24,45 @@ export default function HeroSection() {
       ))}
 
 
-      <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-80 h-80 rounded-full bg-teal-300/10 blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-white/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-violet-200/30 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-80 h-80 rounded-full bg-pink-200/20 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-violet-100/20 blur-3xl pointer-events-none" />
 
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
 
-        <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-medium">
+        <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-violet-100/60 backdrop-blur-sm border border-violet-200 text-violet-700 text-sm font-medium">
           Tích hợp AI hỗ trợ giáo viên
         </div>
 
 
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-6 tracking-tight">
-          Bạn muốn tạo
-          <span className="block mt-3 text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-pink-200 to-teal-100">
-            bài giảng gì?
-          </span>
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-violet-500 leading-tight mb-6 tracking-tight">
+          Hệ thống hỗ trợ
+          <span className="block mt-3">Giáo Viên Tiểu Học</span>
         </h1>
 
 
-        <p className="text-lg md:text-xl text-white/85 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
           Soạn bài giảng song ngữ, tạo bài kiểm tra tương tác và kiểm tra phát âm với{' '}
-          <strong className="text-white">TeachAI</strong> — trợ lý thông minh dành riêng cho giáo viên tiểu học.
+          <strong className="text-gray-800">TeachAI</strong> — trợ lý thông minh dành riêng cho giáo viên tiểu học.
         </p>
 
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <a href="/register" className="px-8 py-4 rounded-full bg-white text-violet-700 font-bold text-base shadow-2xl hover:shadow-white/30 hover:-translate-y-1 transition-all duration-300 hover:bg-violet-50">
+          <a href="/register" className="px-8 py-4 rounded-full bg-violet-600 text-white font-bold text-base shadow-xl shadow-violet-300/40 hover:shadow-violet-400/50 hover:-translate-y-1 transition-all duration-300 hover:bg-violet-700">
             Bắt đầu
           </a>
-          <a href="#demo" className="px-8 py-4 rounded-full bg-white/15 backdrop-blur-sm text-white font-semibold text-base border border-white/40 hover:bg-white/25 hover:-translate-y-1 transition-all duration-300">
-            Xem demo →
+          <a href="#demo" className="px-8 py-4 rounded-full bg-white text-gray-700 font-semibold text-base border border-gray-200 hover:border-violet-300 hover:text-violet-600 hover:-translate-y-1 transition-all duration-300">
+            Hướng dẫn →
           </a>
         </div>
 
 
-        <div className="mt-8 flex flex-wrap justify-center gap-8 text-white">
+        <div className="mt-8 flex flex-wrap justify-center gap-8 text-gray-700">
           {HERO_STATS.map((stat) => (
             <div key={stat.label} className="text-center">
               <div className="text-3xl font-extrabold">{stat.num}</div>
-              <div className="text-sm text-white/75 mt-1">{stat.label}</div>
+              <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
             </div>
           ))}
         </div>

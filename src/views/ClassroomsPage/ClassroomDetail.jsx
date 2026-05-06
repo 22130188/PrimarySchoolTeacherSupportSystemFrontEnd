@@ -183,52 +183,54 @@ export default function ClassroomDetail() {
         <DashboardSidebar />
         <div className="flex-1 flex flex-col min-h-[calc(100vh-64px)]" style={{ marginLeft: '72px' }}>
           <main className="flex-1">
-            <div className={`bg-gradient-to-r ${bannerColor} px-6 py-6 relative`}>
-              <div className="max-w-5xl mx-auto">
-                <button
-                  onClick={() => navigate('/classrooms')}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-sm mb-4 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Quay lại
-                </button>
-                <h1 className="text-3xl font-bold text-white mb-1">{classroom.name}</h1>
-                {classroom.description && (
-                  <p className="text-white/80 text-sm mb-2">{classroom.description}</p>
-                )}
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-lg px-3 py-1.5">
-                    <Keyboard className="w-3.5 h-3.5 text-white/80" />
-                    <span className="text-white font-mono font-bold text-sm tracking-wider">{classroom.classCode}</span>
-                    <button onClick={() => copyToClipboard(classroom.classCode, 'code')}
-                      className="text-white/70 hover:text-white transition-colors">
-                      {copied === 'code' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2 text-white/80 text-sm">
-                    <Users className="w-4 h-4" />
-                    {classroom.studentCount} học sinh
-                  </div>
-                  <div className="flex items-center gap-2 text-white/80 text-sm">
-                    {classroom.teacherName}
+            <div className="sticky top-16 z-30">
+              <div className="bg-white border-b border-slate-300 px-6 py-5 relative">
+                <div className="max-w-5xl mx-auto">
+                  <button
+                    onClick={() => navigate('/classrooms')}
+                    className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-2 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Quay lại
+                  </button>
+                  <h1 className="text-2xl font-bold text-slate-900 mb-0.5">{classroom.name}</h1>
+                  {classroom.description && (
+                    <p className="text-slate-500 text-sm mb-1">{classroom.description}</p>
+                  )}
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-1.5">
+                      <Keyboard className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="text-slate-800 font-mono font-bold text-sm tracking-wider">{classroom.classCode}</span>
+                      <button onClick={() => copyToClipboard(classroom.classCode, 'code')}
+                        className="text-slate-400 hover:text-slate-700 transition-colors">
+                        {copied === 'code' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                      <Users className="w-4 h-4" />
+                      {classroom.studentCount} học sinh
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                      {classroom.teacherName}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white border-b border-gray-100 shadow-sm sticky top-16 z-30">
-              <div className="max-w-5xl mx-auto px-6 flex gap-1">
-                {tabs.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setActiveTab(t.id)}
-                    className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all ${activeTab === t.id
+              <div className="bg-white border-b border-gray-100">
+                <div className="max-w-5xl mx-auto px-6 flex gap-1">
+                  {tabs.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => setActiveTab(t.id)}
+                      className={`flex items-center gap-2 px-5 py-3.5 text-sm font-semibold border-b-2 transition-all ${activeTab === t.id
                         ? 'border-teal-500 text-teal-700'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`}
-                  >
-                    {t.icon} {t.label}
-                  </button>
-                ))}
+                        }`}
+                    >
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

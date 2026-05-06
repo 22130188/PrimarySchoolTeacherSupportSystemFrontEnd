@@ -129,3 +129,82 @@
   scrollbar-width: thin;
   scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
 }
+
+.stream-modal-editor .ck.ck-editor__top {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+.stream-modal-editor .ck.ck-toolbar {
+  border: none !important;
+  background: #f8fafc !important;
+}
+.stream-modal-editor .ck.ck-editor__main > .ck-editor__editable {
+  border: none !important;
+  min-height: 140px;
+  max-height: 300px;
+  box-shadow: none !important;
+}
+.stream-modal-editor .ck.ck-editor {
+  border: none !important;
+}
+.ck-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.5em !important;
+}
+.ck-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5em !important;
+}
+
+.rich-content strong,
+.rich-content b {
+  font-weight: 700;
+}
+.rich-content em,
+.rich-content i {
+  font-style: italic;
+}
+.rich-content u {
+  text-decoration: underline;
+}
+.rich-content s,
+.rich-content del,
+.rich-content strike {
+  text-decoration: line-through;
+}
+.rich-content ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+.rich-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+.rich-content li {
+  margin: 0.25em 0;
+}
+.rich-content blockquote {
+  border-left: 3px solid #cbd5e1;
+  padding-left: 1em;
+  margin: 0.75em 0;
+  color: #64748b;
+  font-style: italic;
+}
+.rich-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.rich-content a:hover {
+  color: #1d4ed8;
+}
+.rich-content p {
+  margin: 0.35em 0;
+}
+.rich-content h1, .rich-content h2, .rich-content h3, .rich-content h4 {
+  font-weight: 700;
+  margin: 0.75em 0 0.25em;
+}
+.rich-content h1 { font-size: 1.5em; }
+.rich-content h2 { font-size: 1.25em; }
+.rich-content h3 { font-size: 1.1em; }

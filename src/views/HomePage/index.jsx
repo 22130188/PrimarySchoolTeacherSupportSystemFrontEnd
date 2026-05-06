@@ -4,7 +4,6 @@ import HeroSection from './components/HeroSection';
 import ToolsSection from './components/ToolsSection';
 import FeaturesSection from './components/FeaturesSection';
 import TestimonialsSection from './components/TestimonialsSection';
-import CTASection from './components/CTASection';
 
 export default function HomePage() {
   return (
@@ -14,7 +13,6 @@ export default function HomePage() {
       <ToolsSection />
       <FeaturesSection />
       <TestimonialsSection />
-      <CTASection />
       <Footer />
     </div>
   );

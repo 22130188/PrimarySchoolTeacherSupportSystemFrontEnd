@@ -27,11 +27,10 @@ export default function ToolsSection() {
             <button
               key={cat.id}
               onClick={() => setActiveToolCategory(cat.id)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold border transition-all duration-200 ${
-                activeToolCategory === cat.id
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold border transition-all duration-200 ${activeToolCategory === cat.id
                   ? `bg-gradient-to-r ${cat.color} text-white border-transparent shadow-md scale-105`
                   : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:text-violet-600'
-              }`}
+                }`}
             >
               <span>{cat.icon}</span>
               {cat.label}
