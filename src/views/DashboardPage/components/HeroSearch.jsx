@@ -26,7 +26,7 @@ export default function HeroSearch() {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          Bạn muốn tạo bài giảng gì?
+          Hệ thống hỗ trợ giáo viên tiểu học
         </h1>
 
         <div className="relative max-w-2xl mx-auto mb-8">

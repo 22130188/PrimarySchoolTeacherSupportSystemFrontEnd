@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import DOMPurify from 'dompurify';
-import { Link2, Loader2, MessageSquare, Send, Trash2, X, Paperclip } from 'lucide-react';
+import {
+  Link2, Loader2, MessageSquare, Send, Trash2, X, Paperclip,
+  Edit3, Link, MoreVertical,
+} from 'lucide-react';
 import { openGoogleDrivePicker } from '../../../utils/googleDrivePicker';
 import { useAuthStore } from '../../../stores/authStore';
 
@@ -51,46 +54,35 @@ function stripHtml(html) {
 function canDeletePost({ post, isTeacher, teacherName }) {
   if (!post?.canDelete) return false;
   if (isTeacher) return true;
-
   const normalizedTeacherName = (teacherName || '').trim().toLowerCase();
   const normalizedAuthorName = (post?.authorName || '').trim().toLowerCase();
-
   if (!normalizedTeacherName || !normalizedAuthorName) return Boolean(post?.canDelete);
   return normalizedAuthorName !== normalizedTeacherName;
 }
 
-export default function StreamTab({
-  classroom,
-  isTeacher,
-  posts,
-  loading,
-  submitting,
-  deletingId,
-  onCreatePost,
-  onDeletePost,
-}) {
+function CreateAnnouncementModal({ onClose, onSubmit, submitting }) {
   const user = useAuthStore((state) => state.user);
   const [content, setContent] = useState('');
   const [driveUrlInput, setDriveUrlInput] = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [pickerOpening, setPickerOpening] = useState(false);
-  const teacherName = classroom?.teacherName;
+  const [hiddenByPicker, setHiddenByPicker] = useState(false);
 
   const canSubmit = useMemo(() => {
     return stripHtml(content).length > 0 || attachments.length > 0;
   }, [content, attachments]);
 
-  const handleAddAttachment = () => {
+  const handleAddLink = () => {
     const url = driveUrlInput.trim();
     if (!url) return;
-
     if (attachments.some((item) => item.driveUrl === url)) {
       setDriveUrlInput('');
       return;
     }
-
     setAttachments((prev) => [...prev, { driveUrl: url }]);
     setDriveUrlInput('');
+    setShowLinkInput(false);
   };
 
   const handleRemoveAttachment = (index) => {
@@ -99,10 +91,9 @@ export default function StreamTab({
 
   const handlePickFromGoogleDrive = async () => {
     if (pickerOpening) return;
-
     const { apiKey, clientId, appId } = GOOGLE_PICKER_CONFIG;
     if (!apiKey || !clientId || apiKey.includes('PASTE_') || clientId.includes('PASTE_')) {
-      const manualUrl = window.prompt('Ban chua nhap key vao StreamTab. Dan link Google Drive de dinh kem:');
+      const manualUrl = window.prompt('Dán link Google Drive để đính kèm:');
       const url = (manualUrl || '').trim();
       if (!url) return;
       setAttachments((prev) => {
@@ -111,13 +102,11 @@ export default function StreamTab({
       });
       return;
     }
-
     setPickerOpening(true);
+    setHiddenByPicker(true);
     try {
       await openGoogleDrivePicker({
-        apiKey,
-        clientId,
-        appId,
+        apiKey, clientId, appId,
         loginHint: user?.email,
         onPicked: (docs) => {
           setAttachments((prev) => {
@@ -134,122 +123,171 @@ export default function StreamTab({
         },
       });
     } catch (error) {
-      alert(error.message || 'Khong the mo Google Drive Picker');
+      alert(error.message || 'Không thể mở Google Drive Picker');
     } finally {
       setPickerOpening(false);
+      setHiddenByPicker(false);
     }
   };
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
-
     try {
-      await onCreatePost({
-        content,
-        attachments,
-      });
-      setContent('');
-      setAttachments([]);
-      setDriveUrlInput('');
+      await onSubmit({ content, attachments });
+      onClose();
     } catch {
-      // Error feedback handled by parent with alert.
+
     }
   };
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5">
-        <h3 className="text-sm font-bold text-slate-800 mb-3">Tạo thông báo mới</h3>
-
-        <div className="rounded-xl border border-slate-200 overflow-hidden">
-          <CKEditor
-            editor={ClassicEditor}
-            data={content}
-            config={{
-              placeholder: 'Thông báo nội dung nào đó cho lớp học của bạn',
-              toolbar: [
-                'bold',
-                'italic',
-                'underline',
-                '|',
-                'bulletedList',
-                'numberedList',
-                '|',
-                'link',
-                'blockQuote',
-                '|',
-                'undo',
-                'redo',
-              ],
-            }}
-            onChange={(_, editor) => {
-              setContent(editor.getData());
-            }}
-          />
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/20 transition-opacity duration-200 ${hiddenByPicker ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
+      >
+        <div className="px-6 pt-6 pb-4 border-b border-slate-100">
+          <h2 className="text-xl font-bold text-slate-800">Đăng thông báo</h2>
         </div>
-
-        <div className="mt-3 flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Link2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              value={driveUrlInput}
-              onChange={(event) => setDriveUrlInput(event.target.value)}
-              placeholder="Dán link Google Drive để đính kèm"
-              className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100"
+        <div className="px-6 pt-4">
+          <div className="rounded-xl border border-slate-200 overflow-hidden focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all stream-modal-editor">
+            <CKEditor
+              editor={ClassicEditor}
+              data={content}
+              config={{
+                placeholder: 'Thông báo nội dung nào đó cho lớp học của bạn',
+                toolbar: [
+                  'bold', 'italic',
+                  '|', 'bulletedList', 'numberedList',
+                  '|', 'link', 'blockQuote',
+                  '|', 'undo', 'redo',
+                ],
+              }}
+              onChange={(_, editor) => { setContent(editor.getData()); }}
             />
           </div>
-          <button
-            type="button"
-            onClick={handleAddAttachment}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            <Paperclip className="w-4 h-4" />
-            Thêm link
-          </button>
-          <button
-            type="button"
-            onClick={handlePickFromGoogleDrive}
-            disabled={pickerOpening}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-70"
-          >
-            {pickerOpening ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
-            {pickerOpening ? 'Dang mo Drive...' : 'Google Drive'}
-          </button>
         </div>
-
         {attachments.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="px-6 pt-3 flex flex-wrap gap-2">
             {attachments.map((attachment, index) => (
               <div
                 key={`${attachment.driveUrl}-${index}`}
-                className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs text-cyan-800"
+                className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs text-blue-700 max-w-[320px]"
               >
-                <Link2 className="w-3.5 h-3.5" />
-                <span className="max-w-[240px] truncate">{attachment.driveUrl}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveAttachment(index)}
-                  className="text-cyan-600 hover:text-cyan-900"
-                >
+                <Link2 className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{attachment.driveUrl}</span>
+                <button type="button" onClick={() => handleRemoveAttachment(index)} className="text-blue-500 hover:text-blue-800 flex-shrink-0">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ))}
           </div>
         )}
+        {showLinkInput && (
+          <div className="px-6 pt-3">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Link2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  value={driveUrlInput}
+                  onChange={(event) => setDriveUrlInput(event.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddLink(); }}
+                  placeholder="Dán link để đính kèm"
+                  autoFocus
+                  className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <button type="button" onClick={handleAddLink} className="px-3 py-2 rounded-lg bg-blue-50 text-blue-600 text-sm font-semibold hover:bg-blue-100 transition-colors">
+                Thêm
+              </button>
+              <button type="button" onClick={() => { setShowLinkInput(false); setDriveUrlInput(''); }} className="px-2 py-2 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="px-6 pt-4 pb-5 flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handlePickFromGoogleDrive}
+              disabled={pickerOpening}
+              title="Google Drive"
+              className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-700 hover:border-slate-300 transition-all disabled:opacity-60"
+            >
+              {pickerOpening ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 19h20L12 2z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="M7.5 12H16.5" stroke="currentColor" strokeWidth="1.5" /><path d="M5 16.5H19" stroke="currentColor" strokeWidth="1.5" /></svg>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowLinkInput(!showLinkInput)}
+              title="Đính kèm link"
+              className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-700 hover:border-slate-300 transition-all"
+            >
+              <Link className="w-5 h-5" />
+            </button>
+          </div>
 
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit || submitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            {submitting ? 'Đang đăng...' : 'Đăng'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors">
+              Huỷ
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canSubmit || submitting}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold shadow-sm hover:shadow-md hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm transition-all duration-200"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {submitting ? 'Đang đăng...' : 'Đăng'}
+            </button>
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+export default function StreamTab({
+  classroom,
+  isTeacher,
+  posts,
+  loading,
+  submitting,
+  deletingId,
+  onCreatePost,
+  onDeletePost,
+}) {
+  const teacherName = classroom?.teacherName;
+  const [showModal, setShowModal] = useState(false);
+
+  const handleSubmit = async (data) => {
+    await onCreatePost(data);
+  };
+
+  return (
+    <div className="space-y-5">
+      <button
+        type="button"
+        onClick={() => setShowModal(true)}
+        id="stream-new-post-btn"
+        className="group w-full flex items-center gap-3 rounded-2xl border border-slate-200 bg-white shadow-sm px-5 py-4 hover:shadow-md hover:border-blue-200 transition-all duration-200 cursor-pointer"
+      >
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all">
+          <Edit3 className="w-5 h-5 text-white" />
+        </div>
+        <span className="text-sm font-medium text-slate-500 group-hover:text-blue-600 transition-colors">
+          Thông báo mới cho lớp học...
+        </span>
+      </button>
+
+      {showModal && (
+        <CreateAnnouncementModal
+          onClose={() => setShowModal(false)}
+          onSubmit={handleSubmit}
+          submitting={submitting}
+        />
+      )}
 
       {loading && (
         <div className="py-10 text-center">
@@ -291,17 +329,17 @@ export default function StreamTab({
                     type="button"
                     onClick={() => onDeletePost(post.id)}
                     disabled={deletingId === post.id}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-red-600"
+                    className="p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                    title="Xóa bài đăng"
                   >
-                    {deletingId === post.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                    Xóa
+                    {deletingId === post.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreVertical className="w-4 h-4" />}
                   </button>
                 )}
               </div>
 
               {post.content && (
                 <div
-                  className="mt-3 text-sm text-slate-700 leading-relaxed ck-content"
+                  className="mt-3 text-sm text-slate-700 leading-relaxed rich-content"
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(post.content),
                   }}
@@ -331,7 +369,6 @@ export default function StreamTab({
                           <Paperclip className="w-4 h-4 text-slate-500" />
                         </div>
                       )}
-
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-800 truncate">{attachment.name}</p>
                         <p className="text-xs text-slate-500">
