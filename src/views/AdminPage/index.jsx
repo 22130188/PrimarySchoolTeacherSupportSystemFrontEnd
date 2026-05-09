@@ -9,6 +9,7 @@ import AdminProfile from './components/AdminProfile';
 import UserManagement from './components/UserManagement';
 import ClassroomManagement from './components/ClassroomManagement';
 import SubjectManagement from './components/SubjectManagement';
+import TestManagement from './components/TestManagement';
 import ResourceManagement from './components/ResourceManagement';
 import AccessManagement from './components/AccessManagement';
 import SystemSettings from './components/SystemSettings';
@@ -19,6 +20,7 @@ const PAGE_MAP = {
   users:      UserManagement,
   classrooms: ClassroomManagement,
   subjects:   SubjectManagement,
+  tests:      TestManagement,
   resources:  ResourceManagement,
   access:     AccessManagement,
   settings:   SystemSettings,

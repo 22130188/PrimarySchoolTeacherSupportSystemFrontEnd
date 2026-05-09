@@ -3,6 +3,7 @@ import {
   GraduationCap, FileText,
   BookOpen, ShieldCheck, FolderOpen,
   Image, Volume2, Globe, Shield, BellRing, User,
+  ClipboardCheck,
 } from 'lucide-react';
 
 
@@ -12,6 +13,7 @@ export const ADMIN_MENU = [
   { key: 'users', label: 'Người dùng', icon: Users },
   { key: 'classrooms', label: 'Lớp học', icon: School },
   { key: 'subjects', label: 'Danh mục môn học', icon: BookOpen },
+  { key: 'tests', label: 'Bài kiểm tra', icon: ClipboardCheck },
   { key: 'resources', label: 'Tài nguyên', icon: FolderOpen },
   { key: 'access', label: 'Quản lý truy cập', icon: ShieldCheck },
   { key: 'settings', label: 'Cài đặt', icon: Settings },
@@ -22,7 +24,8 @@ export const STAT_CARDS = [
   { id: 1, label: 'Giáo viên', value: '1,248', icon: Users, gradient: 'from-violet-500 to-indigo-600' },
   { id: 2, label: 'Học sinh', value: '28,450', icon: GraduationCap, gradient: 'from-teal-500 to-cyan-600' },
   { id: 3, label: 'Lớp học', value: '456', icon: School, gradient: 'from-rose-500 to-pink-600' },
-  { id: 4, label: 'Tài nguyên', value: '12,840', icon: FolderOpen, gradient: 'from-amber-500 to-orange-600' },
+  { id: 4, label: 'Bài kiểm tra', value: '2,156', icon: ClipboardCheck, gradient: 'from-orange-500 to-red-600' },
+  { id: 5, label: 'Tài nguyên', value: '12,840', icon: FolderOpen, gradient: 'from-amber-500 to-orange-600' },
 ];
 
 

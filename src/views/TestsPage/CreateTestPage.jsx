@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuthStore } from '../../stores/authStore';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
@@ -212,19 +213,40 @@ export default function CreateTestPage() {
 
     try {
       setLoading(true);
+      const { user } = useAuthStore.getState();
       const testData = {
         name: testInfo.name,
         subject: testInfo.subject,
         grade: testInfo.grade,
-        duration: parseInt(testInfo.duration),
-        questions: questions.map((q) => ({
-          ...q,
-          type: q.type === 'multiple-choice' ? 'MULTIPLE_CHOICE' : 'AUDIO',
-          content: q.content || "",  // Ensure content is always a string
-          points: q.points ? parseInt(q.points) : 0,  // Ensure points is a number
-          title: q.title || "",
-          numberQuestions: q.numberQuestions ? parseInt(q.numberQuestions) : 0,
-        })),
+        duration: parseInt(testInfo.duration, 10),
+        userId: user?.id,
+        userName: user?.fullName || user?.name || user?.username || 'Unknown',
+        questions: questions.map((q, index) => {
+          const baseQuestion = {
+            type: q.type === 'multiple-choice' ? 'MULTIPLE_CHOICE' : 'AUDIO',
+            content: q.content || '',
+            points: q.points ? parseInt(q.points, 10) : 0,
+            title: q.title || '',
+            numberQuestions: q.numberQuestions ? parseInt(q.numberQuestions, 10) : 0,
+            orderIndex: index,
+            audioUrl: q.audioUrl || null,
+            transcript: q.transcript || '',
+          };
+
+          if (q.type === 'multiple-choice') {
+            return {
+              ...baseQuestion,
+              answers: (q.answers || []).map((a, aIdx) => ({
+                id: a.id || aIdx + 1,
+                label: a.label || String.fromCharCode(65 + aIdx),
+                content: a.content || '',
+                isCorrect: a.isCorrect || false,
+              })),
+            };
+          }
+
+          return baseQuestion;
+        }),
       };
 
       if (isEditing && id) {
@@ -239,7 +261,8 @@ export default function CreateTestPage() {
       navigate('/tests');
     } catch (error) {
       console.error('Error saving test:', error);
-      alert('Lỗi khi lưu bài kiểm tra');
+      const message = error.response?.data?.message || error.message || 'Lỗi khi lưu bài kiểm tra';
+      alert(`Lỗi khi lưu bài kiểm tra: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -257,25 +280,33 @@ export default function CreateTestPage() {
         name: testInfo.name,
         subject: testInfo.subject,
         grade: testInfo.grade,
-        duration: parseInt(testInfo.duration),
-        questions: questions.map((q) => ({
-          ...q,
-          type: q.type === 'multiple-choice' ? 'MULTIPLE_CHOICE' : 'AUDIO',
-          content: q.content || q.title || "",  // Use content or title
-          points: q.points ? parseInt(q.points) : 0,
-          title: q.title || "",
-          numberQuestions: q.numberQuestions ? parseInt(q.numberQuestions) : 0,
-          // Include answers for multiple choice questions
-          answers: q.type === 'multiple-choice' ? (q.answers || []).map((a, aIdx) => ({
-            id: a.id || aIdx + 1,
-            label: a.label || String.fromCharCode(65 + aIdx),
-            content: a.content || "",
-            isCorrect: a.isCorrect || false,
-          })) : null,
-          // Include audio fields
-          audioUrl: q.audioUrl || null,
-          transcript: q.transcript || "",
-        })),
+        duration: parseInt(testInfo.duration, 10),
+        questions: questions.map((q, index) => {
+          const baseQuestion = {
+            type: q.type === 'multiple-choice' ? 'MULTIPLE_CHOICE' : 'AUDIO',
+            content: q.content || '',
+            points: q.points ? parseInt(q.points, 10) : 0,
+            title: q.title || '',
+            numberQuestions: q.numberQuestions ? parseInt(q.numberQuestions, 10) : 0,
+            orderIndex: index,
+            audioUrl: q.audioUrl || null,
+            transcript: q.transcript || '',
+          };
+
+          if (q.type === 'multiple-choice') {
+            return {
+              ...baseQuestion,
+              answers: (q.answers || []).map((a, aIdx) => ({
+                id: a.id || aIdx + 1,
+                label: a.label || String.fromCharCode(65 + aIdx),
+                content: a.content || '',
+                isCorrect: a.isCorrect || false,
+              })),
+            };
+          }
+
+          return baseQuestion;
+        }),
       };
 
       await testApi.downloadTestAsDocx(testData);
@@ -461,6 +492,14 @@ export default function CreateTestPage() {
                             Nội dung câu hỏi
                           </label>
                           <textarea
+                            value={question.content}
+                            onChange={(e) =>
+                              handleMultipleChoiceUpdate(
+                                question.id,
+                                'content',
+                                e.target.value
+                              )
+                            }
                             placeholder="Nhập nội dung câu hỏi"
                             className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all resize-none"
                             rows="4"

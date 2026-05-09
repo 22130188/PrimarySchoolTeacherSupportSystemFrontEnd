@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { Image, Upload, Download, Trash2, Palette, X, Plus } from 'lucide-react';
+import { Image, Upload, Download, Trash2, Palette, X, Plus, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api.config.js';
 import { useAuthStore } from '../../stores/authStore';
@@ -14,6 +14,7 @@ export default function ImagePage() {
   const [selectedPlacedItemId, setSelectedPlacedItemId] = useState(null);
   const [dragState, setDragState] = useState({ mode: null, itemId: null, startX: 0, startY: 0, baseX: 0, baseY: 0, baseWidth: 0, baseHeight: 0 });
   const [savedImages, setSavedImages] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('all');
   const [isLoadingIcons, setIsLoadingIcons] = useState(true);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -32,6 +33,18 @@ export default function ImagePage() {
     loadIcons();
     loadSavedImages();
   }, [user?.id]);
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedPlacedItemId) {
+        handleRemoveItem(selectedPlacedItemId);
+        setSelectedPlacedItemId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedPlacedItemId]);
 
   const loadIcons = async () => {
     setIsLoadingIcons(true);
@@ -426,9 +439,8 @@ export default function ImagePage() {
       );
 
       if (cloudinaryResponse.data.success) {
-        // Save image metadata to database
         await axios.post(`${IMAGE_API_URL}/save`, {
-          description: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+          description: file.name.replace(/\.[^/.]+$/, ''),
           subject: '',
           imageUrl: cloudinaryResponse.data.image_url,
           userId: user?.id || 0,
@@ -507,11 +519,33 @@ export default function ImagePage() {
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-700 mb-3">Thư viện ảnh</div>
+                        
+                        {/* Subject Filter Dropdown */}
+                        <div className="mb-3">
+                          <select
+                            value={selectedSubject}
+                            onChange={(e) => setSelectedSubject(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 outline-none transition hover:border-pink-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 cursor-pointer"
+                          >
+                            <option value="all">📚 Tất cả ảnh</option>
+                            <option value="Toán">🔢 Ảnh môn Toán</option>
+                            <option value="Tiếng Anh">🌍 Ảnh môn Tiếng Anh</option>
+                            <option value="Tiếng Việt">🇻🇳 Ảnh môn Tiếng Việt</option>
+                          </select>
+                        </div>
+
                         <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                          {savedImages.length === 0 ? (
-                            <div className="text-sm text-gray-500">Chưa có ảnh nào</div>
-                          ) : (
-                            savedImages.map((img) => (
+                          {(() => {
+                            const filteredImages = selectedSubject === 'all' 
+                              ? savedImages 
+                              : savedImages.filter(img => img.subject === selectedSubject);
+                            
+                            return filteredImages.length === 0 ? (
+                              <div className="text-sm text-gray-500">
+                                {selectedSubject === 'all' ? 'Chưa có ảnh nào' : `Chưa có ảnh môn ${selectedSubject}`}
+                              </div>
+                            ) : (
+                              filteredImages.map((img) => (
                               <div
                                 key={img.id}
                                 draggable
@@ -539,7 +573,8 @@ export default function ImagePage() {
                                 </button>
                               </div>
                             ))
-                          )}
+                            );
+                          })()}
                         </div>
                         <button
                           onClick={handleUploadImageClick}
@@ -561,10 +596,11 @@ export default function ImagePage() {
                   </div>
 
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
                       <Palette className="w-5 h-5" />
                       Thành phần đã đặt
                     </h3>
+                    <p className="text-xs text-gray-500 mb-3">💡 Chọn ảnh rồi nhấn Delete hoặc Backspace để xóa</p>
                     <div 
                       className="space-y-3 overflow-y-auto pr-2"
                       style={{
