@@ -3,30 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { BookOpen, Plus, Search, FolderOpen, Star, FileText, Presentation } from 'lucide-react';
+import { BookOpen, Plus, Search, FolderOpen, Star, FileText, Presentation, Trash2, Loader2 } from 'lucide-react';
 import { LESSON_STATUS_STYLE as STATUS_STYLE } from '../../data/mockDashboardData';
+import { SUBJECTS, GRADES } from '../../data/editorSharedConstants';
+import { DRAFT_COLORS, DRAFT_EMOJIS, SUBJECT_EMOJI } from '../../data/lessonData';
 import CreateLessonModal from './CreateLessonModal';
 import lessonDraftApi from '../../services/lessonDraftApi';
-
-const SUBJECTS = ['Toán', 'Tiếng Việt', 'Tiếng Anh'];
-const GRADES = ['Lớp 1', 'Lớp 2', 'Lớp 3', 'Lớp 4', 'Lớp 5'];
-
-const DRAFT_COLORS = [
-  'from-blue-400 to-indigo-500',
-  'from-violet-400 to-purple-500',
-  'from-teal-400 to-cyan-500',
-  'from-amber-400 to-orange-500',
-  'from-rose-400 to-pink-500',
-  'from-emerald-400 to-green-500',
-];
-
-const DRAFT_EMOJIS = ['📝', '📘', '📚', '🧠', '🧩', '✏️'];
-
-const SUBJECT_EMOJI = {
-  'Toán': '🔢',
-  'Tiếng Việt': '📖',
-  'Tiếng Anh': '🌍',
-};
+import { useAuthStore } from '../../stores/authStore';
 
 const formatDate = (value) => {
   if (!value) return 'Chưa cập nhật';
@@ -37,10 +20,13 @@ const formatDate = (value) => {
 
 export default function LessonsPage() {
   const navigate = useNavigate();
+  const roleId = useAuthStore(s => s.roleId);
+  const isStudent = roleId === 1;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [drafts, setDrafts] = useState([]);
   const [loadingDrafts, setLoadingDrafts] = useState(true);
   const [draftError, setDraftError] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
 
   const [searchTitle, setSearchTitle] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
@@ -110,17 +96,19 @@ export default function LessonsPage() {
                   </h1>
                   <p className="text-sm text-gray-500 mt-1 ml-[52px]">Quản lý và soạn thảo bài giảng song ngữ</p>
                 </div>
-                <button
-                  id="lessons-create-btn"
-                  onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 text-white font-semibold text-sm shadow-md hover:shadow-lg hover:from-violet-700 hover:to-violet-600 active:scale-95 transition-all duration-200"
-                >
-                  <Plus className="w-4 h-4" />
-                  Tạo bài giảng
-                </button>
+                {!isStudent && (
+                  <button
+                    id="lessons-create-btn"
+                    onClick={() => setShowCreateModal(true)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 text-white font-semibold text-sm shadow-md hover:shadow-lg hover:from-violet-700 hover:to-violet-600 active:scale-95 transition-all duration-200"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Tạo bài giảng
+                  </button>
+                )}
               </div>
 
-              {showCreateModal && <CreateLessonModal onClose={() => setShowCreateModal(false)} />}
+              {!isStudent && showCreateModal && <CreateLessonModal onClose={() => setShowCreateModal(false)} />}
 
               <div className="flex items-center gap-3 mb-6 flex-wrap">
                 <div className="flex-1 min-w-[200px] relative">
@@ -198,26 +186,53 @@ export default function LessonsPage() {
                 )}
 
                 {!loadingDrafts && !draftError && lessonCards.map((lesson) => (
-                  <button
+                  <div
                     key={lesson.id}
-                    type="button"
-                    onClick={() => {
-                      const editorPath = lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
-                      navigate(`${editorPath}?draftId=${lesson.id}`);
-                    }}
-                    className="text-left group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                    className="relative text-left group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
                   >
-                    <div className={`h-32 bg-gradient-to-br ${lesson.color} flex items-center justify-center relative`}>
-                      <span className="text-5xl opacity-70 group-hover:scale-110 transition-transform duration-300">{lesson.emoji}</span>
-                      <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[lesson.status]}`}>
-                        {lesson.status}
-                      </span>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-sm font-bold text-gray-800 mb-1 group-hover:text-violet-600 transition-colors truncate">{lesson.title}</h3>
-                      <p className="text-xs text-gray-400">{lesson.subject} · {lesson.grade} · {lesson.date}</p>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const editorPath = lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
+                        navigate(`${editorPath}?draftId=${lesson.id}`);
+                      }}
+                      className="w-full text-left cursor-pointer"
+                    >
+                      <div className={`h-32 bg-gradient-to-br ${lesson.color} flex items-center justify-center relative`}>
+                        <span className="text-5xl opacity-70 group-hover:scale-110 transition-transform duration-300">{lesson.emoji}</span>
+                        <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[lesson.status]}`}>
+                          {lesson.status}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-sm font-bold text-gray-800 mb-1 group-hover:text-violet-600 transition-colors truncate">{lesson.title}</h3>
+                        <p className="text-xs text-gray-400">{lesson.subject} · {lesson.grade} · {lesson.date}</p>
+                      </div>
+                    </button>
+                    {!isStudent && (
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm('Bạn có chắc chắn muốn xóa bài giảng này?')) return;
+                          try {
+                            setDeletingId(lesson.id);
+                            await lessonDraftApi.deleteDraft(lesson.id);
+                            setDrafts(prev => prev.filter(d => d.id !== lesson.id));
+                          } catch (err) {
+                            alert('Không thể xóa: ' + (err.response?.data?.message || err.message));
+                          } finally {
+                            setDeletingId(null);
+                          }
+                        }}
+                        disabled={deletingId === lesson.id}
+                        className="absolute top-2 left-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                        title="Xóa bài giảng"
+                      >
+                        {deletingId === lesson.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
