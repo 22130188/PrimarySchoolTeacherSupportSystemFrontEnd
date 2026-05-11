@@ -8,6 +8,7 @@ import InviteDialog from './components/InviteDialog';
 import ClassroomSettings from './components/ClassroomSettings';
 import StreamTab from './components/StreamTab';
 import { useAuthStore } from '../../stores/authStore';
+import { BANNER_COLORS } from '../../data/classroomData';
 import {
   getClassroom,
   getRoster,
@@ -18,7 +19,6 @@ import {
   createClassroomPost,
   deleteClassroomPost,
 } from '../../services/classroomApi';
-import { BANNER_COLORS } from '../../data/classroomData';
 
 export default function ClassroomDetail() {
   const { id } = useParams();
@@ -184,42 +184,42 @@ export default function ClassroomDetail() {
         <div className="flex-1 flex flex-col min-h-[calc(100vh-64px)]" style={{ marginLeft: '72px' }}>
           <main className="flex-1">
             <div className="sticky top-16 z-30">
-              <div className="bg-white border-b border-slate-300 px-6 py-5 relative">
+              <div className={`bg-gradient-to-r ${BANNER_COLORS[(classroom.id || 0) % BANNER_COLORS.length]} px-6 py-5 relative shadow-md`}>
                 <div className="max-w-5xl mx-auto">
                   <button
                     onClick={() => navigate('/classrooms')}
-                    className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-2 transition-colors"
+                    className="flex items-center gap-1 text-white/70 hover:text-white text-sm mb-2 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" /> Quay lại
                   </button>
-                  <h1 className="text-2xl font-bold text-slate-900 mb-0.5">{classroom.name}</h1>
+                  <h1 className="text-2xl font-bold text-white mb-0.5">{classroom.name}</h1>
                   {classroom.description && (
-                    <p className="text-slate-500 text-sm mb-1">{classroom.description}</p>
+                    <p className="text-white/80 text-sm mb-1">{classroom.description}</p>
                   )}
                   <div className="flex items-center gap-4 mt-2 flex-wrap">
-                    <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-1.5">
-                      <Keyboard className="w-3.5 h-3.5 text-slate-500" />
-                      <span className="text-slate-800 font-mono font-bold text-sm tracking-wider">{classroom.classCode}</span>
+                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5">
+                      <Keyboard className="w-3.5 h-3.5 text-white/80" />
+                      <span className="text-white font-mono font-bold text-sm tracking-wider">{classroom.classCode}</span>
                       <button onClick={() => copyToClipboard(classroom.classCode, 'code')}
-                        className="text-slate-400 hover:text-slate-700 transition-colors">
+                        className="text-white/60 hover:text-white transition-colors">
                         {copied === 'code' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                    <div className="flex items-center gap-2 text-white/90 text-sm">
                       <Users className="w-4 h-4" />
                       {classroom.studentCount} học sinh
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600 text-sm">
+                    <div className="flex items-center gap-2 text-white/90 text-sm">
                       {classroom.teacherName}
                     </div>
                     {classroom.gradeLevel && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-100 text-violet-700 text-sm font-semibold">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-sm text-white text-sm font-semibold">
                         <GraduationCap className="w-3.5 h-3.5" />
                         Lớp {classroom.gradeLevel}
                       </span>
                     )}
                     {classroom.subject && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-100 text-teal-700 text-sm font-semibold">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-sm text-white text-sm font-semibold">
                         <BookOpen className="w-3.5 h-3.5" />
                         {classroom.subject}
                       </span>

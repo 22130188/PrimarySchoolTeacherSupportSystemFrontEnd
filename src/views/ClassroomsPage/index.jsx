@@ -8,6 +8,7 @@ import ClassroomCard from './components/ClassroomCard';
 import CreateClassroomDialog from './components/CreateClassroomDialog';
 import JoinClassroomDialog from './components/JoinClassroomDialog';
 import { useAuthStore } from '../../stores/authStore';
+import { GRADE_LEVELS, SUBJECTS } from '../../data/classroomData';
 import {
   getMyClassrooms, createClassroom,
   getMyJoinedClassrooms, joinByClassCode,
@@ -23,6 +24,8 @@ export default function ClassroomsPage() {
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterGrade, setFilterGrade] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [invLoading, setInvLoading] = useState(null);
@@ -104,10 +107,14 @@ export default function ClassroomsPage() {
     }
   };
 
-  const filtered = classrooms.filter(c =>
-    c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.teacherName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = classrooms.filter(c => {
+    const matchText = !search ||
+      c.name?.toLowerCase().includes(search.toLowerCase()) ||
+      c.teacherName?.toLowerCase().includes(search.toLowerCase());
+    const matchSubject = !filterSubject || c.subject === filterSubject;
+    const matchGrade = !filterGrade || c.gradeLevel === parseInt(filterGrade);
+    return matchText && matchSubject && matchGrade;
+  });
 
   return (
     <div className="min-h-screen bg-[#f8f7ff]">
@@ -183,15 +190,37 @@ export default function ClassroomsPage() {
               )}
 
               {classrooms.length > 0 && (
-                <div className="relative mb-6">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="Tìm kiếm lớp học..."
-                    className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all"
-                  />
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="flex-1 min-w-[200px] relative">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Tìm kiếm lớp học..."
+                      className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all"
+                    />
+                  </div>
+                  <select
+                    value={filterSubject}
+                    onChange={e => setFilterSubject(e.target.value)}
+                    className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all cursor-pointer"
+                  >
+                    <option value="">Tất cả môn</option>
+                    {SUBJECTS.map(s => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterGrade}
+                    onChange={e => setFilterGrade(e.target.value)}
+                    className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all cursor-pointer"
+                  >
+                    <option value="">Tất cả lớp</option>
+                    {GRADE_LEVELS.map(g => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                  </select>
                 </div>
               )}
 
@@ -238,7 +267,7 @@ export default function ClassroomsPage() {
                 </div>
               )}
 
-              {!loading && classrooms.length > 0 && filtered.length === 0 && search && (
+              {!loading && classrooms.length > 0 && filtered.length === 0 && (search || filterSubject || filterGrade) && (
                 <div className="text-center py-12">
                   <p className="text-sm text-gray-400">Không tìm thấy lớp học nào phù hợp</p>
                 </div>
