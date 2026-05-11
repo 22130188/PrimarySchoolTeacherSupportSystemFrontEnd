@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard } from 'lucide-react';
+import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard, GraduationCap, BookOpen } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import PeopleTab from './components/PeopleTab';
@@ -196,7 +196,7 @@ export default function ClassroomDetail() {
                   {classroom.description && (
                     <p className="text-slate-500 text-sm mb-1">{classroom.description}</p>
                   )}
-                  <div className="flex items-center gap-4 mt-2">
+                  <div className="flex items-center gap-4 mt-2 flex-wrap">
                     <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-1.5">
                       <Keyboard className="w-3.5 h-3.5 text-slate-500" />
                       <span className="text-slate-800 font-mono font-bold text-sm tracking-wider">{classroom.classCode}</span>
@@ -212,6 +212,18 @@ export default function ClassroomDetail() {
                     <div className="flex items-center gap-2 text-slate-600 text-sm">
                       {classroom.teacherName}
                     </div>
+                    {classroom.gradeLevel && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-100 text-violet-700 text-sm font-semibold">
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        Lớp {classroom.gradeLevel}
+                      </span>
+                    )}
+                    {classroom.subject && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-100 text-teal-700 text-sm font-semibold">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        {classroom.subject}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

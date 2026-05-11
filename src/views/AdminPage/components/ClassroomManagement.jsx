@@ -11,9 +11,10 @@ import {
   Search, MoreHorizontal, Eye, Edit3, Trash2, RotateCcw,
   ChevronLeft, ChevronRight, Loader2, School, Users,
   Hash, AlertTriangle, Archive, CheckCircle2, XCircle,
+  GraduationCap, BookOpen,
 } from 'lucide-react';
 import SortIcon from '../../../components/SortIcon';
-import { useAdminClassrooms, useAdminClassroomStats } from '../../../hooks/useAdminClassrooms';
+import { useAdminClassrooms } from '../../../hooks/useAdminClassrooms';
 import * as adminClassroomApi from '../../../services/adminClassroomApi';
 import ClassroomEditModal from './ClassroomEditModal';
 import ClassroomDetailModal from './ClassroomDetailModal';
@@ -47,7 +48,6 @@ export default function ClassroomManagement() {
 
   const includeDeleted = activeTab === 'all';
   const { classrooms, loading, error, refetch } = useAdminClassrooms(includeDeleted);
-  const { stats } = useAdminClassroomStats();
 
   const [editOpen, setEditOpen] = useState(false);
   const [editClassroom, setEditClassroom] = useState(null);
@@ -175,6 +175,32 @@ export default function ClassroomManagement() {
       ),
     },
     {
+      accessorKey: 'gradeLevel',
+      header: 'Khối lớp',
+      cell: ({ getValue }) => {
+        const val = getValue();
+        return val ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
+            <GraduationCap className="w-3 h-3" />
+            Lớp {val}
+          </span>
+        ) : <span className="text-gray-300 text-xs">—</span>;
+      },
+    },
+    {
+      accessorKey: 'subject',
+      header: 'Môn học',
+      cell: ({ getValue }) => {
+        const val = getValue();
+        return val ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700">
+            <BookOpen className="w-3 h-3" />
+            {val}
+          </span>
+        ) : <span className="text-gray-300 text-xs">—</span>;
+      },
+    },
+    {
       accessorKey: 'createdAt',
       header: 'Ngày tạo',
       cell: ({ getValue }) => <span className="text-sm text-gray-500">{formatDate(getValue())}</span>,
@@ -289,22 +315,6 @@ export default function ClassroomManagement() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard
-            label="Lớp hoạt động"
-            value={stats.totalClassrooms}
-            icon={School}
-            gradient="from-violet-500 to-indigo-600"
-          />
-          <StatCard
-            label="Lời mời chờ"
-            value={stats.totalPendingInvitations}
-            icon={AlertTriangle}
-            gradient="from-amber-500 to-orange-600"
-          />
-        </div>
-      )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -475,22 +485,6 @@ export default function ClassroomManagement() {
         message={getConfirmMessage()}
         loading={confirmLoading}
       />
-    </div>
-  );
-}
-
-function StatCard({ label, value, icon: Icon, gradient }) {
-  return (
-    <div className="group bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-lg hover:shadow-gray-200/50 hover:-translate-y-0.5 transition-all duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-        </div>
-        <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-200`}>
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
     </div>
   );
 }

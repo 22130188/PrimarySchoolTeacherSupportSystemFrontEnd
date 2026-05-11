@@ -62,8 +62,8 @@ export default function ClassroomsPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleCreate = async (name, desc) => {
-    await createClassroom(name, desc);
+  const handleCreate = async (name, desc, gradeLevel, subject) => {
+    await createClassroom(name, desc, gradeLevel, subject);
     fetchData();
   };
 

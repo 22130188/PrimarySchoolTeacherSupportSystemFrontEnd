@@ -28,3 +28,17 @@ export const STATUS_ICONS = {
   EXPIRED:          <Clock className="w-3 h-3" />,
   CANCELLED:        <XCircle className="w-3 h-3" />,
 };
+
+export const GRADE_LEVELS = [
+  { value: 1, label: 'Lớp 1' },
+  { value: 2, label: 'Lớp 2' },
+  { value: 3, label: 'Lớp 3' },
+  { value: 4, label: 'Lớp 4' },
+  { value: 5, label: 'Lớp 5' },
+];
+
+export const SUBJECTS = [
+  { value: 'Toán', label: 'Toán' },
+  { value: 'Tiếng Anh', label: 'Tiếng Anh' },
+  { value: 'Tiếng Việt', label: 'Tiếng Việt' },
+];
