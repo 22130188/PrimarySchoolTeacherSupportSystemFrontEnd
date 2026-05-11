@@ -57,13 +57,13 @@ export default function AppRouter() {
                 <Route path="/tts"             element={renderPrivateRoute(<TTSPage />, [1, 2])} />
                 <Route path="/image"           element={<ImagePage />} />
                 <Route path="/pronunciation"   element={renderPrivateRoute(<PronunciationPage />, [1, 2])} />
-                <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [1, 2])} />
-                <Route path="/lessons/docx-editor" element={renderPrivateRoute(<DocxEditorPage />, [1, 2])} />
-                <Route path="/lessons/pptx-editor" element={renderPrivateRoute(<PptxEditorPage />, [1, 2])} />
-                <Route path="/tests"           element={renderPrivateRoute(<TestsPage />, [1, 2])} />
-                <Route path="/tests/create"    element={renderPrivateRoute(<CreateTestPage />, [1, 2])} />
-                <Route path="/tests/:id/edit"  element={renderPrivateRoute(<CreateTestPage />, [1, 2])} />
-                <Route path="/ai-tools"        element={renderPrivateRoute(<AIToolsPage />, [1, 2])} />
+                <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [2])} />
+                <Route path="/lessons/docx-editor" element={renderPrivateRoute(<DocxEditorPage />, [2])} />
+                <Route path="/lessons/pptx-editor" element={renderPrivateRoute(<PptxEditorPage />, [2])} />
+                <Route path="/tests"           element={renderPrivateRoute(<TestsPage />, [2])} />
+                <Route path="/tests/create"    element={renderPrivateRoute(<CreateTestPage />, [2])} />
+                <Route path="/tests/:id/edit"  element={renderPrivateRoute(<CreateTestPage />, [2])} />
+                <Route path="/ai-tools"        element={renderPrivateRoute(<AIToolsPage />, [2])} />
                 <Route path="/classrooms"      element={renderPrivateRoute(<ClassroomsPage />, [1, 2])} />
                 <Route path="/classrooms/:id"  element={renderPrivateRoute(<ClassroomDetail />, [1, 2])} />
                 <Route path="/join/link"        element={<JoinByLinkPage />} />

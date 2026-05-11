@@ -4,6 +4,7 @@ import DashboardSidebar from '../../components/DashboardSidebar';
 import { ClipboardCheck, Plus, Search, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuthStore } from '../../stores/authStore';
 import testApi from '../../services/testApi';
 
 const STATUS_STYLE = {
@@ -24,6 +25,7 @@ export default function TestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const roleId = useAuthStore(s => s.roleId);
 
   useEffect(() => {
     fetchTests();
@@ -33,7 +35,7 @@ export default function TestsPage() {
     try {
       setLoading(true);
       const response = await testApi.getAllTests();
-      const mappedTests = (response.data || response || []).map((test, idx) => ({
+      const mappedTests = (response || []).map((test, idx) => ({
         ...test,
         color: TEST_COLORS[idx % TEST_COLORS.length].color,
         emoji: TEST_COLORS[idx % TEST_COLORS.length].emoji,
