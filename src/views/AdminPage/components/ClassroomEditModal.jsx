@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, Loader2, School } from 'lucide-react';
+import { X, Loader2, School, GraduationCap, BookOpen } from 'lucide-react';
+import { GRADE_LEVELS, SUBJECTS } from '../../../data/classroomData';
 
 export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroom }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('');
+  const [subject, setSubject] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -11,6 +14,8 @@ export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroo
     if (classroom) {
       setName(classroom.name || '');
       setDescription(classroom.description || '');
+      setGradeLevel(classroom.gradeLevel || '');
+      setSubject(classroom.subject || '');
       setError('');
     }
   }, [classroom]);
@@ -26,7 +31,12 @@ export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroo
     setLoading(true);
     setError('');
     try {
-      await onSubmit({ name: name.trim(), description: description.trim() });
+      await onSubmit({
+        name: name.trim(),
+        description: description.trim(),
+        gradeLevel: gradeLevel ? parseInt(gradeLevel) : null,
+        subject: subject || null,
+      });
       onClose();
     } catch (err) {
       setError(err.message);
@@ -77,6 +87,40 @@ export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroo
               placeholder="Nhập tên lớp học..."
               className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 focus:bg-white transition-all duration-200 placeholder-gray-400"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-gray-700">
+                <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> Khối lớp</span>
+              </label>
+              <select
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 focus:bg-white transition-all duration-200 cursor-pointer"
+              >
+                <option value="">Chọn khối lớp</option>
+                {GRADE_LEVELS.map(g => (
+                  <option key={g.value} value={g.value}>{g.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-gray-700">
+                <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> Môn học</span>
+              </label>
+              <select
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 focus:bg-white transition-all duration-200 cursor-pointer"
+              >
+                <option value="">Chọn môn học</option>
+                {SUBJECTS.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="space-y-1.5">

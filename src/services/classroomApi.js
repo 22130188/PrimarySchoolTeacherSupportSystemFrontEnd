@@ -14,11 +14,11 @@ async function handleRes(res) {
   return res.json();
 }
 
-export async function createClassroom(name, description) {
+export async function createClassroom(name, description, gradeLevel, subject) {
   const res = await fetch(`${BASE}/api/classrooms`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify({ name, description, gradeLevel, subject }),
   });
   return handleRes(res);
 }

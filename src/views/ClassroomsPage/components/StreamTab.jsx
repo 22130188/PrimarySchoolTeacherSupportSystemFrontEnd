@@ -10,9 +10,9 @@ import { openGoogleDrivePicker } from '../../../utils/googleDrivePicker';
 import { useAuthStore } from '../../../stores/authStore';
 
 const GOOGLE_PICKER_CONFIG = {
-  apiKey: 'AIzaSyD4jN3KFoefV9npftw0m0N0ZKeOlY8N9iQ',
-  clientId: '866637403686-eai7uvirdmklen72pl66h1e3eidgoojv.apps.googleusercontent.com',
-  appId: '866637403686',
+  apiKey: import.meta.env.VITE_GOOGLE_PICKER_API_KEY,
+  clientId: import.meta.env.VITE_GOOGLE_PICKER_CLIENT_ID,
+  appId: import.meta.env.VITE_GOOGLE_PICKER_APP_ID,
 };
 
 function formatTime(value) {

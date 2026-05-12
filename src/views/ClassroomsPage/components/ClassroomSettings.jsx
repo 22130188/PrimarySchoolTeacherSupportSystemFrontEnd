@@ -1,18 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Copy, RefreshCw, Link2, Keyboard, CheckCircle2, Save, Trash2 } from 'lucide-react';
+import { Copy, RefreshCw, Link2, Keyboard, CheckCircle2, Save, Trash2, GraduationCap, BookOpen } from 'lucide-react';
 import { resetInviteLink, resetClassCode, updateClassroom } from '../../../services/classroomApi';
+import { GRADE_LEVELS, SUBJECTS } from '../../../data/classroomData';
 
 export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
   const [loading, setLoading] = useState(null);
   const [copied, setCopied] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('');
+  const [subject, setSubject] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     setName(classroom?.name || '');
     setDescription(classroom?.description || '');
-  }, [classroom?.name, classroom?.description]);
+    setGradeLevel(classroom?.gradeLevel || '');
+    setSubject(classroom?.subject || '');
+  }, [classroom?.name, classroom?.description, classroom?.gradeLevel, classroom?.subject]);
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -59,12 +64,16 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
       const updated = await updateClassroom(classroom.id, {
         name: name.trim(),
         description: description.trim(),
+        gradeLevel: gradeLevel ? parseInt(gradeLevel) : null,
+        subject: subject || null,
       });
 
       onUpdate?.(updated || {
         ...classroom,
         name: name.trim(),
         description: description.trim(),
+        gradeLevel: gradeLevel ? parseInt(gradeLevel) : null,
+        subject: subject || null,
       });
     } catch (err) {
       setError(err.message);
@@ -75,7 +84,9 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
 
   const hasInfoChanged =
     name.trim() !== (classroom?.name || '').trim()
-    || description.trim() !== (classroom?.description || '').trim();
+    || description.trim() !== (classroom?.description || '').trim()
+    || String(gradeLevel) !== String(classroom?.gradeLevel || '')
+    || subject !== (classroom?.subject || '');
 
   const handleDeleteClassroom = async () => {
     setLoading('delete');
@@ -129,6 +140,40 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
             rows={3}
             className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm resize-none transition-all"
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> Khối lớp</span>
+            </label>
+            <select
+              value={gradeLevel}
+              onChange={(e) => setGradeLevel(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white"
+            >
+              <option value="">Chọn khối lớp</option>
+              {GRADE_LEVELS.map(g => (
+                <option key={g.value} value={g.value}>{g.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> Môn học</span>
+            </label>
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white"
+            >
+              <option value="">Chọn môn học</option>
+              {SUBJECTS.map(s => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </form>
 
