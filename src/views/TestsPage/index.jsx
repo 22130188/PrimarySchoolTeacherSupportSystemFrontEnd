@@ -1,7 +1,7 @@
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { ClipboardCheck, Plus, Search, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Plus, Search, CheckCircle, Clock, AlertCircle, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../stores/authStore';
@@ -25,6 +25,7 @@ export default function TestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [openActionMenu, setOpenActionMenu] = useState(null);
   const roleId = useAuthStore(s => s.roleId);
 
   useEffect(() => {
@@ -51,6 +52,27 @@ export default function TestsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteTest = async (event, testId) => {
+    event.stopPropagation();
+    setOpenActionMenu(null);
+    if (!window.confirm('Bạn có chắc muốn xóa bài kiểm tra này?')) {
+      return;
+    }
+
+    try {
+      await testApi.deleteTest(testId);
+      setTests((prevTests) => prevTests.filter((test) => test.id !== testId));
+    } catch (err) {
+      console.error('Error deleting test:', err);
+      alert('Không thể xóa bài kiểm tra. Vui lòng thử lại.');
+    }
+  };
+
+  const toggleActionMenu = (event, testId) => {
+    event.stopPropagation();
+    setOpenActionMenu((current) => (current === testId ? null : testId));
   };
 
   const handleCreateTest = () => {
@@ -151,7 +173,30 @@ export default function TestsPage() {
                     >
                       <div className={`h-28 bg-gradient-to-br ${test.color} flex items-center justify-center relative`}>
                         <span className="text-5xl opacity-70 group-hover:scale-110 transition-transform duration-300">{test.emoji}</span>
-                        <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[test.status]}`}>
+                        <div className="absolute top-3 right-3 text-right">
+                          <button
+                            onClick={(e) => toggleActionMenu(e, test.id)}
+                            className="p-2 rounded-full bg-white/90 text-gray-600 hover:bg-white transition-colors"
+                            title="Thao tác"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                          {openActionMenu === test.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-2 w-32 rounded-xl border border-gray-200 bg-white shadow-lg text-left"
+                            >
+                              <button
+                                onClick={(e) => handleDeleteTest(e, test.id)}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Xóa
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <span className={`absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[test.status]}`}>
                           {test.status}
                         </span>
                       </div>

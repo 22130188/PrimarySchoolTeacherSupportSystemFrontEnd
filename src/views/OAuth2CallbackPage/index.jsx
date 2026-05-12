@@ -12,9 +12,11 @@ export default function OAuth2CallbackPage() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const token  = params.get('token');
+        console.log('[OAuth2CallbackPage] token from callback:', token);
         
         if (token) {
             setToken(token);
+            console.log('[OAuth2CallbackPage] stored token in auth store/localStorage');
 
             // Chờ một chút để đảm bảo token được lưu vào localStorage
             setTimeout(async () => {

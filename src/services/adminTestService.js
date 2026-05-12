@@ -54,7 +54,7 @@ class AdminTestService {
   async downloadTestDocx(testId, testName) {
     try {
       const token = useAuthStore.getState().token;
-      const response = await axios.get(`${GATEWAY_URL}/api/tests/${testId}/download/docx`, {
+      const response = await axios.get(`${GATEWAY_URL}/api/tests/admin/${testId}/download/docx`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
         },

@@ -4,29 +4,29 @@ import { useAuthStore } from '../stores/authStore';
 
 const API_BASE_URL = API_CONFIG.GATEWAY_URL;
 
+const getAuthHeaders = () => {
+  const token = useAuthStore.getState().token || localStorage.getItem('token');
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+};
+
 const testApi = {
   getAllTests: async () => {
     try {
-      const token = useAuthStore.getState().token;
       const response = await axios.get(`${API_BASE_URL}/api/tests`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       });
-      return response.data.data; 
+      return response.data.data;
     } catch (error) {
-      console.error('Error fetching tests:', error);
+      console.error('Error fetching tests:', error.response?.status, error.response?.data || error.message);
       throw error;
     }
   },
 
   getAllTestsForAdmin: async () => {
     try {
-      const token = useAuthStore.getState().token;
       const response = await axios.get(`${API_BASE_URL}/api/tests/admin/all`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       });
       return response.data.data;
     } catch (error) {
@@ -37,11 +37,8 @@ const testApi = {
 
   getTestById: async (testId) => {
     try {
-      const token = useAuthStore.getState().token;
       const response = await axios.get(`${API_BASE_URL}/api/tests/${testId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       });
       return response.data.data;
     } catch (error) {
@@ -52,10 +49,9 @@ const testApi = {
 
   createTest: async (testData) => {
     try {
-      const token = useAuthStore.getState().token;
       const response = await axios.post(`${API_BASE_URL}/api/tests`, testData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(),
           'Content-Type': 'application/json',
         },
       });
@@ -68,13 +64,12 @@ const testApi = {
 
   updateTest: async (testId, testData) => {
     try {
-      const token = useAuthStore.getState().token;
       const response = await axios.put(
         `${API_BASE_URL}/api/tests/${testId}`,
         testData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
         }
@@ -88,11 +83,8 @@ const testApi = {
 
   deleteTest: async (testId) => {
     try {
-      const token = useAuthStore.getState().token;
       const response = await axios.delete(`${API_BASE_URL}/api/tests/${testId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       });
       return response.data;
     } catch (error) {
@@ -103,13 +95,12 @@ const testApi = {
 
   downloadTestAsDocx: async (testData) => {
     try {
-      const token = useAuthStore.getState().token;
       const response = await axios.post(
         `${API_BASE_URL}/api/tests/download/docx`,
         testData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...getAuthHeaders(),
             'Content-Type': 'application/json',
           },
           responseType: 'blob',
@@ -132,7 +123,6 @@ const testApi = {
 
   uploadAudio: async (audioBlob, testId, questionId) => {
     try {
-      const token = useAuthStore.getState().token;
       const formData = new FormData();
       formData.append('file', audioBlob, 'recording.wav');
 
@@ -141,7 +131,7 @@ const testApi = {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...getAuthHeaders(),
             'Content-Type': 'multipart/form-data',
           },
         }
