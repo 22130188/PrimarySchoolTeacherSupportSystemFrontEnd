@@ -1,4 +1,4 @@
-import { MoreVertical, Users, Copy, Link2 } from 'lucide-react';
+import { MoreVertical, Users, Copy, Link2, GraduationCap, BookOpen } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { BANNER_COLORS } from '../../../data/classroomData';
 
@@ -72,6 +72,22 @@ export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCo
       </div>
 
       <div className="p-4 pt-3 min-h-[72px] flex flex-col justify-end">
+        {(classroom.gradeLevel || classroom.subject) && (
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            {classroom.gradeLevel && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-violet-100 text-violet-700">
+                <GraduationCap className="w-3 h-3" />
+                Lớp {classroom.gradeLevel}
+              </span>
+            )}
+            {classroom.subject && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-teal-100 text-teal-700">
+                <BookOpen className="w-3 h-3" />
+                {classroom.subject}
+              </span>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between mt-auto">
           <span className="flex items-center gap-1.5 text-sm text-gray-500">
             <Users className="w-4 h-4" />
