@@ -5,7 +5,6 @@ import { useAuthStore } from '../stores/authStore';
 const API_BASE_URL = API_CONFIG.GATEWAY_URL;
 
 const testApi = {
-  // Lấy tất cả bài kiểm tra
   getAllTests: async () => {
     try {
       const token = useAuthStore.getState().token;
@@ -14,14 +13,28 @@ const testApi = {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data;
+      return response.data.data; 
     } catch (error) {
       console.error('Error fetching tests:', error);
       throw error;
     }
   },
 
-  // Lấy bài kiểm tra theo ID
+  getAllTestsForAdmin: async () => {
+    try {
+      const token = useAuthStore.getState().token;
+      const response = await axios.get(`${API_BASE_URL}/api/tests/admin/all`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching tests for admin:', error);
+      throw error;
+    }
+  },
+
   getTestById: async (testId) => {
     try {
       const token = useAuthStore.getState().token;
@@ -30,14 +43,13 @@ const testApi = {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error('Error fetching test:', error);
       throw error;
     }
   },
 
-  // Tạo bài kiểm tra mới
   createTest: async (testData) => {
     try {
       const token = useAuthStore.getState().token;
@@ -47,14 +59,13 @@ const testApi = {
           'Content-Type': 'application/json',
         },
       });
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error('Error creating test:', error);
       throw error;
     }
   },
 
-  // Cập nhật bài kiểm tra
   updateTest: async (testId, testData) => {
     try {
       const token = useAuthStore.getState().token;
@@ -68,14 +79,13 @@ const testApi = {
           },
         }
       );
-      return response.data;
+      return response.data.data;
     } catch (error) {
       console.error('Error updating test:', error);
       throw error;
     }
   },
 
-  // Xóa bài kiểm tra
   deleteTest: async (testId) => {
     try {
       const token = useAuthStore.getState().token;
@@ -91,7 +101,6 @@ const testApi = {
     }
   },
 
-  // Tải xuống file DOCX
   downloadTestAsDocx: async (testData) => {
     try {
       const token = useAuthStore.getState().token;
@@ -107,7 +116,6 @@ const testApi = {
         }
       );
 
-      // Tạo link download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -122,7 +130,6 @@ const testApi = {
     }
   },
 
-  // Ghi âm câu trả lời
   uploadAudio: async (audioBlob, testId, questionId) => {
     try {
       const token = useAuthStore.getState().token;
