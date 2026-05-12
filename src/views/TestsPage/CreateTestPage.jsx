@@ -9,7 +9,7 @@ import testApi from '../../services/testApi';
 
 export default function CreateTestPage() {
   const navigate = useNavigate();
-  const { id } = useParams();  // Get test ID from URL if editing
+  const { id } = useParams();  
   const isEditing = !!id;
   
   const [testInfo, setTestInfo] = useState({
@@ -21,12 +21,13 @@ export default function CreateTestPage() {
 
   const [questions, setQuestions] = useState([]);
   const [showQuestionTypeModal, setShowQuestionTypeModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [recordingId, setRecordingId] = useState(null);
   const [isRecording, setIsRecording] = useState({});
+  const [saveStatus, setSaveStatus] = useState('DRAFT');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditing);
 
-  // Load test data if editing
   useEffect(() => {
     if (isEditing && id) {
       loadTestData();
@@ -46,8 +47,8 @@ export default function CreateTestPage() {
           grade: test.grade || '',
           duration: test.duration || '',
         });
+        setSaveStatus(test.status || 'DRAFT');
         
-        // Load questions
         if (test.questions && test.questions.length > 0) {
           const loadedQuestions = test.questions.map((q, idx) => ({
             id: q.id || Date.now() + idx,
@@ -82,7 +83,6 @@ export default function CreateTestPage() {
     }
   };
 
-  // Thêm câu hỏi trắc nghiệm
   const addMultipleChoiceQuestion = () => {
     const newQuestion = {
       id: Date.now(),
@@ -101,7 +101,6 @@ export default function CreateTestPage() {
     setShowQuestionTypeModal(false);
   };
 
-  // Thêm câu hỏi âm thanh
   const addAudioQuestion = () => {
     const newQuestion = {
       id: Date.now(),
@@ -115,12 +114,10 @@ export default function CreateTestPage() {
     setShowQuestionTypeModal(false);
   };
 
-  // Cập nhật thông tin bài kiểm tra
   const handleTestInfoChange = (field, value) => {
     setTestInfo((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Cập nhật câu hỏi trắc nghiệm
   const handleMultipleChoiceUpdate = (questionId, field, value) => {
     setQuestions((prev) =>
       prev.map((q) =>
@@ -129,7 +126,6 @@ export default function CreateTestPage() {
     );
   };
 
-  // Cập nhật đáp án
   const handleAnswerUpdate = (questionId, answerId, field, value) => {
     setQuestions((prev) =>
       prev.map((q) => {
@@ -150,7 +146,6 @@ export default function CreateTestPage() {
     );
   };
 
-  // Cập nhật câu hỏi âm thanh
   const handleAudioQuestionUpdate = (questionId, field, value) => {
     setQuestions((prev) =>
       prev.map((q) =>
@@ -159,12 +154,10 @@ export default function CreateTestPage() {
     );
   };
 
-  // Xóa câu hỏi
   const deleteQuestion = (questionId) => {
     setQuestions((prev) => prev.filter((q) => q.id !== questionId));
   };
 
-  // Ghi âm
   const startRecording = async (questionId) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -200,7 +193,8 @@ export default function CreateTestPage() {
   };
 
   // Lưu bài kiểm tra
-  const handleSaveTest = async () => {
+  const handleSaveTest = async (status = saveStatus) => {
+    setShowSaveModal(false);
     if (!testInfo.name || !testInfo.subject || !testInfo.duration) {
       alert('Vui lòng điền đầy đủ thông tin bài kiểm tra');
       return;
@@ -219,6 +213,7 @@ export default function CreateTestPage() {
         subject: testInfo.subject,
         grade: testInfo.grade,
         duration: parseInt(testInfo.duration, 10),
+        status,
         userId: user?.id,
         userName: user?.fullName || user?.name || user?.username || 'Unknown',
         questions: questions.map((q, index) => {
@@ -250,11 +245,9 @@ export default function CreateTestPage() {
       };
 
       if (isEditing && id) {
-        // Update existing test
         await testApi.updateTest(id, testData);
         alert('Cập nhật bài kiểm tra thành công!');
       } else {
-        // Create new test
         await testApi.createTest(testData);
         alert('Lưu bài kiểm tra thành công!');
       }
@@ -268,7 +261,6 @@ export default function CreateTestPage() {
     }
   };
 
-  // Tải xuống file DOCX
   const handleDownloadTest = async () => {
     if (!testInfo.name || !testInfo.subject || questions.length === 0) {
       alert('Vui lòng hoàn thành bài kiểm tra trước khi tải xuống');
@@ -316,7 +308,6 @@ export default function CreateTestPage() {
     }
   };
 
-  // Hủy bài kiểm tra
   const handleCancel = () => {
     if (
       testInfo.name ||
@@ -347,7 +338,6 @@ export default function CreateTestPage() {
                 Tạo bài kiểm tra mới
               </h1>
 
-              {/* Thông tin bài kiểm tra */}
               <div className="bg-white rounded-xl p-6 border border-gray-100 mb-8 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-800 mb-4">
                   Thông tin bài kiểm tra
@@ -408,7 +398,6 @@ export default function CreateTestPage() {
                   </div>
                 </div>
 
-                {/* Nút tạo câu hỏi */}
                 <div className="text-center">
                   <button
                     onClick={() => setShowQuestionTypeModal(true)}
@@ -420,7 +409,6 @@ export default function CreateTestPage() {
                 </div>
               </div>
 
-              {/* Danh sách câu hỏi */}
               <div className="space-y-6">
                 {questions.map((question, index) => (
                   <div
@@ -443,7 +431,6 @@ export default function CreateTestPage() {
                     </div>
 
                     {question.type === 'multiple-choice' ? (
-                      // Câu hỏi trắc nghiệm
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           <input
@@ -506,7 +493,6 @@ export default function CreateTestPage() {
                           />
                         </div>
 
-                        {/* Đáp án A, B, C, D */}
                         <div className="space-y-3 border-t pt-4">
                           <label className="block text-sm font-medium text-gray-700">
                             Đáp án
@@ -552,7 +538,6 @@ export default function CreateTestPage() {
                         </div>
                       </div>
                     ) : (
-                      // Câu hỏi âm thanh
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <input
@@ -621,7 +606,6 @@ export default function CreateTestPage() {
                 ))}
               </div>
 
-              {/* Nút tạo câu hỏi thêm (phía dưới) */}
               {questions.length > 0 && (
                 <div className="mt-6 flex justify-center">
                   <button
@@ -634,8 +618,7 @@ export default function CreateTestPage() {
                 </div>
               )}
 
-              {/* Nút điều khiển cuối cùng */}
-              <div className="flex items-center justify-center gap-4 mt-10 mb-8">
+              <div className="flex flex-col items-center gap-4 mt-10 mb-8 sm:flex-row sm:justify-center">
                 <button
                   onClick={handleCancel}
                   className="px-6 py-2.5 rounded-xl bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300 transition-all"
@@ -649,7 +632,7 @@ export default function CreateTestPage() {
                   Tải xuống
                 </button>
                 <button
-                  onClick={handleSaveTest}
+                  onClick={() => setShowSaveModal(true)}
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold shadow-md hover:shadow-lg active:scale-95 transition-all"
                 >
                   Lưu
@@ -660,7 +643,6 @@ export default function CreateTestPage() {
         </div>
       </div>
 
-      {/* Modal chọn loại câu hỏi */}
       {showQuestionTypeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-xl">
@@ -698,6 +680,44 @@ export default function CreateTestPage() {
                 </div>
                 <div className="text-sm text-gray-600 mt-1">
                   Trả lời bằng ghi âm phát âm
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Chọn cách lưu bài kiểm tra
+              </h2>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleSaveTest('DRAFT')}
+                className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-orange-500 hover:bg-orange-50 transition-all text-left"
+              >
+                <div className="font-semibold text-gray-900">Lưu bản nháp</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Bài kiểm tra được lưu lại nhưng chưa xuất bản.
+                </div>
+              </button>
+              <button
+                onClick={() => handleSaveTest('PUBLISHED')}
+                className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all text-left"
+              >
+                <div className="font-semibold text-gray-900">Lưu đã hoàn thành</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Bài kiểm tra được lưu và đánh dấu là hoàn thành.
                 </div>
               </button>
             </div>

@@ -17,14 +17,13 @@ import adminTestService from '../../../services/adminTestService';
 
 const TEST_TABS = [
   { key: 'all', label: 'Tất cả' },
-  { key: 'published', label: 'Đã xuất bản' },
+  { key: 'published', label: 'Đã hoàn thành' },
   { key: 'draft', label: 'Bản nháp' },
-  { key: 'archived', label: 'Đã lưu trữ' },
 ];
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Bản nháp', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
-  PUBLISHED: { label: 'Đã xuất bản', color: 'bg-green-100 text-green-700', icon: CheckCircle },
+  PUBLISHED: { label: 'Đã hoàn thành', color: 'bg-green-100 text-green-700', icon: CheckCircle },
   ARCHIVED: { label: 'Đã lưu trữ', color: 'bg-gray-100 text-gray-700', icon: Archive },
 };
 
@@ -231,7 +230,7 @@ export default function TestManagement() {
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
-      pagination: { pageSize: 8 },
+      pagination: { pageSize: 5 },
     },
   });
 
