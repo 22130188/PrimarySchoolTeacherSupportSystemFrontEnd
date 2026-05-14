@@ -23,14 +23,14 @@ const testApi = {
     }
   },
 
-  getAllTestsForAdmin: async () => {
+  getAllQuestionsByUser: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/tests/admin/all`, {
+      const response = await axios.get(`${API_BASE_URL}/api/tests/questions/user`, {
         headers: getAuthHeaders(),
       });
       return response.data.data;
     } catch (error) {
-      console.error('Error fetching tests for admin:', error);
+      console.error('Error fetching questions:', error.response?.status, error.response?.data || error.message);
       throw error;
     }
   },

@@ -33,7 +33,11 @@ export default function CreateTestPage() {
   });
 
   const [questions, setQuestions] = useState([]);
+  const [showQuestionSourceModal, setShowQuestionSourceModal] = useState(false);
   const [showQuestionTypeModal, setShowQuestionTypeModal] = useState(false);
+  const [showExistingQuestionsModal, setShowExistingQuestionsModal] = useState(false);
+  const [existingQuestions, setExistingQuestions] = useState([]);
+  const [loadingExistingQuestions, setLoadingExistingQuestions] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showImageLibraryModal, setShowImageLibraryModal] = useState(false);
@@ -72,28 +76,85 @@ export default function CreateTestPage() {
         setSaveStatus(test.status || 'DRAFT');
         
         if (test.questions && test.questions.length > 0) {
-          const loadedQuestions = test.questions.map((q, idx) => ({
-            id: q.id || Date.now() + idx,
-            type: q.type === 'MULTIPLE_CHOICE' ? 'multiple-choice' : 'audio',
-            content: q.content || '',
-            points: q.points || '',
-            title: q.title || '',
-            numberQuestions: q.numberQuestions || '',
-            answers: q.answers ? q.answers.map((a, aIdx) => ({
-              id: a.id || aIdx + 1,
-              label: a.label || String.fromCharCode(65 + aIdx),
-              content: a.content || '',
-              isCorrect: a.isCorrect || false,
-            })) : [
-              { id: 1, label: 'A', content: '', isCorrect: false },
-              { id: 2, label: 'B', content: '', isCorrect: false },
-              { id: 3, label: 'C', content: '', isCorrect: false },
-              { id: 4, label: 'D', content: '', isCorrect: false },
-            ],
-            audioUrl: q.audioUrl || null,
-            imageUrl: q.imageUrl || null,
-            transcript: q.transcript || '',
-          }));
+          const loadedQuestions = test.questions.map((q, idx) => {
+            const baseQuestion = {
+              id: q.id || Date.now() + idx,
+              content: q.content || '',
+              points: q.points || '',
+              audioUrl: q.audioUrl || null,
+              imageUrl: q.imageUrl || null,
+              transcript: q.transcript || '',
+            };
+
+            switch (q.type) {
+              case 'MULTIPLE_CHOICE':
+                return {
+                  ...baseQuestion,
+                  type: 'multiple-choice',
+                  title: q.title || '',
+                  numberQuestions: q.numberQuestions || '',
+                  answers: q.answers ? q.answers.map((a, aIdx) => ({
+                    id: a.id || aIdx + 1,
+                    label: a.label || String.fromCharCode(65 + aIdx),
+                    content: a.content || '',
+                    isCorrect: a.isCorrect || false,
+                  })) : [
+                    { id: 1, label: 'A', content: '', isCorrect: false },
+                    { id: 2, label: 'B', content: '', isCorrect: false },
+                    { id: 3, label: 'C', content: '', isCorrect: false },
+                    { id: 4, label: 'D', content: '', isCorrect: false },
+                  ],
+                };
+
+              case 'AUDIO':
+                return {
+                  ...baseQuestion,
+                  type: 'audio',
+                };
+
+              case 'MATCHING':
+                return {
+                  ...baseQuestion,
+                  type: 'matching',
+                  matchingPairs: q.matchingPairs || [
+                    { id: 1, left: '', right: '' },
+                    { id: 2, left: '', right: '' },
+                    { id: 3, left: '', right: '' },
+                  ],
+                };
+
+              case 'FILL_IN_BLANK':
+                return {
+                  ...baseQuestion,
+                  type: 'fill-in-blank',
+                  textWithBlanks: q.textWithBlanks || '',
+                  blanks: q.blanks || [
+                    { id: 1, correctAnswer: '', points: 1 },
+                  ],
+                };
+
+              case 'ESSAY':
+                return {
+                  ...baseQuestion,
+                  type: 'essay',
+                  prompt: q.prompt || '',
+                  maxLength: q.maxLength || 500,
+                };
+
+              default:
+                return {
+                  ...baseQuestion,
+                  type: 'multiple-choice',
+                  title: q.title || '',
+                  answers: [
+                    { id: 1, label: 'A', content: '', isCorrect: false },
+                    { id: 2, label: 'B', content: '', isCorrect: false },
+                    { id: 3, label: 'C', content: '', isCorrect: false },
+                    { id: 4, label: 'D', content: '', isCorrect: false },
+                  ],
+                };
+            }
+          });
           setQuestions(loadedQuestions);
         }
       }
@@ -103,6 +164,19 @@ export default function CreateTestPage() {
       navigate('/tests');
     } finally {
       setInitialLoading(false);
+    }
+  };
+
+  const loadExistingQuestions = async () => {
+    try {
+      setLoadingExistingQuestions(true);
+      const questions = await testApi.getAllQuestionsByUser();
+      setExistingQuestions(questions || []);
+    } catch (error) {
+      console.error('Error loading existing questions:', error);
+      alert('Lỗi khi tải danh sách câu hỏi cũ');
+    } finally {
+      setLoadingExistingQuestions(false);
     }
   };
 
@@ -136,6 +210,130 @@ export default function CreateTestPage() {
     };
     setQuestions([...questions, newQuestion]);
     setShowQuestionTypeModal(false);
+  };
+
+  const addMatchingQuestion = () => {
+    const newQuestion = {
+      id: Date.now(),
+      type: 'matching',
+      content: '',
+      points: '',
+      matchingPairs: [
+        { id: 1, left: '', right: '' },
+        { id: 2, left: '', right: '' },
+        { id: 3, left: '', right: '' },
+      ],
+    };
+    setQuestions([...questions, newQuestion]);
+    setShowQuestionTypeModal(false);
+  };
+
+  const addFillInBlankQuestion = () => {
+    const newQuestion = {
+      id: Date.now(),
+      type: 'fill-in-blank',
+      content: '',
+      points: '',
+      textWithBlanks: '',
+      blanks: [
+        { id: 1, position: 0, correctAnswer: '', points: 1 },
+      ],
+    };
+    setQuestions([...questions, newQuestion]);
+    setShowQuestionTypeModal(false);
+  };
+
+  const addEssayQuestion = () => {
+    const newQuestion = {
+      id: Date.now(),
+      type: 'essay',
+      content: '',
+      points: '',
+      prompt: '',
+      maxLength: 500,
+    };
+    setQuestions([...questions, newQuestion]);
+    setShowQuestionTypeModal(false);
+  };
+
+  const addExistingQuestion = (existingQuestion) => {
+    // Convert backend question format to frontend format
+    const baseQuestion = {
+      id: Date.now(),
+      content: existingQuestion.content || '',
+      points: existingQuestion.points || '',
+      audioUrl: existingQuestion.audioUrl || null,
+      imageUrl: existingQuestion.imageUrl || null,
+      transcript: existingQuestion.transcript || '',
+    };
+
+    let newQuestion;
+    switch (existingQuestion.type) {
+      case 'MULTIPLE_CHOICE':
+        newQuestion = {
+          ...baseQuestion,
+          type: 'multiple-choice',
+          title: existingQuestion.title || '',
+          numberQuestions: existingQuestion.numberQuestions || '',
+          answers: existingQuestion.answers || [
+            { id: 1, label: 'A', content: '', isCorrect: false },
+            { id: 2, label: 'B', content: '', isCorrect: false },
+            { id: 3, label: 'C', content: '', isCorrect: false },
+            { id: 4, label: 'D', content: '', isCorrect: false },
+          ],
+        };
+        break;
+      case 'AUDIO':
+        newQuestion = {
+          ...baseQuestion,
+          type: 'audio',
+        };
+        break;
+      case 'MATCHING':
+        newQuestion = {
+          ...baseQuestion,
+          type: 'matching',
+          matchingPairs: existingQuestion.matchingPairs || [
+            { id: 1, left: '', right: '' },
+            { id: 2, left: '', right: '' },
+            { id: 3, left: '', right: '' },
+          ],
+        };
+        break;
+      case 'FILL_IN_BLANK':
+        newQuestion = {
+          ...baseQuestion,
+          type: 'fill-in-blank',
+          textWithBlanks: existingQuestion.textWithBlanks || '',
+          blanks: existingQuestion.blanks || [
+            { id: 1, correctAnswer: '', points: 1 },
+          ],
+        };
+        break;
+      case 'ESSAY':
+        newQuestion = {
+          ...baseQuestion,
+          type: 'essay',
+          prompt: existingQuestion.prompt || '',
+          maxLength: existingQuestion.maxLength || 500,
+        };
+        break;
+      default:
+        newQuestion = {
+          ...baseQuestion,
+          type: 'multiple-choice',
+          title: existingQuestion.title || '',
+          answers: [
+            { id: 1, label: 'A', content: '', isCorrect: false },
+            { id: 2, label: 'B', content: '', isCorrect: false },
+            { id: 3, label: 'C', content: '', isCorrect: false },
+            { id: 4, label: 'D', content: '', isCorrect: false },
+          ],
+        };
+    }
+
+    setQuestions([...questions, newQuestion]);
+    setShowExistingQuestionsModal(false);
   };
 
   const handleTestInfoChange = (field, value) => {
@@ -382,31 +580,82 @@ export default function CreateTestPage() {
         userId: user?.id,
         userName: user?.fullName || user?.name || user?.username || 'Unknown',
         questions: questions.map((q, index) => {
+          // SAVE VERSION: Handle different question types for saving to database
           const baseQuestion = {
-            type: q.type === 'multiple-choice' ? 'MULTIPLE_CHOICE' : 'AUDIO',
             content: q.content || '',
             points: q.points ? parseInt(q.points, 10) : 0,
-            title: q.title || '',
-            numberQuestions: 0,
             orderIndex: index,
             audioUrl: q.audioUrl || null,
             imageUrl: q.imageUrl || null,
             transcript: q.transcript || '',
           };
 
-          if (q.type === 'multiple-choice') {
-            return {
-              ...baseQuestion,
-              answers: (q.answers || []).map((a, aIdx) => ({
-                id: a.id || aIdx + 1,
-                label: a.label || String.fromCharCode(65 + aIdx),
-                content: a.content || '',
-                isCorrect: a.isCorrect || false,
-              })),
-            };
-          }
+          switch (q.type) {
+            case 'multiple-choice':
+              return {
+                ...baseQuestion,
+                type: 'MULTIPLE_CHOICE',
+                title: q.title || '',
+                numberQuestions: 0,
+                answers: (q.answers || []).map((a, aIdx) => ({
+                  id: a.id || aIdx + 1,
+                  label: a.label || String.fromCharCode(65 + aIdx),
+                  content: a.content || '',
+                  isCorrect: a.isCorrect || false,
+                })),
+              };
 
-          return baseQuestion;
+            case 'audio':
+              return {
+                ...baseQuestion,
+                type: 'AUDIO',
+                title: '',
+                numberQuestions: 0,
+              };
+
+            case 'matching':
+              return {
+                ...baseQuestion,
+                type: 'MATCHING',
+                title: '',
+                numberQuestions: 0,
+                matchingPairs: q.matchingPairs || [],
+              };
+
+            case 'fill-in-blank':
+              return {
+                ...baseQuestion,
+                type: 'FILL_IN_BLANK',
+                title: '',
+                numberQuestions: 0,
+                textWithBlanks: q.textWithBlanks || '',
+                blanks: q.blanks || [],
+              };
+
+            case 'essay':
+              return {
+                ...baseQuestion,
+                type: 'ESSAY',
+                title: '',
+                numberQuestions: 0,
+                prompt: q.prompt || '',
+                maxLength: q.maxLength || 500,
+              };
+
+            default:
+              return {
+                ...baseQuestion,
+                type: 'MULTIPLE_CHOICE',
+                title: q.title || '',
+                numberQuestions: 0,
+                answers: (q.answers || []).map((a, aIdx) => ({
+                  id: a.id || aIdx + 1,
+                  label: a.label || String.fromCharCode(65 + aIdx),
+                  content: a.content || '',
+                  isCorrect: a.isCorrect || false,
+                })),
+              };
+          }
         }),
       };
 
@@ -441,31 +690,82 @@ export default function CreateTestPage() {
         duration: parseInt(testInfo.duration, 10),
         includeAnswers,
         questions: questions.map((q, index) => {
+          // DOWNLOAD VERSION: Handle different question types for DOCX download
           const baseQuestion = {
-            type: q.type === 'multiple-choice' ? 'MULTIPLE_CHOICE' : 'AUDIO',
             content: q.content || '',
             points: q.points ? parseInt(q.points, 10) : 0,
-            title: q.title || '',
-            numberQuestions: 0,
             orderIndex: index,
             audioUrl: q.audioUrl || null,
             imageUrl: q.imageUrl || null,
             transcript: q.transcript || '',
           };
 
-          if (q.type === 'multiple-choice') {
-            return {
-              ...baseQuestion,
-              answers: (q.answers || []).map((a, aIdx) => ({
-                id: a.id || aIdx + 1,
-                label: a.label || String.fromCharCode(65 + aIdx),
-                content: a.content || '',
-                isCorrect: a.isCorrect || false,
-              })),
-            };
-          }
+          switch (q.type) {
+            case 'multiple-choice':
+              return {
+                ...baseQuestion,
+                type: 'MULTIPLE_CHOICE',
+                title: q.title || '',
+                numberQuestions: 0,
+                answers: (q.answers || []).map((a, aIdx) => ({
+                  id: a.id || aIdx + 1,
+                  label: a.label || String.fromCharCode(65 + aIdx),
+                  content: a.content || '',
+                  isCorrect: a.isCorrect || false,
+                })),
+              };
 
-          return baseQuestion;
+            case 'audio':
+              return {
+                ...baseQuestion,
+                type: 'AUDIO',
+                title: '',
+                numberQuestions: 0,
+              };
+
+            case 'matching':
+              return {
+                ...baseQuestion,
+                type: 'MATCHING',
+                title: '',
+                numberQuestions: 0,
+                matchingPairs: q.matchingPairs || [],
+              };
+
+            case 'fill-in-blank':
+              return {
+                ...baseQuestion,
+                type: 'FILL_IN_BLANK',
+                title: '',
+                numberQuestions: 0,
+                textWithBlanks: q.textWithBlanks || '',
+                blanks: q.blanks || [],
+              };
+
+            case 'essay':
+              return {
+                ...baseQuestion,
+                type: 'ESSAY',
+                title: '',
+                numberQuestions: 0,
+                prompt: q.prompt || '',
+                maxLength: q.maxLength || 500,
+              };
+
+            default:
+              return {
+                ...baseQuestion,
+                type: 'MULTIPLE_CHOICE',
+                title: q.title || '',
+                numberQuestions: 0,
+                answers: (q.answers || []).map((a, aIdx) => ({
+                  id: a.id || aIdx + 1,
+                  label: a.label || String.fromCharCode(65 + aIdx),
+                  content: a.content || '',
+                  isCorrect: a.isCorrect || false,
+                })),
+              };
+          }
         }),
       };
 
@@ -488,6 +788,548 @@ export default function CreateTestPage() {
       }
     } else {
       navigate('/tests');
+    }
+  };
+
+  const renderQuestionContent = (question) => {
+    switch (question.type) {
+      case 'multiple-choice':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={question.title}
+                onChange={(e) =>
+                  handleMultipleChoiceUpdate(
+                    question.id,
+                    'title',
+                    e.target.value
+                  )
+                }
+                placeholder="Tên đề"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
+              />
+              <input
+                type="number"
+                value={question.points}
+                onChange={(e) =>
+                  handleMultipleChoiceUpdate(
+                    question.id,
+                    'points',
+                    e.target.value
+                  )
+                }
+                placeholder="Điểm"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Nội dung câu hỏi
+              </label>
+              <textarea
+                value={question.content}
+                onChange={(e) =>
+                  handleMultipleChoiceUpdate(
+                    question.id,
+                    'content',
+                    e.target.value
+                  )
+                }
+                placeholder="Nhập nội dung câu hỏi"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all resize-none"
+                rows="4"
+              />
+            </div>
+            <div className="space-y-4 border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Hình ảnh câu hỏi
+              </label>
+              {question.imageUrl && (
+                <div className="mb-3">
+                  <img
+                    src={question.imageUrl}
+                    alt="Ảnh câu hỏi"
+                    className="w-full max-h-60 object-contain rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => updateQuestionField(question.id, 'imageUrl', null)}
+                    className="mt-2 text-red-600 hover:text-red-800"
+                  >
+                    Xóa ảnh
+                  </button>
+                </div>
+              )}
+              <div className="flex flex-wrap gap-3 items-center">
+                <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 hover:bg-gray-200">
+                  Chọn file ảnh
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      handleUploadQuestionImage(
+                        question.id,
+                        e.target.files?.[0]
+                      )
+                    }
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => openImageLibrary(question.id)}
+                  className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
+                >
+                  Chọn từ thư viện
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3 border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Đáp án
+              </label>
+              {question.answers.map((answer) => (
+                <div
+                  key={answer.id}
+                  className="flex items-center gap-3"
+                >
+                  <span className="font-semibold text-gray-700 w-6">
+                    {answer.label}:
+                  </span>
+                  <input
+                    type="text"
+                    value={answer.content}
+                    onChange={(e) =>
+                      handleAnswerUpdate(
+                        question.id,
+                        answer.id,
+                        'content',
+                        e.target.value
+                      )
+                    }
+                    placeholder={`Nhập đáp án ${answer.label}`}
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
+                  />
+                  <input
+                    type="checkbox"
+                    checked={answer.isCorrect}
+                    onChange={(e) =>
+                      handleAnswerUpdate(
+                        question.id,
+                        answer.id,
+                        'isCorrect',
+                        e.target.checked
+                      )
+                    }
+                    className="w-5 h-5 cursor-pointer rounded"
+                    title="Chọn đáp án đúng"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'audio':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={question.content}
+                onChange={(e) =>
+                  handleAudioQuestionUpdate(
+                    question.id,
+                    'content',
+                    e.target.value
+                  )
+                }
+                placeholder="Nội dung câu hỏi"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
+              />
+              <input
+                type="number"
+                value={question.points}
+                onChange={(e) =>
+                  handleAudioQuestionUpdate(
+                    question.id,
+                    'points',
+                    e.target.value
+                  )
+                }
+                placeholder="Điểm"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Ghi âm câu trả lời
+              </label>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap gap-3 items-center">
+                  {!isRecording[question.id] ? (
+                    <button
+                      onClick={() => startRecording(question.id)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
+                    >
+                      <Mic className="w-4 h-4" />
+                      Bắt đầu ghi âm
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => stopRecording(question.id)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-500 text-white font-medium hover:bg-gray-600 transition-colors"
+                    >
+                      Dừng ghi âm
+                    </button>
+                  )}
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 hover:bg-gray-200">
+                    Tải file âm thanh
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      onChange={(e) =>
+                        handleUploadQuestionAudio(
+                          question.id,
+                          e.target.files?.[0]
+                        )
+                      }
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => openAudioLibrary(question.id)}
+                    className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
+                  >
+                    Chọn audio từ thư viện
+                  </button>
+                </div>
+                {question.audioUrl && (
+                  <div className="flex items-center gap-3">
+                    <audio
+                      controls
+                      src={question.audioUrl}
+                      className="w-full rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateQuestionField(question.id, 'audioUrl', null);
+                        updateQuestionField(question.id, 'transcript', '');
+                      }}
+                      className="px-3 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100"
+                    >
+                      Xóa audio
+                    </button>
+                  </div>
+                )}
+                {recordingBlobs[question.id] && (
+                  <button
+                    type="button"
+                    onClick={() => handleUploadRecordedAudio(question.id)}
+                    disabled={uploadingAudio[question.id]}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-medium hover:bg-green-600 disabled:opacity-50"
+                  >
+                    {uploadingAudio[question.id] ? 'Đang tải...' : 'Tải ghi âm lên thư viện'}
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-4 mt-6">
+                <label className="block text-sm font-medium text-gray-700">
+                  Hình ảnh câu hỏi
+                </label>
+                {question.imageUrl && (
+                  <div className="mb-3">
+                    <img
+                      src={question.imageUrl}
+                      alt="Ảnh câu hỏi"
+                      className="w-full max-h-60 object-contain rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => updateQuestionField(question.id, 'imageUrl', null)}
+                      className="mt-2 text-red-600 hover:text-red-800"
+                    >
+                      Xóa ảnh
+                    </button>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-3 items-center">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 hover:bg-gray-200">
+                    Chọn file ảnh
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        handleUploadQuestionImage(
+                          question.id,
+                          e.target.files?.[0]
+                        )
+                      }
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => openImageLibrary(question.id)}
+                    className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
+                  >
+                    Chọn từ thư viện
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'matching':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={question.content}
+                onChange={(e) =>
+                  updateQuestionField(question.id, 'content', e.target.value)
+                }
+                placeholder="Nội dung câu hỏi"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100 transition-all"
+              />
+              <input
+                type="number"
+                value={question.points}
+                onChange={(e) =>
+                  updateQuestionField(question.id, 'points', e.target.value)
+                }
+                placeholder="Điểm"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100 transition-all"
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Các cặp từ cần nối
+              </label>
+              {question.matchingPairs?.map((pair, idx) => (
+                <div key={pair.id} className="flex items-center gap-3 mb-3">
+                  <span className="font-semibold text-gray-700 w-8">
+                    {idx + 1}.
+                  </span>
+                  <input
+                    type="text"
+                    value={pair.left}
+                    onChange={(e) => {
+                      const newPairs = [...question.matchingPairs];
+                      newPairs[idx] = { ...newPairs[idx], left: e.target.value };
+                      updateQuestionField(question.id, 'matchingPairs', newPairs);
+                    }}
+                    placeholder="Từ bên trái"
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100 transition-all"
+                  />
+                  <span className="text-gray-500">→</span>
+                  <input
+                    type="text"
+                    value={pair.right}
+                    onChange={(e) => {
+                      const newPairs = [...question.matchingPairs];
+                      newPairs[idx] = { ...newPairs[idx], right: e.target.value };
+                      updateQuestionField(question.id, 'matchingPairs', newPairs);
+                    }}
+                    placeholder="Từ bên phải"
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100 transition-all"
+                  />
+                  <button
+                    onClick={() => {
+                      const newPairs = question.matchingPairs.filter((_, i) => i !== idx);
+                      updateQuestionField(question.id, 'matchingPairs', newPairs);
+                    }}
+                    className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newPair = { id: Date.now(), left: '', right: '' };
+                  const newPairs = [...(question.matchingPairs || []), newPair];
+                  updateQuestionField(question.id, 'matchingPairs', newPairs);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-medium hover:bg-green-600"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm cặp từ
+              </button>
+            </div>
+          </div>
+        );
+
+      case 'fill-in-blank':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={question.content}
+                onChange={(e) =>
+                  updateQuestionField(question.id, 'content', e.target.value)
+                }
+                placeholder="Nội dung câu hỏi"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition-all"
+              />
+              <input
+                type="number"
+                value={question.points}
+                onChange={(e) =>
+                  updateQuestionField(question.id, 'points', e.target.value)
+                }
+                placeholder="Điểm"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition-all"
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Đoạn văn có chỗ trống
+              </label>
+              <textarea
+                value={question.textWithBlanks || ''}
+                onChange={(e) =>
+                  updateQuestionField(question.id, 'textWithBlanks', e.target.value)
+                }
+                placeholder="Nhập đoạn văn và sử dụng [BLANK_1], [BLANK_2] cho chỗ trống"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition-all resize-none"
+                rows="6"
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                Sử dụng [BLANK_1], [BLANK_2], v.v. để đánh dấu chỗ trống
+              </p>
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Đáp án cho chỗ trống
+              </label>
+              {question.blanks?.map((blank, idx) => (
+                <div key={blank.id} className="flex items-center gap-3 mb-3">
+                  <span className="font-semibold text-gray-700 w-20">
+                    Chỗ trống {idx + 1}:
+                  </span>
+                  <input
+                    type="text"
+                    value={blank.correctAnswer}
+                    onChange={(e) => {
+                      const newBlanks = [...question.blanks];
+                      newBlanks[idx] = { ...newBlanks[idx], correctAnswer: e.target.value };
+                      updateQuestionField(question.id, 'blanks', newBlanks);
+                    }}
+                    placeholder="Đáp án đúng"
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition-all"
+                  />
+                  <input
+                    type="number"
+                    value={blank.points}
+                    onChange={(e) => {
+                      const newBlanks = [...question.blanks];
+                      newBlanks[idx] = { ...newBlanks[idx], points: parseInt(e.target.value) || 0 };
+                      updateQuestionField(question.id, 'blanks', newBlanks);
+                    }}
+                    placeholder="Điểm"
+                    className="w-20 px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition-all"
+                  />
+                  <button
+                    onClick={() => {
+                      const newBlanks = question.blanks.filter((_, i) => i !== idx);
+                      updateQuestionField(question.id, 'blanks', newBlanks);
+                    }}
+                    className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newBlank = { id: Date.now(), correctAnswer: '', points: 1 };
+                  const newBlanks = [...(question.blanks || []), newBlank];
+                  updateQuestionField(question.id, 'blanks', newBlanks);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500 text-white text-sm font-medium hover:bg-purple-600"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm chỗ trống
+              </button>
+            </div>
+          </div>
+        );
+
+      case 'essay':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={question.content}
+                onChange={(e) =>
+                  updateQuestionField(question.id, 'content', e.target.value)
+                }
+                placeholder="Nội dung câu hỏi"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 transition-all"
+              />
+              <input
+                type="number"
+                value={question.points}
+                onChange={(e) =>
+                  updateQuestionField(question.id, 'points', e.target.value)
+                }
+                placeholder="Điểm"
+                className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 transition-all"
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Yêu cầu bài viết
+              </label>
+              <textarea
+                value={question.prompt || ''}
+                onChange={(e) =>
+                  updateQuestionField(question.id, 'prompt', e.target.value)
+                }
+                placeholder="Nhập yêu cầu chi tiết cho bài viết"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 transition-all resize-none"
+                rows="4"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Độ dài tối đa (ký tự)
+                </label>
+                <input
+                  type="number"
+                  value={question.maxLength || 500}
+                  onChange={(e) =>
+                    updateQuestionField(question.id, 'maxLength', parseInt(e.target.value) || 500)
+                  }
+                  placeholder="500"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 transition-all"
+                />
+              </div>
+            </div>
+
+          </div>
+        );
+
+      default:
+        return <div>Loại câu hỏi không được hỗ trợ</div>;
     }
   };
 
@@ -574,7 +1416,7 @@ export default function CreateTestPage() {
 
                 <div className="text-center">
                   <button
-                    onClick={() => setShowQuestionTypeModal(true)}
+                    onClick={() => setShowQuestionSourceModal(true)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
                   >
                     <Plus className="w-4 h-4" />
@@ -594,7 +1436,15 @@ export default function CreateTestPage() {
                         Câu hỏi {index + 1} -{' '}
                         {question.type === 'multiple-choice'
                           ? 'Trắc nghiệm'
-                          : 'Âm thanh'}
+                          : question.type === 'audio'
+                          ? 'Âm thanh'
+                          : question.type === 'matching'
+                          ? 'Nối từ'
+                          : question.type === 'fill-in-blank'
+                          ? 'Điền khuyết'
+                          : question.type === 'essay'
+                          ? 'Tự luận'
+                          : 'Không xác định'}
                       </h3>
                       <button
                         onClick={() => deleteQuestion(question.id)}
@@ -604,296 +1454,7 @@ export default function CreateTestPage() {
                       </button>
                     </div>
 
-                    {question.type === 'multiple-choice' ? (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <input
-                            type="text"
-                            value={question.title}
-                            onChange={(e) =>
-                              handleMultipleChoiceUpdate(
-                                question.id,
-                                'title',
-                                e.target.value
-                              )
-                            }
-                            placeholder="Tên đề"
-                            className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
-                          />
-                          <input
-                            type="number"
-                            value={question.points}
-                            onChange={(e) =>
-                              handleMultipleChoiceUpdate(
-                                question.id,
-                                'points',
-                                e.target.value
-                              )
-                            }
-                            placeholder="Điểm"
-                            className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-3">
-                            Nội dung câu hỏi
-                          </label>
-                          <textarea
-                            value={question.content}
-                            onChange={(e) =>
-                              handleMultipleChoiceUpdate(
-                                question.id,
-                                'content',
-                                e.target.value
-                              )
-                            }
-                            placeholder="Nhập nội dung câu hỏi"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all resize-none"
-                            rows="4"
-                          />
-                        </div>
-                        <div className="space-y-4 border-t pt-4">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Hình ảnh câu hỏi
-                          </label>
-                          {question.imageUrl && (
-                            <div className="mb-3">
-                              <img
-                                src={question.imageUrl}
-                                alt="Ảnh câu hỏi"
-                                className="w-full max-h-60 object-contain rounded-lg border border-gray-200"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updateQuestionField(question.id, 'imageUrl', null)}
-                                className="mt-2 text-red-600 hover:text-red-800"
-                              >
-                                Xóa ảnh
-                              </button>
-                            </div>
-                          )}
-                          <div className="flex flex-wrap gap-3 items-center">
-                            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 hover:bg-gray-200">
-                              Chọn file ảnh
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) =>
-                                  handleUploadQuestionImage(
-                                    question.id,
-                                    e.target.files?.[0]
-                                  )
-                                }
-                                className="hidden"
-                              />
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => openImageLibrary(question.id)}
-                              className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
-                            >
-                              Chọn từ thư viện
-                            </button>
-                          </div>
-                        </div>
-                        <div className="space-y-3 border-t pt-4">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Đáp án
-                          </label>
-                          {question.answers.map((answer) => (
-                            <div
-                              key={answer.id}
-                              className="flex items-center gap-3"
-                            >
-                              <span className="font-semibold text-gray-700 w-6">
-                                {answer.label}:
-                              </span>
-                              <input
-                                type="text"
-                                value={answer.content}
-                                onChange={(e) =>
-                                  handleAnswerUpdate(
-                                    question.id,
-                                    answer.id,
-                                    'content',
-                                    e.target.value
-                                  )
-                                }
-                                placeholder={`Nhập đáp án ${answer.label}`}
-                                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
-                              />
-                              <input
-                                type="checkbox"
-                                checked={answer.isCorrect}
-                                onChange={(e) =>
-                                  handleAnswerUpdate(
-                                    question.id,
-                                    answer.id,
-                                    'isCorrect',
-                                    e.target.checked
-                                  )
-                                }
-                                className="w-5 h-5 cursor-pointer rounded"
-                                title="Chọn đáp án đúng"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <input
-                            type="text"
-                            value={question.content}
-                            onChange={(e) =>
-                              handleAudioQuestionUpdate(
-                                question.id,
-                                'content',
-                                e.target.value
-                              )
-                            }
-                            placeholder="Nội dung câu hỏi"
-                            className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
-                          />
-                          <input
-                            type="number"
-                            value={question.points}
-                            onChange={(e) =>
-                              handleAudioQuestionUpdate(
-                                question.id,
-                                'points',
-                                e.target.value
-                              )
-                            }
-                            placeholder="Điểm"
-                            className="px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
-                          />
-                        </div>
-
-                        <div className="border-t pt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-3">
-                            Ghi âm câu trả lời
-                          </label>
-                          <div className="flex flex-col gap-3">
-                            <div className="flex flex-wrap gap-3 items-center">
-                              {!isRecording[question.id] ? (
-                                <button
-                                  onClick={() => startRecording(question.id)}
-                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
-                                >
-                                  <Mic className="w-4 h-4" />
-                                  Bắt đầu ghi âm
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => stopRecording(question.id)}
-                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-500 text-white font-medium hover:bg-gray-600 transition-colors"
-                                >
-                                  Dừng ghi âm
-                                </button>
-                              )}
-                              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 hover:bg-gray-200">
-                                Tải file âm thanh
-                                <input
-                                  type="file"
-                                  accept="audio/*"
-                                  onChange={(e) =>
-                                    handleUploadQuestionAudio(
-                                      question.id,
-                                      e.target.files?.[0]
-                                    )
-                                  }
-                                  className="hidden"
-                                />
-                              </label>
-                              <button
-                                type="button"
-                                onClick={() => openAudioLibrary(question.id)}
-                                className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
-                              >
-                                Chọn audio từ thư viện
-                              </button>
-                            </div>
-                            {question.audioUrl && (
-                              <div className="flex items-center gap-3">
-                                <audio
-                                  controls
-                                  src={question.audioUrl}
-                                  className="w-full rounded-lg border border-gray-200"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    updateQuestionField(question.id, 'audioUrl', null);
-                                    updateQuestionField(question.id, 'transcript', '');
-                                  }}
-                                  className="px-3 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100"
-                                >
-                                  Xóa audio
-                                </button>
-                              </div>
-                            )}
-                            {recordingBlobs[question.id] && (
-                              <button
-                                type="button"
-                                onClick={() => handleUploadRecordedAudio(question.id)}
-                                disabled={uploadingAudio[question.id]}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-medium hover:bg-green-600 disabled:opacity-50"
-                              >
-                                {uploadingAudio[question.id] ? 'Đang tải...' : 'Tải ghi âm lên thư viện'}
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="space-y-4 mt-6">
-                            <label className="block text-sm font-medium text-gray-700">
-                              Hình ảnh câu hỏi
-                            </label>
-                            {question.imageUrl && (
-                              <div className="mb-3">
-                                <img
-                                  src={question.imageUrl}
-                                  alt="Ảnh câu hỏi"
-                                  className="w-full max-h-60 object-contain rounded-lg border border-gray-200"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => updateQuestionField(question.id, 'imageUrl', null)}
-                                  className="mt-2 text-red-600 hover:text-red-800"
-                                >
-                                  Xóa ảnh
-                                </button>
-                              </div>
-                            )}
-                            <div className="flex flex-wrap gap-3 items-center">
-                              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 hover:bg-gray-200">
-                                Chọn file ảnh
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(e) =>
-                                    handleUploadQuestionImage(
-                                      question.id,
-                                      e.target.files?.[0]
-                                    )
-                                  }
-                                  className="hidden"
-                                />
-                              </label>
-                              <button
-                                type="button"
-                                onClick={() => openImageLibrary(question.id)}
-                                className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600"
-                              >
-                                Chọn từ thư viện
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {renderQuestionContent(question)}
                   </div>
                 ))}
               </div>
@@ -901,7 +1462,7 @@ export default function CreateTestPage() {
               {questions.length > 0 && (
                 <div className="mt-6 flex justify-center">
                   <button
-                    onClick={() => setShowQuestionTypeModal(true)}
+                    onClick={() => setShowQuestionSourceModal(true)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-500 text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
                   >
                     <Plus className="w-4 h-4" />
@@ -934,6 +1495,142 @@ export default function CreateTestPage() {
           </main>
         </div>
       </div>
+
+      {showQuestionSourceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Chọn nguồn câu hỏi
+              </h2>
+              <button
+                onClick={() => setShowQuestionSourceModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowQuestionSourceModal(false);
+                  setShowQuestionTypeModal(true);
+                }}
+                className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-orange-500 hover:bg-orange-50 transition-all text-left"
+              >
+                <div className="font-semibold text-gray-900">
+                  🆕 Câu hỏi mới
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Tạo câu hỏi mới từ đầu
+                </div>
+              </button>
+
+              <button
+                onClick={async () => {
+                  setShowQuestionSourceModal(false);
+                  await loadExistingQuestions();
+                  setShowExistingQuestionsModal(true);
+                }}
+                className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+              >
+                <div className="font-semibold text-gray-900">
+                  📚 Câu hỏi cũ
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Chọn từ các câu hỏi đã tạo trước đây
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExistingQuestionsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl p-6 max-w-4xl w-full shadow-xl overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Chọn câu hỏi cũ</h2>
+                <p className="text-sm text-gray-500">Chọn câu hỏi từ danh sách đã tạo của bạn.</p>
+              </div>
+              <button
+                onClick={() => setShowExistingQuestionsModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto">
+              {loadingExistingQuestions ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                  <p className="text-gray-600 mt-2">Đang tải danh sách câu hỏi...</p>
+                </div>
+              ) : existingQuestions.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">Bạn chưa có câu hỏi nào.</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {existingQuestions.map((question) => (
+                    <div
+                      key={question.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-orange-300 hover:bg-orange-50 transition-all cursor-pointer"
+                      onClick={() => addExistingQuestion(question)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {question.type === 'MULTIPLE_CHOICE' ? 'Trắc nghiệm' :
+                               question.type === 'AUDIO' ? 'Âm thanh' :
+                               question.type === 'MATCHING' ? 'Nối từ' :
+                               question.type === 'FILL_IN_BLANK' ? 'Điền khuyết' :
+                               question.type === 'ESSAY' ? 'Tự luận' : 'Không xác định'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {question.points} điểm
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-700 line-clamp-2">
+                            {question.content || question.title || 'Không có nội dung'}
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addExistingQuestion(question);
+                            }}
+                            className="px-3 py-1 bg-orange-500 text-white text-sm rounded hover:bg-orange-600"
+                          >
+                            Chọn
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end mt-4 pt-4 border-t">
+              <button
+                onClick={() => {
+                  setShowExistingQuestionsModal(false);
+                  setShowQuestionSourceModal(true);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Quay trở lại
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showQuestionTypeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -972,6 +1669,42 @@ export default function CreateTestPage() {
                 </div>
                 <div className="text-sm text-gray-600 mt-1">
                   Trả lời bằng ghi âm phát âm
+                </div>
+              </button>
+
+              <button
+                onClick={addMatchingQuestion}
+                className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all text-left"
+              >
+                <div className="font-semibold text-gray-900">
+                  🔗 Câu hỏi nối từ
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Nối các cặp từ từ trái sang phải
+                </div>
+              </button>
+
+              <button
+                onClick={addFillInBlankQuestion}
+                className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
+              >
+                <div className="font-semibold text-gray-900">
+                  📝 Câu hỏi điền khuyết
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Điền từ vào chỗ trống trong đoạn văn
+                </div>
+              </button>
+
+              <button
+                onClick={addEssayQuestion}
+                className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-red-500 hover:bg-red-50 transition-all text-left"
+              >
+                <div className="font-semibold text-gray-900">
+                  ✍️ Câu hỏi tự luận
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Viết bài luận với textarea
                 </div>
               </button>
             </div>
