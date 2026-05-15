@@ -18,6 +18,7 @@ import {
 export default function ClassroomsPage() {
   const navigate = useNavigate();
   const roleId = useAuthStore(s => s.roleId);
+  const user = useAuthStore(s => s.user);
   const isTeacher = roleId === 2;
 
   const [classrooms, setClassrooms] = useState([]);
@@ -259,6 +260,7 @@ export default function ClassroomsPage() {
                       key={cls.id}
                       classroom={cls}
                       isTeacher={isTeacher}
+                      currentUser={user}
                       onViewDetail={(id) => navigate(`/classrooms/${id}`)}
                       onCopyLink={handleCopyLink}
                       onCopyCode={handleCopyCode}

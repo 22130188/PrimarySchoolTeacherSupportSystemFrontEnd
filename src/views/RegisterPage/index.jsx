@@ -7,6 +7,7 @@ import Step2StudentInfo  from './components/Step2StudentInfo';
 import Step2TeacherInfo  from './components/Step2TeacherInfo';
 import Step3TeacherClass from './components/Step3TeacherClass';
 import SuccessModal      from './components/SuccessModal';
+import IllustratedBackground from '../../components/IllustratedBackground';
 
 export default function RegisterPage() {
     const navigate = useNavigate();
@@ -58,26 +59,26 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white font-sans">
-            <div className="border-b border-gray-100 px-6 py-3 relative flex items-center">
+        <IllustratedBackground className="font-sans">
+            <div className="relative z-10 border-b border-white/40 bg-white/50 backdrop-blur-sm px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
 
                 <Link to="/"
-                      className="z-10 w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-teal-400 flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                      className="shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-teal-400 flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
                       title="Quay về trang chủ">
                     <BookOpen className="w-4 h-4 text-white" />
                 </Link>
 
-                <div className="absolute left-1/2 -translate-x-1/2 flex items-center">
+                <div className="flex items-center justify-center">
                     {[...Array(totalSteps)].map((_, i) => {
                         const s = i + 1;
                         return (
                             <div key={s} className="flex items-center">
-                                <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-sm font-semibold transition-all duration-300
+                                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 flex items-center justify-center text-sm font-semibold transition-all duration-300
                   ${step === s
                                     ? 'border-violet-500 text-violet-500 bg-white'
                                     : step > s
                                         ? 'border-violet-500 bg-violet-500 text-white'
-                                        : 'border-gray-300 text-gray-400'}`}>
+                                        : 'border-gray-300 text-gray-400 bg-white/60'}`}>
                                     {step > s ? (
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -85,22 +86,22 @@ export default function RegisterPage() {
                                     ) : s}
                                 </div>
                                 {i < totalSteps - 1 && (
-                                    <div className={`w-24 h-0.5 mx-1 transition-all duration-300 ${step > s ? 'bg-violet-400' : 'bg-gray-200'}`} />
+                                    <div className={`w-10 sm:w-24 h-0.5 mx-1 transition-all duration-300 ${step > s ? 'bg-violet-400' : 'bg-gray-200'}`} />
                                 )}
                             </div>
                         );
                     })}
                 </div>
 
-                <div className="ml-auto text-sm text-gray-500 z-10">
-                    Đã có tài khoản?{' '}
+                <div className="shrink-0 text-sm text-gray-500">
+                    <span className="hidden sm:inline">Đã có tài khoản?{' '}</span>
                     <Link to="/login" className="text-violet-600 font-semibold hover:underline">
                         Đăng nhập
                     </Link>
                 </div>
             </div>
 
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-65px)] py-12 px-4">
+            <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-65px)] py-12 px-4">
 
                 {apiError && (
                     <div className="mb-4 w-full max-w-xl bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
@@ -149,6 +150,6 @@ export default function RegisterPage() {
             {showModal && (
                 <SuccessModal name={formData.name} onClose={() => navigate('/login')} />
             )}
-        </div>
+        </IllustratedBackground>
     );
 }

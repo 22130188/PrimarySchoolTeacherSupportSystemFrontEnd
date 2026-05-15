@@ -1,6 +1,5 @@
 import Navbar from './Navbar';
 import DashboardSidebar from './DashboardSidebar';
-import Footer from './Footer';
 
 export default function AIToolPageLayout({
   icon,
@@ -38,7 +37,6 @@ export default function AIToolPageLayout({
             </div>
           </main>
 
-          <Footer />
         </div>
       </div>
     </div>

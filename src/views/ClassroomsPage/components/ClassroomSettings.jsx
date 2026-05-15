@@ -99,7 +99,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
 
   return (
     <div className="max-w-xl space-y-6">
-      <form onSubmit={handleSaveInfo} className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+      <form onSubmit={handleSaveInfo} className="bg-white rounded-xl border border-gray-100 p-5 space-y-4 mt-5">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-gray-700">Thông tin lớp học</h3>
           <button
@@ -177,7 +177,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
         </div>
       </form>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3 mt-15">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Link2 className="w-4 h-4 text-teal-500" />
           Link mời tham gia
@@ -191,9 +191,8 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
           />
           <button
             onClick={() => copyToClipboard(classroom?.inviteLink, 'link')}
-            className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1 transition-all ${
-              copied === 'link' ? 'bg-green-100 text-green-700' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-            }`}
+            className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1 transition-all ${copied === 'link' ? 'bg-green-100 text-green-700' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+              }`}
           >
             {copied === 'link' ? <><CheckCircle2 className="w-3.5 h-3.5" /> Đã copy</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
           </button>
@@ -219,9 +218,8 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
           <div className="flex flex-col gap-1.5">
             <button
               onClick={() => copyToClipboard(classroom?.classCode, 'code')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-all ${
-                copied === 'code' ? 'bg-green-100 text-green-700' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-all ${copied === 'code' ? 'bg-green-100 text-green-700' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                }`}
             >
               {copied === 'code' ? <><CheckCircle2 className="w-3 h-3" /> Đã copy</> : <><Copy className="w-3 h-3" /> Copy</>}
             </button>

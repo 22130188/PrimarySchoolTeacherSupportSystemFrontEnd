@@ -11,7 +11,7 @@ function getInitials(name) {
   return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 }
 
-export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCopyLink, onCopyCode }) {
+export default function ClassroomCard({ classroom, isTeacher, currentUser, onViewDetail, onCopyLink, onCopyCode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -64,9 +64,17 @@ export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCo
 
         <div className="absolute -bottom-6 right-4">
           <div className="w-[52px] h-[52px] rounded-full bg-white flex items-center justify-center shadow-md border-2 border-white">
-            <div className={`w-[48px] h-[48px] rounded-full bg-gradient-to-br ${bannerColor} flex items-center justify-center text-white font-bold text-base`}>
-              {getInitials(classroom.teacherName)}
-            </div>
+            {(classroom.teacherAvatarUrl || currentUser?.avatarUrl) ? (
+              <img
+                src={classroom.teacherAvatarUrl || currentUser.avatarUrl}
+                alt={classroom.teacherName}
+                className="w-[48px] h-[48px] rounded-full object-cover"
+              />
+            ) : (
+              <div className={`w-[48px] h-[48px] rounded-full bg-gradient-to-br ${bannerColor} flex items-center justify-center text-white font-bold text-base`}>
+                {getInitials(classroom.teacherName)}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -75,13 +83,13 @@ export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCo
         {(classroom.gradeLevel || classroom.subject) && (
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             {classroom.gradeLevel && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-violet-100 text-violet-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold text-gray-800">
                 <GraduationCap className="w-3 h-3" />
                 Lớp {classroom.gradeLevel}
               </span>
             )}
             {classroom.subject && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-teal-100 text-teal-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold text-gray-800">
                 <BookOpen className="w-3 h-3" />
                 {classroom.subject}
               </span>

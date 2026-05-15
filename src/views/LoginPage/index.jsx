@@ -5,17 +5,18 @@ import { loginAPI } from '../../services/authApi';
 import { getMeAPI } from '../../services/userApi';
 import GoogleLoginButton from '../../components/GoogleLoginButton';
 import { useAuthStore } from '../../stores/authStore';
+import IllustratedBackground from '../../components/IllustratedBackground';
 
 export default function LoginPage() {
     const navigate = useNavigate();
     const setToken = useAuthStore((s) => s.setToken);
     const setRole = useAuthStore((s) => s.setRole);
     const setUser = useAuthStore((s) => s.setUser);
-    const [account,  setAccount]  = useState('');
+    const [account, setAccount] = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
-    const [loading,  setLoading]  = useState(false);
-    const [error,    setError]    = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const isValid = account.trim() && password.trim();
 
@@ -26,7 +27,7 @@ export default function LoginPage() {
         try {
             const loginResult = await loginAPI(account.trim(), password);
             const { token, roleId, roleName } = loginResult;
-            
+
             // lưu token  role
             setToken(token);
             setRole(roleId, roleName);
@@ -37,7 +38,7 @@ export default function LoginPage() {
             } catch {
                 setUser(null);
             }
-            
+
             if (roleId === 3) {
                 navigate('/admin');
             } else {
@@ -54,20 +55,22 @@ export default function LoginPage() {
         'w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition';
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-violet-50 to-teal-50 flex items-center justify-center px-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md px-8 py-10 relative">
-
-                {/* Logo */}
+        <IllustratedBackground className="flex items-center justify-center px-4">
+            <div
+                className="relative z-10 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl shadow-violet-200/30 w-full max-w-md px-8 py-10 border border-white/60"
+                style={{ animation: 'authCardIn 0.8s ease-out both' }}
+            >
                 <div className="flex items-center justify-center gap-2 mb-6">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-teal-400 flex items-center justify-center shadow-lg">
                         <BookOpen className="w-4 h-4 text-white" />
                     </div>
                     <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-teal-500 bg-clip-text text-transparent">
-            TeachAI
-          </span>
+                        TeachAI
+                    </span>
                 </div>
 
-                <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">Đăng nhập</h2>
+                <h2 className="text-2xl font-bold text-gray-800 text-center mb-1">Đăng nhập</h2>
+                <p className="text-sm text-gray-400 text-center mb-6">Chào mừng bạn trở lại! 👋</p>
 
                 {error && (
                     <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-4">
@@ -80,7 +83,7 @@ export default function LoginPage() {
                         Tài khoản <span className="text-red-500">*</span>
                     </label>
                     <input type="text" placeholder="Nhập tên đăng nhập"
-                           value={account} onChange={(e) => setAccount(e.target.value)} className={inputCls} />
+                        value={account} onChange={(e) => setAccount(e.target.value)} className={inputCls} />
                 </div>
 
                 <div className="mb-2">
@@ -89,11 +92,11 @@ export default function LoginPage() {
                     </label>
                     <div className="relative">
                         <input type={showPass ? 'text' : 'password'} placeholder="Nhập mật khẩu"
-                               value={password} onChange={(e) => setPassword(e.target.value)}
-                               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                               className={`${inputCls} pr-11`} />
+                            value={password} onChange={(e) => setPassword(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                            className={`${inputCls} pr-11`} />
                         <button onClick={() => setShowPass(!showPass)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                             {showPass ? '🙈' : '👁️'}
                         </button>
                     </div>
@@ -106,14 +109,14 @@ export default function LoginPage() {
                 </div>
 
                 <button onClick={handleLogin} disabled={!isValid || loading}
-                        className={`w-full py-3.5 rounded-xl font-bold text-base transition-all mb-4 flex items-center justify-center gap-2
+                    className={`w-full py-3.5 rounded-xl font-bold text-base transition-all mb-4 flex items-center justify-center gap-2
             ${isValid && !loading
                             ? 'bg-gradient-to-r from-violet-600 to-violet-500 text-white hover:from-violet-700 hover:to-violet-600 shadow-md active:scale-95'
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
                     {loading && (
                         <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"/>
-                            <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/>
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
+                            <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
                         </svg>
                     )}
                     {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
@@ -145,6 +148,6 @@ export default function LoginPage() {
                     </Link>
                 </div>
             </div>
-        </div>
+        </IllustratedBackground>
     );
 }

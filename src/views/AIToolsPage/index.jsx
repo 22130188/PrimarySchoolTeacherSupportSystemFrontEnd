@@ -1,5 +1,4 @@
 import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { Sparkles } from 'lucide-react';
 import { AI_TOOLS } from '../../data/mockDashboardData';
@@ -43,26 +42,26 @@ export default function AIToolsPage() {
                 </h1>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {AI_TOOLS.map((tool) => (
                   <div
                     key={tool.id}
                     id={`ai-tool-${tool.id}`}
-                    className="group bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer relative overflow-hidden"
+                    className="group bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer relative overflow-hidden"
                     onClick={() => handleToolClick(tool.id)}
                   >
-                    <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br ${tool.gradient} opacity-5 group-hover:opacity-10 group-hover:scale-150 transition-all duration-500`} />
+                    <div className={`absolute -top-10 -right-10 w-28 h-28 rounded-full bg-gradient-to-br ${tool.gradient} opacity-5 group-hover:opacity-10 group-hover:scale-150 transition-all duration-500`} />
 
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${tool.gradient} flex items-center justify-center text-white shadow-md mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${tool.gradient} flex items-center justify-center text-white shadow-md mb-3 group-hover:scale-110 transition-transform duration-300`}>
                       {tool.icon}
                     </div>
 
-                    <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full mb-3 ${tool.tagColor}`}>
+                    <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full mb-2 ${tool.tagColor}`}>
                       {tool.tag}
                     </span>
 
-                    <h3 className="text-base font-bold text-gray-800 mb-2">{tool.title}</h3>
-                    <p className="text-sm text-gray-500 leading-relaxed mb-4">{tool.desc}</p>
+                    <h3 className="text-base font-bold text-gray-800 mb-1.5">{tool.title}</h3>
+                    <p className="text-sm text-gray-500 leading-snug mb-3">{tool.desc}</p>
 
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-400 font-medium">{tool.stats}</span>

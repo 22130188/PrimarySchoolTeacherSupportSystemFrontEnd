@@ -28,9 +28,19 @@ export const MOCK_LESSONS = [
 ];
 
 export const LESSON_STATUS_STYLE = {
+  'DRAFT': 'bg-amber-100 text-amber-700',
+  'PUBLISHED': 'bg-emerald-100 text-emerald-700',
+  'ARCHIVED': 'bg-gray-100 text-gray-500',
+  // fallback legacy
   'Đã xuất bản': 'bg-emerald-100 text-emerald-700',
-  'Bản nháp': 'bg-gray-100 text-gray-600',
+  'Bản nháp': 'bg-amber-100 text-amber-700',
   'Đang soạn': 'bg-amber-100 text-amber-700',
+};
+
+export const LESSON_STATUS_LABEL = {
+  'DRAFT': 'Bản nháp',
+  'PUBLISHED': 'Đã xuất bản',
+  'ARCHIVED': 'Đã lưu trữ',
 };
 
 export const MOCK_TESTS = [
@@ -81,16 +91,6 @@ export const AI_TOOLS = [
     stats: 'Độ chính xác 95%',
   },
   {
-    id: 'auto-question',
-    icon: <Wand2 className="w-7 h-7" />,
-    title: 'AI Tạo Câu Hỏi',
-    desc: 'Tự động tạo bộ câu hỏi trắc nghiệm, tự luận từ nội dung bài giảng có sẵn.',
-    tag: 'Auto Generate',
-    tagColor: 'bg-amber-100 text-amber-700',
-    gradient: 'from-amber-500 to-orange-600',
-    stats: '3 loại câu hỏi',
-  },
-  {
     id: 'audio-gen',
     icon: <Image className="w-7 h-7" />,
     title: 'Tạo Hình Ảnh',
@@ -99,16 +99,6 @@ export const AI_TOOLS = [
     tagColor: 'bg-pink-100 text-pink-700',
     gradient: 'from-pink-500 to-rose-600',
     stats: 'Xuất file .png/.jpg',
-  },
-  {
-    id: 'auto-grade',
-    icon: <Sparkles className="w-7 h-7" />,
-    title: 'Chấm Bài Tự Động',
-    desc: 'AI chấm điểm bài kiểm tra trắc nghiệm và phát âm ngay lập tức sau khi nộp.',
-    tag: 'Auto Grading',
-    tagColor: 'bg-indigo-100 text-indigo-700',
-    gradient: 'from-indigo-500 to-violet-600',
-    stats: 'Phản hồi < 1 giây',
   },
 ];
 

@@ -74,7 +74,7 @@ export default function PronunciationPage() {
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
-    } catch (err) {
+    } catch {
       setError('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
     }
   };

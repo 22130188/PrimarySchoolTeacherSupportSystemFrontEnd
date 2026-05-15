@@ -7,6 +7,7 @@ import PeopleTab from './components/PeopleTab';
 import InviteDialog from './components/InviteDialog';
 import ClassroomSettings from './components/ClassroomSettings';
 import StreamTab from './components/StreamTab';
+import ClassroomListSidebar from './components/ClassroomListSidebar';
 import { useAuthStore } from '../../stores/authStore';
 import { BANNER_COLORS } from '../../data/classroomData';
 import {
@@ -181,10 +182,12 @@ export default function ClassroomDetail() {
       <Navbar />
       <div className="flex" style={{ paddingTop: '64px' }}>
         <DashboardSidebar />
-        <div className="flex-1 flex flex-col min-h-[calc(100vh-64px)]" style={{ marginLeft: '72px' }}>
+        <div className="flex-1 flex min-h-[calc(100vh-64px)]" style={{ marginLeft: '72px' }}>
+          <ClassroomListSidebar currentClassroomId={id} />
+          <div className="flex-1 flex flex-col">
           <main className="flex-1">
             <div className="sticky top-16 z-30">
-              <div className={`bg-gradient-to-r ${BANNER_COLORS[(classroom.id || 0) % BANNER_COLORS.length]} px-6 py-5 relative shadow-md`}>
+              <div className={`bg-gradient-to-r ${BANNER_COLORS[(classroom.id || 0) % BANNER_COLORS.length]} px-6 py-5 relative`}>
                 <div className="max-w-5xl mx-auto">
                   <button
                     onClick={() => navigate('/classrooms')}
@@ -280,6 +283,7 @@ export default function ClassroomDetail() {
             </div>
           </main>
 
+        </div>
         </div>
       </div>
 
