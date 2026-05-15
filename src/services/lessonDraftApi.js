@@ -47,6 +47,11 @@ const lessonDraftApi = {
     const response = await axios.delete(`${BASE_URL}/${id}`, { headers: getAuthHeader() });
     return response.data;
   },
+
+  updateStatus: async (id, status) => {
+    const response = await axios.patch(`${BASE_URL}/${id}/status`, { status }, { headers: getAuthHeader() });
+    return response.data;
+  },
 };
 
 export default lessonDraftApi;
