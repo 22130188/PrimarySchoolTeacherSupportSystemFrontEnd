@@ -198,10 +198,21 @@ export default function LessonsPage() {
                       }}
                       className="w-full text-left cursor-pointer"
                     >
-                      <div className={`h-32 bg-gradient-to-br ${lesson.color} flex items-center justify-center relative`}>
-                        <span className="text-5xl opacity-70 group-hover:scale-110 transition-transform duration-300">{lesson.emoji}</span>
+                      <div className="h-32 bg-white border-b border-gray-100 flex items-center justify-center relative">
+                        {lesson.type === 'PPTX' ? (
+                          <div className="w-16 h-16 rounded-2xl bg-orange-500 flex items-center justify-center shadow-sm">
+                            <Presentation className="w-8 h-8 text-white" />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-sm">
+                            <FileText className="w-8 h-8 text-white" />
+                          </div>
+                        )}
                         <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[lesson.status]}`}>
                           {lesson.status}
+                        </span>
+                        <span className="absolute bottom-2 left-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                          {lesson.type === 'PPTX' ? '.pptx' : '.docx'}
                         </span>
                       </div>
                       <div className="p-4">

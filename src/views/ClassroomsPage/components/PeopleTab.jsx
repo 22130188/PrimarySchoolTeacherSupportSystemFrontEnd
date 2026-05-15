@@ -280,12 +280,12 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
         {/* Table */}
         {studentData.length === 0 ? (
           <div className="text-center py-10">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-0">
               <UserPlus className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm text-gray-400">Chưa có học sinh nào</p>
             {isTeacher && (
-              <button onClick={onInvite} className="mt-3 text-sm font-semibold text-teal-600 hover:underline">
+              <button onClick={onInvite} className="mt-1 text-sm font-semibold text-teal-600 hover:underline">
                 Mời học sinh ngay
               </button>
             )}
@@ -299,7 +299,7 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
                     <tr key={hg.id} className="bg-gray-50/80">
                       {hg.headers.map(h => (
                         <th key={h.id} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                            style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}>
+                          style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}>
                           {flexRender(h.column.columnDef.header, h.getContext())}
                         </th>
                       ))}
@@ -353,7 +353,7 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
                   <tr key={hg.id} className="bg-amber-50/50">
                     {hg.headers.map(h => (
                       <th key={h.id} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                          style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}>
+                        style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}>
                         {flexRender(h.column.columnDef.header, h.getContext())}
                       </th>
                     ))}
