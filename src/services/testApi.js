@@ -35,6 +35,26 @@ const testApi = {
     }
   },
 
+  getFilteredQuestions: async (filterType = 'all', subject = '', lessonContent = '') => {
+    try {
+      const params = new URLSearchParams();
+      if (filterType) params.append('filterType', filterType);
+      if (subject) params.append('subject', subject);
+      if (lessonContent) params.append('lessonContent', lessonContent);
+      
+      const response = await axios.get(
+        `${API_BASE_URL}/api/tests/questions/filter?${params.toString()}`,
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching filtered questions:', error.response?.status, error.response?.data || error.message);
+      throw error;
+    }
+  },
+
   getTestById: async (testId) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/tests/${testId}`, {
@@ -44,6 +64,18 @@ const testApi = {
     } catch (error) {
       console.error('Error fetching test:', error);
       throw error;
+    }
+  },
+
+  getLessonContents: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/tests/lesson-contents`, {
+        headers: getAuthHeaders(),
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching lesson contents:', error.response?.status, error.response?.data || error.message);
+      return [];
     }
   },
 
