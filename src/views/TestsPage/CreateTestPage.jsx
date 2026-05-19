@@ -26,6 +26,11 @@ export default function CreateTestPage() {
     '5A','5B','5C',
   ];
 
+  const testTypeOptions = [
+    { value: 'EXAM', label: 'Bài kiểm tra' },
+    { value: 'EXERCISE', label: 'Bài tập' },
+  ];
+
   const [contentOptions, setContentOptions] = useState(lessonContents);
 
   useEffect(() => {
@@ -50,6 +55,7 @@ export default function CreateTestPage() {
     grade: '',
     lessonContentName: '',
     duration: '',
+    testType: 'EXAM',
   });
 
   useEffect(() => {
@@ -92,6 +98,7 @@ export default function CreateTestPage() {
   const [filterType, setFilterType] = useState('my-questions');
   const [filterSubject, setFilterSubject] = useState('');
   const [filterLessonContent, setFilterLessonContent] = useState('');
+  const [filterTestType, setFilterTestType] = useState('all');
   const [isOtherSelected, setIsOtherSelected] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditing);
 
@@ -114,6 +121,7 @@ export default function CreateTestPage() {
           grade: test.grade || '',
           lessonContentName: test.lessonContentName || '',
           duration: test.duration || '',
+          testType: test.testType || 'EXAM',
         });
         setSaveStatus(test.status || 'DRAFT');
 
@@ -126,6 +134,7 @@ export default function CreateTestPage() {
               audioUrl: q.audioUrl || null,
               imageUrl: q.imageUrl || null,
               transcript: q.transcript || '',
+              testType: test.testType || 'EXAM',
             };
 
             switch (q.type) {
@@ -204,7 +213,7 @@ export default function CreateTestPage() {
   const loadExistingQuestions = async () => {
     try {
       setLoadingExistingQuestions(true);
-      const qs = await testApi.getFilteredQuestions(filterType, filterSubject, filterLessonContent);
+      const qs = await testApi.getFilteredQuestions(filterType, filterSubject, filterLessonContent, filterTestType === 'all' ? '' : filterTestType);
       setExistingQuestions(qs || []);
     } catch (error) {
       console.error('Error loading existing questions:', error);
@@ -218,7 +227,7 @@ export default function CreateTestPage() {
     if (showExistingQuestionsModal) {
       loadExistingQuestions();
     }
-  }, [filterType, filterSubject, filterLessonContent, showExistingQuestionsModal]);
+  }, [filterType, filterSubject, filterLessonContent, filterTestType, showExistingQuestionsModal]);
 
   const addMultipleChoiceQuestion = () => {
     setQuestions([...questions, {
@@ -227,6 +236,7 @@ export default function CreateTestPage() {
       title: '',
       numberQuestions: '',
       points: '',
+      testType: testInfo.testType,
       answers: [
         { id: 1, label: 'A', content: '', isCorrect: false },
         { id: 2, label: 'B', content: '', isCorrect: false },
@@ -243,6 +253,7 @@ export default function CreateTestPage() {
       type: 'audio',
       content: '',
       points: '',
+      testType: testInfo.testType,
       audioUrl: null,
       imageUrl: null,
       transcript: '',
@@ -256,6 +267,7 @@ export default function CreateTestPage() {
       type: 'matching',
       content: '',
       points: '',
+      testType: testInfo.testType,
       matchingPairs: [
         { id: 1, left: '', right: '' },
         { id: 2, left: '', right: '' },
@@ -271,6 +283,7 @@ export default function CreateTestPage() {
       type: 'fill-in-blank',
       content: '',
       points: '',
+      testType: testInfo.testType,
       textWithBlanks: '',
       blanks: [{ id: 1, position: 0, correctAnswer: '', points: 1 }],
     }]);
@@ -283,6 +296,7 @@ export default function CreateTestPage() {
       type: 'essay',
       content: '',
       points: '',
+      testType: testInfo.testType,
       prompt: '',
       maxLength: 500,
     }]);
@@ -297,6 +311,7 @@ export default function CreateTestPage() {
       audioUrl: existingQuestion.audioUrl || null,
       imageUrl: existingQuestion.imageUrl || null,
       transcript: existingQuestion.transcript || '',
+      testType: existingQuestion.testType || testInfo.testType,
     };
 
     let newQuestion;
@@ -370,11 +385,13 @@ export default function CreateTestPage() {
   };
 
   const handleTestInfoChange = (field, value) => {
-    setTestInfo((prev) => ({ ...prev, [field]: value }));
+    setTestInfo((prev) => ({ ...prev, [field]: value, ...(field === 'subject' || field === 'grade' ? { lessonContentName: '' } : {}) }));
     if (field === 'subject' || field === 'grade') {
       setIsOtherSelected(false);
       setCustomLessonContent('');
-      setTestInfo((prev) => ({ ...prev, [field]: value, lessonContentName: '' }));
+    }
+    if (field === 'testType') {
+      setQuestions((prev) => prev.map((q) => ({ ...q, testType: value })));
     }
   };
 
@@ -552,6 +569,7 @@ export default function CreateTestPage() {
         lessonContentName: testInfo.lessonContentName,
         grade: testInfo.grade,
         duration: parseInt(testInfo.duration, 10),
+        testType: testInfo.testType,
         status,
         userId: user?.id,
         userName: user?.fullName || user?.name || user?.username || 'Unknown',
@@ -609,6 +627,7 @@ export default function CreateTestPage() {
         lessonContentName: testInfo.lessonContentName,
         grade: testInfo.grade,
         duration: parseInt(testInfo.duration, 10),
+        testType: testInfo.testType,
         includeAnswers,
         questions: questions.map((q, index) => {
           const baseQuestion = {
@@ -859,6 +878,12 @@ export default function CreateTestPage() {
                       </select>
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Loại bài</label>
+                      <select value={testInfo.testType} onChange={(e) => handleTestInfoChange('testType', e.target.value)} className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all">
+                        {testTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tên nội dung bài học</label>
                       {!isOtherSelected ? (
                           <select value={testInfo.lessonContentName || ''} onChange={(e) => { const v = e.target.value; if (v === '__other__') { setIsOtherSelected(true); setCustomLessonContent(''); handleTestInfoChange('lessonContentName', ''); } else { setIsOtherSelected(false); handleTestInfoChange('lessonContentName', v); } }} className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all">
@@ -889,6 +914,9 @@ export default function CreateTestPage() {
                           <h3 className="text-lg font-semibold text-gray-800">
                             Câu hỏi {index + 1} -{' '}
                             {question.type === 'multiple-choice' ? 'Trắc nghiệm' : question.type === 'audio' ? 'Âm thanh' : question.type === 'matching' ? 'Nối từ' : question.type === 'fill-in-blank' ? 'Điền khuyết' : question.type === 'essay' ? 'Tự luận' : 'Không xác định'}
+                            {question.testType && (
+                              <span className="ml-2 text-sm font-medium text-blue-600">({question.testType === 'EXAM' ? 'Bài kiểm tra' : 'Bài tập'})</span>
+                            )}
                           </h3>
                           <button onClick={() => deleteQuestion(question.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors">
                             <Trash2 className="w-4 h-4" />
@@ -988,11 +1016,19 @@ export default function CreateTestPage() {
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Lọc câu hỏi</h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Loại câu hỏi</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Nguồn câu hỏi</label>
                       <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300">
                         <option value="my-questions">Câu hỏi của tôi</option>
                         <option value="other-questions">Câu hỏi của người khác</option>
                         <option value="all">Tất cả câu hỏi</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Loại bài</label>
+                      <select value={filterTestType} onChange={(e) => setFilterTestType(e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300">
+                        <option value="all">Tất cả loại</option>
+                        <option value="EXAM">Bài kiểm tra</option>
+                        <option value="EXERCISE">Bài tập</option>
                       </select>
                     </div>
                     <div>
@@ -1040,6 +1076,7 @@ export default function CreateTestPage() {
                                     <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{question.points} điểm</span>
                                     {question.subject && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">{question.subject}</span>}
                                     {question.lessonContentName && <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">{question.lessonContentName}</span>}
+                                    {question.testType && <span className="text-xs bg-violet-50 text-violet-700 px-2 py-1 rounded">{question.testType === 'EXAM' ? 'Bài kiểm tra' : 'Bài tập'}</span>}
                                   </div>
                                   <div className="text-sm text-gray-900 font-medium mb-1 line-clamp-1">{question.content || question.title || 'Không có nội dung'}</div>
                                   {question.createdByName && <div className="text-xs text-gray-600"><span className="font-medium">Tác giả:</span> {question.createdByName}</div>}

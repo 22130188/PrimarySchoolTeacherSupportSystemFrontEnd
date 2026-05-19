@@ -35,12 +35,13 @@ const testApi = {
     }
   },
 
-  getFilteredQuestions: async (filterType = 'all', subject = '', lessonContent = '') => {
+  getFilteredQuestions: async (filterType = 'all', subject = '', lessonContent = '', testType = '') => {
     try {
       const params = new URLSearchParams();
       if (filterType) params.append('filterType', filterType);
       if (subject) params.append('subject', subject);
       if (lessonContent) params.append('lessonContent', lessonContent);
+      if (testType) params.append('testType', testType);
       
       const response = await axios.get(
         `${API_BASE_URL}/api/tests/questions/filter?${params.toString()}`,

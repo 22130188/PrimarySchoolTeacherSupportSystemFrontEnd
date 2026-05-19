@@ -25,6 +25,7 @@ export default function TestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [openActionMenu, setOpenActionMenu] = useState(null);
   const roleId = useAuthStore(s => s.roleId);
 
@@ -80,8 +81,9 @@ export default function TestsPage() {
   };
 
   const filteredTests = tests.filter(test =>
-    test.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    test.subject?.toLowerCase().includes(searchTerm.toLowerCase())
+    (test.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    test.subject?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (typeFilter === 'all' || test.testType === typeFilter)
   );
 
   return (
@@ -136,11 +138,23 @@ export default function TestsPage() {
                 <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Tìm kiếm bài kiểm tra..."
+                  placeholder="Tìm kiếm bài kiểm tra hoặc bài tập..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
                 />
+              </div>
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <span className="text-sm font-medium text-gray-700">Lọc theo loại bài:</span>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all"
+                >
+                  <option value="all">Tất cả</option>
+                  <option value="EXAM">Bài kiểm tra</option>
+                  <option value="EXERCISE">Bài tập</option>
+                </select>
               </div>
 
               {loading ? (
@@ -207,6 +221,15 @@ export default function TestsPage() {
                           {test.grade ? ` · Lớp ${test.grade}` : ''}
                           {` · ${test.questions} câu`}
                         </p>
+                        {test.testType && (
+                          <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold ${
+                            test.testType === 'EXAM'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {test.testType === 'EXAM' ? 'Bài kiểm tra' : 'Bài tập'}
+                          </span>
+                        )}
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500 flex items-center gap-1">
                             <AlertCircle className="w-3 h-3" />

@@ -31,6 +31,7 @@ const STATUS_CONFIG = {
 export default function TestManagement() {
   const [activeTab, setActiveTab] = useState('all');
   const [globalFilter, setGlobalFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [sorting, setSorting] = useState([]);
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +60,7 @@ export default function TestManagement() {
           createdAt: new Date(test.createdAt).toLocaleDateString('vi-VN'),
           updatedAt: new Date(test.updatedAt).toLocaleDateString('vi-VN'),
           docxUrl: test.docxFileUrl,
+          testType: test.testType || 'EXAM',
         })));
       }
     } catch (err) {
@@ -72,10 +74,13 @@ export default function TestManagement() {
   const filteredData = useMemo(() => {
     let filtered = tests;
     if (activeTab !== 'all') {
-      filtered = tests.filter(test => test.status.toLowerCase() === activeTab);
+      filtered = filtered.filter(test => test.status.toLowerCase() === activeTab);
+    }
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(test => test.testType === typeFilter);
     }
     return filtered;
-  }, [tests, activeTab]);
+  }, [tests, activeTab, typeFilter]);
 
   const columns = useMemo(() => [
     {
@@ -144,9 +149,18 @@ export default function TestManagement() {
       ),
     },
     {
-      accessorKey: 'createdAt',
-      header: 'Ngày tạo',
-      cell: ({ getValue }) => <span className="text-sm text-gray-500">{getValue()}</span>,
+      accessorKey: 'testType',
+      header: 'Loại bài',
+      cell: ({ getValue }) => {
+        const type = getValue();
+        return (
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+            type === 'EXAM' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+          }`}>
+            {type === 'EXAM' ? 'Bài kiểm tra' : 'Bài tập'}
+          </span>
+        );
+      },
     },
     {
       id: 'actions',
@@ -269,7 +283,7 @@ export default function TestManagement() {
             <p className="text-gray-600 mt-1">Xem và quản lý tất cả bài kiểm tra trong hệ thống</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 justify-between w-full">
+          <div className="flex flex-wrap items-center gap-4 justify-between w-full">
             <div className="flex flex-wrap gap-2">
               {TEST_TABS.map((tab) => (
                   <button
@@ -286,15 +300,27 @@ export default function TestManagement() {
               ))}
             </div>
 
-            <div className="relative w-full max-w-sm">
-              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-              <input
-                  type="text"
-                  placeholder="Tìm kiếm bài kiểm tra..."
-                  value={globalFilter}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-              />
+            <div className="flex flex-wrap items-center gap-3 justify-end w-full max-w-2xl">
+              <span className="text-sm font-medium text-gray-700">Loại bài:</span>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-700 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+              >
+                <option value="all">Tất cả</option>
+                <option value="EXAM">Bài kiểm tra</option>
+                <option value="EXERCISE">Bài tập</option>
+              </select>
+              <div className="relative w-full max-w-sm">
+                <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                    type="text"
+                    placeholder="Tìm kiếm bài kiểm tra..."
+                    value={globalFilter}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                />
+              </div>
             </div>
           </div>
         </div>
