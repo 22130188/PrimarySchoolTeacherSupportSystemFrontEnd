@@ -100,6 +100,16 @@ export const AI_TOOLS = [
     gradient: 'from-pink-500 to-rose-600',
     stats: 'Xuất file .png/.jpg',
   },
+  {
+    id: 'ai-image',
+    icon: <Wand2 className="w-7 h-7" />,
+    title: 'Tạo Ảnh AI Theo Mô Tả',
+    desc: 'Tạo ảnh AI từ mô tả tiếng Việt với 7 model khác nhau (Imagen, Gemini, FLUX, DALL-E...).',
+    tag: 'AI Generative',
+    tagColor: 'bg-violet-100 text-violet-700',
+    gradient: 'from-violet-500 to-fuchsia-600',
+    stats: '7 model AI · Đa phong cách',
+  },
 ];
 
 export const MOCK_CLASSROOMS = [

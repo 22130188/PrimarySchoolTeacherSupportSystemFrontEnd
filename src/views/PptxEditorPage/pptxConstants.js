@@ -1,4 +1,4 @@
-import { Type, ImagePlus, Table2, Shapes } from 'lucide-react';
+import { Type, ImagePlus, Table2, Shapes, Sparkles } from 'lucide-react';
 
 export {
   CONTROL_STYLE, FONT_LIST, FONT_SIZES, COLOR_PRESETS, COLORS_SMALL,
@@ -13,6 +13,7 @@ export const SIDEBAR_TABS = [
   { id: 'table', icon: Table2, label: 'Bảng' },
   { id: 'shapes', icon: Shapes, label: 'Hình' },
   { id: 'images', icon: ImagePlus, label: 'Ảnh' },
+  { id: 'ai', icon: Sparkles, label: 'AI' },
 ];
 
 export const PANEL_TITLES = {
@@ -20,6 +21,7 @@ export const PANEL_TITLES = {
   table: 'Chèn bảng',
   shapes: 'Hình dạng',
   images: 'Hình ảnh',
+  ai: 'Tạo ảnh AI',
 };
 
 export const DEFAULT_TEXT_FORMAT = {

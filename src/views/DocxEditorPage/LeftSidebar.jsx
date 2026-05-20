@@ -3,6 +3,7 @@ import { ImagePlus, Plus, X, Loader2, Upload } from 'lucide-react';
 import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES } from './editorConstants';
 import TablePicker from '../../common/TablePicker';
 import useImageLibrary from '../../hooks/useImageLibrary';
+import AIImageGenerator from '../../common/AIImageGenerator';
 
 const TABLE_QUICK = [
   { r: 2, c: 2, label: 'Bảng 2×2' },
@@ -177,6 +178,10 @@ export default function LeftSidebar({
                     </button>
                   </div>
                 </div>
+              )}
+
+              {activeTab === 'ai' && (
+                <AIImageGenerator onAddImage={onAddImage} accent="indigo" />
               )}
 
               {activeTab === 'pages' && (

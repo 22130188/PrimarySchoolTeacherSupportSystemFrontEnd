@@ -3,6 +3,7 @@ import { ImagePlus, Plus, X, Loader2, Upload, Square, Circle, Triangle, Minus, A
 import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES, SHAPE_PRESETS, SLIDE_THEME_COLORS } from './pptxConstants';
 import TablePicker from '../../common/TablePicker';
 import useImageLibrary from '../../hooks/useImageLibrary';
+import AIImageGenerator from '../../common/AIImageGenerator';
 
 const SHAPE_ICONS = {
   rect: Square,
@@ -199,6 +200,10 @@ export default function PptxSidebar({
                     </button>
                   </div>
                 </div>
+              )}
+
+              {activeTab === 'ai' && (
+                <AIImageGenerator onAddImage={onAddImage} accent="orange" />
               )}
             </div>
           </>

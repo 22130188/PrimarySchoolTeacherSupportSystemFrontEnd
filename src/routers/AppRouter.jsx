@@ -13,6 +13,7 @@ import AIToolsPage        from '../views/AIToolsPage';
 import ClassroomsPage     from '../views/ClassroomsPage';
 import TTSPage            from '../views/TTSPage';
 import ImagePage          from '../views/ImagePage';
+import AIImagePage        from '../views/AIImagePage';
 import DocxEditorPage     from '../views/DocxEditorPage';
 import PptxEditorPage     from '../views/PptxEditorPage';
 import PronunciationPage  from '../views/PronunciationPage';
@@ -56,6 +57,7 @@ export default function AppRouter() {
                 <Route path="/dashboard"       element={renderPrivateRoute(<DashboardPage />, [1, 2])} />
                 <Route path="/tts"             element={renderPrivateRoute(<TTSPage />, [1, 2])} />
                 <Route path="/image"           element={<ImagePage />} />
+                <Route path="/ai-image"        element={renderPrivateRoute(<AIImagePage />, [1, 2])} />
                 <Route path="/pronunciation"   element={renderPrivateRoute(<PronunciationPage />, [1, 2])} />
                 <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [2])} />
                 <Route path="/lessons/docx-editor" element={renderPrivateRoute(<DocxEditorPage />, [2])} />
