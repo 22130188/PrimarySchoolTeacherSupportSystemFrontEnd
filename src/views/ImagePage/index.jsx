@@ -6,6 +6,7 @@ import { Image, Upload, Download, Trash2, Palette, X, Plus, ChevronDown } from '
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api.config.js';
 import { useAuthStore } from '../../stores/authStore';
+import { SUBJECT_OPTIONS } from '../../data/aiImageConstants';
 
 export default function ImagePage() {
   const [icons, setIcons] = useState([]);
@@ -745,12 +746,16 @@ export default function ImagePage() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Môn học</label>
-                    <input
+                    <select
                       value={canvasSaveForm.subject}
                       onChange={(e) => setCanvasSaveForm((prev) => ({ ...prev, subject: e.target.value }))}
-                      placeholder="Ví dụ: Toán, Tiếng Việt, Tiếng Anh"
-                      className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                    />
+                      className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition cursor-pointer focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                    >
+                      <option value="">-- Chọn môn học --</option>
+                      {SUBJECT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">

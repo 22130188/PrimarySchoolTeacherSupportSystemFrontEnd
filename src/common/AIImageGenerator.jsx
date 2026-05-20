@@ -15,6 +15,7 @@ import {
   saveImageToLibrary,
   extractErrorMessage,
 } from '../helpers/aiImageHelpers';
+import SaveImageModal from './SaveImageModal';
 
 export default function AIImageGenerator({ onAddImage, accent = 'indigo' }) {
   const { user } = useAuthStore();
@@ -211,69 +212,18 @@ export default function AIImageGenerator({ onAddImage, accent = 'indigo' }) {
       )}
 
       <p className="mt-3 text-[10px] text-gray-400 leading-relaxed">
-        Lần đầu sử dụng có thể hiện đăng nhập <strong>Puter</strong>.
+        Lần đầu sử dụng có thể hiện popup đăng nhập <strong>Puter</strong> (miễn phí tại puter.com).
       </p>
 
-      {showSaveModal && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4 py-6">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
-            <div className="flex items-start justify-between gap-3 mb-5">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">Lưu ảnh AI vào thư viện</h2>
-                <p className="text-sm text-slate-500">Nhập mô tả và môn học trước khi lưu vào hệ thống.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowSaveModal(false)}
-                className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Mô tả ảnh</label>
-                <textarea
-                  rows={3}
-                  value={saveForm.description}
-                  onChange={(e) => setSaveForm((prev) => ({ ...prev, description: e.target.value }))}
-                  className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Môn học</label>
-                <input
-                  value={saveForm.subject}
-                  onChange={(e) => setSaveForm((prev) => ({ ...prev, subject: e.target.value }))}
-                  placeholder="Ví dụ: Toán, Tiếng Việt, Tiếng Anh"
-                  className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                />
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowSaveModal(false)}
-                  disabled={saving}
-                  className="inline-flex items-center justify-center rounded-3xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveLibrary}
-                  disabled={saving}
-                  className="inline-flex items-center justify-center rounded-3xl bg-green-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
-                >
-                  {saving ? 'Đang lưu...' : 'Lưu ảnh'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <SaveImageModal
+        open={showSaveModal}
+        title="Lưu ảnh AI vào thư viện"
+        form={saveForm}
+        onChange={setSaveForm}
+        onClose={() => setShowSaveModal(false)}
+        onSubmit={handleSaveLibrary}
+        saving={saving}
+      />
     </div>
   );
 }

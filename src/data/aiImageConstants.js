@@ -43,3 +43,16 @@ export const STATUS_COLORS = {
   error: 'text-red-500',
   success: 'text-emerald-600',
 };
+
+export const LIBRARY_SUBJECT_OPTIONS = [
+  { value: 'all', label: 'Tất cả ảnh' },
+  { value: 'Toán', label: 'Ảnh môn Toán' },
+  { value: 'Tiếng Anh', label: 'Ảnh môn Tiếng Anh' },
+  { value: 'Tiếng Việt', label: 'Ảnh môn Tiếng Việt' },
+];
+
+export const SUBJECT_OPTIONS = [
+  { value: 'Toán', label: 'Toán' },
+  { value: 'Tiếng Anh', label: 'Tiếng Anh' },
+  { value: 'Tiếng Việt', label: 'Tiếng Việt' },
+];
