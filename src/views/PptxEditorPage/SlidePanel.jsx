@@ -4,6 +4,7 @@ import { Plus, X, StickyNote, ChevronDown, ChevronUp } from 'lucide-react';
 export default function SlidePanel({
   slides, currentSlideIndex, onSwitchSlide, onAddSlide, onDeleteSlide,
   speakerNotes, onSpeakerNotesChange, showNotes, onToggleNotes,
+  readOnly = false,
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -46,7 +47,7 @@ export default function SlidePanel({
                 <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[9px] font-semibold text-gray-500 bg-white/85 px-1 rounded backdrop-blur-sm">
                   {index + 1}
                 </span>
-                {slides.length > 1 && (
+                {slides.length > 1 && !readOnly && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onDeleteSlide(index); }}
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white hidden group-hover:flex items-center justify-center cursor-pointer transition-all hover:bg-red-600 hover:scale-110 border border-white shadow-sm"
@@ -58,16 +59,18 @@ export default function SlidePanel({
               </div>
             ))}
 
-            <button
-              onClick={onAddSlide}
-              className="w-[92px] h-[52px] shrink-0 border-2 border-dashed border-gray-300 rounded-md bg-transparent text-gray-400 cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-0.5 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600"
-              id="slide-add-btn"
-            >
-              <Plus size={14} />
-              <span className="text-[9px] font-medium">Thêm</span>
-            </button>
+            {!readOnly && (
+              <button
+                onClick={onAddSlide}
+                className="w-[92px] h-[52px] shrink-0 border-2 border-dashed border-gray-300 rounded-md bg-transparent text-gray-400 cursor-pointer transition-all duration-200 flex flex-col items-center justify-center gap-0.5 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600"
+                id="slide-add-btn"
+              >
+                <Plus size={14} />
+                <span className="text-[9px] font-medium">Thêm</span>
+              </button>
+            )}
 
-            <div className="w-px h-10 bg-gray-200 mx-1.5 shrink-0" />
+            {!readOnly && <div className="w-px h-10 bg-gray-200 mx-1.5 shrink-0" />}
 
             <button
               onClick={onToggleNotes}
@@ -86,9 +89,10 @@ export default function SlidePanel({
             <div className="border-t border-gray-100 px-3 py-2">
               <textarea
                 value={speakerNotes}
-                onChange={(e) => onSpeakerNotesChange(e.target.value)}
-                placeholder="Ghi chú diễn giả cho slide này..."
-                className="w-full h-[64px] resize-none border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-gray-700 outline-none transition-all focus:border-orange-300 focus:ring-2 focus:ring-orange-100 bg-gray-50/50 placeholder:text-gray-400"
+                onChange={(e) => !readOnly && onSpeakerNotesChange(e.target.value)}
+                readOnly={readOnly}
+                placeholder={readOnly ? 'Không có ghi chú' : 'Ghi chú diễn giả cho slide này...'}
+                className={`w-full h-[64px] resize-none border border-gray-200 rounded-lg px-3 py-2 text-[12px] text-gray-700 outline-none transition-all focus:border-orange-300 focus:ring-2 focus:ring-orange-100 bg-gray-50/50 placeholder:text-gray-400 ${readOnly ? 'cursor-default opacity-70' : ''}`}
                 id="slide-notes-textarea"
               />
             </div>

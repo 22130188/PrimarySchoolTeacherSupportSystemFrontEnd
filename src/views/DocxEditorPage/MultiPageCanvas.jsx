@@ -12,6 +12,7 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
   onObjectModified,
   onHistoryChange,
   onAddPage,
+  readOnly = false,
 }, ref) {
   const containerRef = useRef(null);
   const pageRefs = useRef(new Map());
@@ -151,6 +152,7 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
             onObjectModified={onObjectModified}
             onHistoryChange={onHistoryChange}
             ref={(inst) => setPageRef(page.id, inst)}
+            readOnly={readOnly}
           />
         ))}
 

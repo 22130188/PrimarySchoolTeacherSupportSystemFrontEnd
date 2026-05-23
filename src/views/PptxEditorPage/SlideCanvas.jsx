@@ -2,7 +2,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 
 import * as fabric from 'fabric';
 import { SLIDE_WIDTH, SLIDE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups } from './pptxConstants';
 
-const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange }, ref) => {
+const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange, readOnly = false }, ref) => {
   const canvasElRef = useRef(null);
   const fabricRef = useRef(null);
   const historyRef = useRef({ undoStack: [], redoStack: [], isRestoring: false });
@@ -33,6 +33,24 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
     canvas.selectionColor = 'rgba(99, 102, 241, 0.06)';
     canvas.selectionBorderColor = '#6366f1';
     canvas.selectionLineWidth = 1;
+
+    if (readOnly) {
+      canvas.selection = false;
+      canvas.defaultCursor = 'default';
+      canvas.hoverCursor = 'default';
+      canvas.on('object:added', (e) => {
+        const obj = e.target;
+        if (obj) {
+          obj.selectable = false;
+          obj.evented = false;
+          obj.hasControls = false;
+          obj.hasBorders = false;
+          obj.lockMovementX = true;
+          obj.lockMovementY = true;
+        }
+      });
+    }
+
     setTimeout(() => saveToHistory(), 50);
 
     const handleSelection = () => {

@@ -11,6 +11,7 @@ const PageCanvas = forwardRef(function PageCanvas({
   onSelectionChange,
   onObjectModified,
   onHistoryChange,
+  readOnly = false,
 }, ref) {
   const canvasElRef = useRef(null);
   const fabricRef = useRef(null);
@@ -47,11 +48,29 @@ const PageCanvas = forwardRef(function PageCanvas({
     canvas.selectionLineWidth = 1;
     fabricRef.current = canvas;
 
+    // Disable interaction in read-only mode
+    if (readOnly) {
+      canvas.selection = false;
+      canvas.defaultCursor = 'default';
+      canvas.hoverCursor = 'default';
+    }
+
     const initLoad = async () => {
       if (initialJson) {
         try {
           await canvas.loadFromJSON(typeof initialJson === 'string' ? JSON.parse(initialJson) : initialJson);
           restoreTableGroups(canvas, fabric);
+          // Lock all objects in read-only mode
+          if (readOnly) {
+            canvas.getObjects().forEach(obj => {
+              obj.selectable = false;
+              obj.evented = false;
+              obj.hasControls = false;
+              obj.hasBorders = false;
+              obj.lockMovementX = true;
+              obj.lockMovementY = true;
+            });
+          }
           canvas.renderAll();
         } catch (err) {
           console.error('PageCanvas load JSON failed', err);

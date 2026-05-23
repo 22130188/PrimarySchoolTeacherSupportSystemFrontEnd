@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, Copy, Loader2 } from 'lucide-react';
 import EditorToolbar from './EditorToolbar';
 import LeftSidebar from './LeftSidebar';
 import MultiPageCanvas from './MultiPageCanvas';
@@ -18,8 +19,11 @@ export default function DocxEditorPage() {
   const initialPage = useRef(createBlankPage()).current;
   const pagesRef = useRef([initialPage]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
+  const viewMode = searchParams.get('mode'); // 'view' | 'copy' | null
+  const isReadOnly = viewMode === 'view' || viewMode === 'copy';
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   const [fileName, setFileName] = useState('Bài giảng không tên');
   const [subject, setSubject] = useState('');
@@ -39,7 +43,7 @@ export default function DocxEditorPage() {
 
   useEffect(() => { pagesRef.current = pages; }, [pages]);
 
-  const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
+  const markDirty = useCallback(() => { if (!isReadOnly) isDirtyRef.current = true; }, [isReadOnly]);
 
   const currentPageIndex = pages.findIndex((p) => p.id === activePageId);
   const safeCurrentPageIndex = currentPageIndex < 0 ? 0 : currentPageIndex;
@@ -50,7 +54,9 @@ export default function DocxEditorPage() {
       if (!id) return;
       try {
         setSaveStatus('Đang tải...');
-        const draft = await lessonDraftApi.getDraft(id);
+        const draft = isReadOnly
+          ? await lessonDraftApi.getSharedDraft(id)
+          : await lessonDraftApi.getDraft(id);
         setFileName(draft.title || 'Bài giảng không tên');
         setSubject(draft.subject || '');
         setGrade(draft.grade || '');
@@ -67,8 +73,8 @@ export default function DocxEditorPage() {
             setActivePageId(loadedPages[0].id);
           }
         }
-        setSaveStatus('Đã tải bản nháp');
-        setTimeout(() => setSaveStatus(''), 2000);
+        setSaveStatus(isReadOnly ? 'Chế độ xem' : 'Đã tải bản nháp');
+        if (!isReadOnly) setTimeout(() => setSaveStatus(''), 2000);
       } catch (err) {
         console.error('Failed to load draft:', err);
         setSaveStatus('Lỗi tải bản nháp');
@@ -77,7 +83,22 @@ export default function DocxEditorPage() {
     };
     const timer = setTimeout(loadDraft, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isReadOnly]);
+
+  const handleDuplicate = useCallback(async () => {
+    const id = draftIdRef.current;
+    if (!id) return;
+    try {
+      setDuplicating(true);
+      await lessonDraftApi.duplicateSharedDraft(id);
+      alert('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
+      navigate('/lessons');
+    } catch (err) {
+      alert('Không thể tạo bản sao: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setDuplicating(false);
+    }
+  }, [navigate]);
 
   const handleSelectionChange = useCallback((obj) => {
     setSelectedObject(obj);
@@ -188,7 +209,7 @@ export default function DocxEditorPage() {
   useEffect(() => { gradeRef.current = grade; }, [grade]);
 
   const performAutoSave = useCallback(async () => {
-    if (!isDirtyRef.current || isSavingRef.current) return;
+    if (isReadOnly || !isDirtyRef.current || isSavingRef.current) return;
     const curSubject = subjectRef.current;
     const curGrade = gradeRef.current;
     if (!curSubject || !curGrade) return;
@@ -241,21 +262,42 @@ export default function DocxEditorPage() {
   return (
     <div className="fixed inset-0 flex flex-col z-[9999] font-[Inter,sans-serif] overflow-hidden bg-gray-100" id="docx-editor-page">
       <EditorToolbar
-        fileName={fileName} onFileNameChange={setFileName}
-        subject={subject} onSubjectChange={setSubject}
-        grade={grade} onGradeChange={setGrade}
-        textFormat={textFormat} onTextFormatChange={handleTextFormatChange}
-        canUndo={canUndo} canRedo={canRedo}
-        onUndo={() => canvasRef.current?.undo()} onRedo={() => canvasRef.current?.redo()}
+        fileName={fileName} onFileNameChange={isReadOnly ? () => {} : setFileName}
+        subject={subject} onSubjectChange={isReadOnly ? () => {} : setSubject}
+        grade={grade} onGradeChange={isReadOnly ? () => {} : setGrade}
+        textFormat={textFormat} onTextFormatChange={isReadOnly ? () => {} : handleTextFormatChange}
+        canUndo={!isReadOnly && canUndo} canRedo={!isReadOnly && canRedo}
+        onUndo={() => !isReadOnly && canvasRef.current?.undo()} onRedo={() => !isReadOnly && canvasRef.current?.redo()}
         zoom={zoom} onZoomChange={setZoom}
         onExport={handleExport} saveStatus={saveStatus}
         onBack={() => navigate('/lessons')}
-        hasSelection={!!selectedObject} selectionType={selectedObject?.type}
-        onDeleteSelected={() => canvasRef.current?.deleteSelected()}
-        onDuplicateSelected={() => canvasRef.current?.duplicateSelected()}
+        hasSelection={!isReadOnly && !!selectedObject} selectionType={selectedObject?.type}
+        onDeleteSelected={() => !isReadOnly && canvasRef.current?.deleteSelected()}
+        onDuplicateSelected={() => !isReadOnly && canvasRef.current?.duplicateSelected()}
+        readOnly={isReadOnly}
       />
 
-      {(!subject || !grade) && (
+      {/* Read-only banner */}
+      {isReadOnly && (
+        <div className="bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-4 py-2 flex items-center justify-between z-[200]">
+          <div className="flex items-center gap-2 text-sm">
+            <Eye className="w-4 h-4" />
+            <span className="font-medium">Bạn đang xem bài giảng được chia sẻ (chỉ đọc)</span>
+          </div>
+          {viewMode === 'copy' && (
+            <button
+              onClick={handleDuplicate}
+              disabled={duplicating}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+            >
+              {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+              Tạo bản sao
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isReadOnly && (!subject || !grade) && (
         <div className="absolute inset-0 top-[96px] z-[200] bg-gray-100/80 backdrop-blur-sm flex items-center justify-center" id="docx-gate-overlay">
           <div className="bg-white rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-4 max-w-md mx-4 border border-gray-200">
             <div className="w-14 h-14 rounded-full bg-indigo-100 flex items-center justify-center">
@@ -270,15 +312,17 @@ export default function DocxEditorPage() {
       )}
 
       <div className="flex-1 flex overflow-hidden relative">
-        <LeftSidebar
-          activeTab={activeSidebarTab} onTabChange={setActiveSidebarTab}
-          expanded={sidebarExpanded} onToggle={setSidebarExpanded}
-          onAddText={(p) => canvasRef.current?.addText(p)}
-          onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
-          onAddImage={(d) => canvasRef.current?.addImage(d)}
-          pages={pages} currentPageIndex={safeCurrentPageIndex}
-          onSwitchPage={switchToPageByIndex} onAddPage={addPage} onDeletePage={deletePage}
-        />
+        {!isReadOnly && (
+          <LeftSidebar
+            activeTab={activeSidebarTab} onTabChange={setActiveSidebarTab}
+            expanded={sidebarExpanded} onToggle={setSidebarExpanded}
+            onAddText={(p) => canvasRef.current?.addText(p)}
+            onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
+            onAddImage={(d) => canvasRef.current?.addImage(d)}
+            pages={pages} currentPageIndex={safeCurrentPageIndex}
+            onSwitchPage={switchToPageByIndex} onAddPage={addPage} onDeletePage={deletePage}
+          />
+        )}
 
         <MultiPageCanvas
           ref={canvasRef}
@@ -286,13 +330,14 @@ export default function DocxEditorPage() {
           zoom={zoom}
           activePageId={activePageId}
           onActivatePage={handleActivatePage}
-          onSelectionChange={handleSelectionChange}
-          onObjectModified={handleObjectModified}
-          onHistoryChange={handleHistoryChange}
-          onAddPage={addPage}
+          onSelectionChange={isReadOnly ? () => {} : handleSelectionChange}
+          onObjectModified={isReadOnly ? () => {} : handleObjectModified}
+          onHistoryChange={isReadOnly ? () => {} : handleHistoryChange}
+          onAddPage={isReadOnly ? () => {} : addPage}
+          readOnly={isReadOnly}
         />
 
-        <PropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />
+        {!isReadOnly && <PropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />}
       </div>
 
       <div className="h-8 min-h-[32px] bg-white border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-[100]">
