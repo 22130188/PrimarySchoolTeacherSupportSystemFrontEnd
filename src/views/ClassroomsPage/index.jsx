@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, School, Loader2, Search, Mail, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Plus, School, Loader2, Search, Mail, CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
@@ -30,23 +30,28 @@ export default function ClassroomsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [invLoading, setInvLoading] = useState(null);
+  const [fetchError, setFetchError] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    const minDelay = new Promise(r => setTimeout(r, 5000));
     try {
       if (isTeacher) {
-        const data = await getMyClassrooms();
+        const [data] = await Promise.all([getMyClassrooms(), minDelay]);
         setClassrooms(data);
+        setFetchError(false);
       } else {
-        const [joinedResult, invitesResult] = await Promise.allSettled([
-          getMyJoinedClassrooms(),
-          getMyInvitations(),
+        const [[joinedResult, invitesResult]] = await Promise.all([
+          Promise.allSettled([getMyJoinedClassrooms(), getMyInvitations()]),
+          minDelay,
         ]);
 
         if (joinedResult.status === 'fulfilled') {
           setClassrooms(joinedResult.value);
+          setFetchError(false);
         } else {
           setClassrooms([]);
+          setFetchError(true);
           console.error('Failed to load joined classrooms:', joinedResult.reason?.message || joinedResult.reason);
         }
 
@@ -58,7 +63,9 @@ export default function ClassroomsPage() {
         }
       }
     } catch (err) {
+      await minDelay;
       console.error('Failed to load classrooms:', err.message);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -225,14 +232,44 @@ export default function ClassroomsPage() {
                 </div>
               )}
 
-              {loading && (
+              {loading && !fetchError && (
                 <div className="flex flex-col items-center justify-center py-20">
-                  <Loader2 className="w-8 h-8 text-teal-500 animate-spin mb-3" />
-                  <p className="text-sm text-gray-400">Đang tải lớp học...</p>
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center mb-4">
+                    <Loader2 className="w-10 h-10 text-teal-500 animate-spin" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-700 mb-1">Đang tải lớp học...</h3>
+                  <p className="text-sm text-gray-400">Vui lòng chờ trong giây lát</p>
                 </div>
               )}
 
-              {!loading && classrooms.length === 0 && (
+              {fetchError && classrooms.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center mb-4">
+                    {loading ? (
+                      <Loader2 className="w-10 h-10 text-teal-500 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="w-10 h-10 text-amber-400" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-700 mb-1">
+                    {loading ? 'Đang tải lớp học...' : 'Không thể tải danh sách lớp học'}
+                  </h3>
+                  <p className="text-sm text-gray-400 mb-4">
+                    {loading ? 'Vui lòng chờ trong giây lát' : 'Vui lòng kiểm tra kết nối mạng và thử lại'}
+                  </p>
+                  {!loading && (
+                    <button
+                      onClick={fetchData}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Thử lại
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {!loading && !fetchError && classrooms.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-20">
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center mb-4">
                     <School className="w-10 h-10 text-teal-300" />
@@ -260,7 +297,6 @@ export default function ClassroomsPage() {
                       key={cls.id}
                       classroom={cls}
                       isTeacher={isTeacher}
-                      currentUser={user}
                       onViewDetail={(id) => navigate(`/classrooms/${id}`)}
                       onCopyLink={handleCopyLink}
                       onCopyCode={handleCopyCode}

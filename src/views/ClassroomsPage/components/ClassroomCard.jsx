@@ -1,6 +1,7 @@
 import { MoreVertical, Users, Copy, Link2, GraduationCap, BookOpen } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { BANNER_COLORS } from '../../../data/classroomData';
+import { useAuthStore } from '../../../stores/authStore';
 
 function getBannerColor(id) {
   return BANNER_COLORS[(id || 0) % BANNER_COLORS.length];
@@ -11,9 +12,10 @@ function getInitials(name) {
   return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 }
 
-export default function ClassroomCard({ classroom, isTeacher, currentUser, onViewDetail, onCopyLink, onCopyCode }) {
+export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCopyLink, onCopyCode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const user = useAuthStore(s => s.user);
 
   useEffect(() => {
     const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
@@ -22,6 +24,9 @@ export default function ClassroomCard({ classroom, isTeacher, currentUser, onVie
   }, []);
 
   const bannerColor = getBannerColor(classroom.id);
+
+  const teacherAvatar = classroom.teacherAvatarUrl
+    || (isTeacher && user?.avatarUrl ? user.avatarUrl : null);
 
   return (
     <div
@@ -60,13 +65,13 @@ export default function ClassroomCard({ classroom, isTeacher, currentUser, onVie
             </div>
           )}
         </div>
-        <p className="text-white/90 text-sm font-medium">{classroom.teacherName}</p>
+        <p className="text-white/90 text-sm font-medium"><span className="text-white/60">Giáo viên:</span> {classroom.teacherName}</p>
 
         <div className="absolute -bottom-6 right-4">
           <div className="w-[52px] h-[52px] rounded-full bg-white flex items-center justify-center shadow-md border-2 border-white">
-            {(classroom.teacherAvatarUrl || currentUser?.avatarUrl) ? (
+            {teacherAvatar ? (
               <img
-                src={classroom.teacherAvatarUrl || currentUser.avatarUrl}
+                src={teacherAvatar}
                 alt={classroom.teacherName}
                 className="w-[48px] h-[48px] rounded-full object-cover"
               />
