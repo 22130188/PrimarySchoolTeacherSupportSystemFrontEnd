@@ -1,6 +1,6 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import * as fabric from 'fabric';
-import { PAGE_WIDTH, PAGE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS } from './editorConstants';
+import { PAGE_WIDTH, PAGE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups } from './editorConstants';
 
 const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange }, ref) => {
   const canvasElRef = useRef(null);
@@ -46,11 +46,27 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       if (active) onSelectionChange?.(active);
     };
 
+    // Single-click to edit table cells (instead of double-click)
+    const handleMouseDown = (opt) => {
+      const group = opt.target;
+      if (!group || !group.isTable) return;
+      const subTarget = opt.subTargets?.[0];
+      if (subTarget && subTarget.type === 'textbox' && subTarget.editable) {
+        setTimeout(() => {
+          canvas.setActiveObject(subTarget);
+          subTarget.enterEditing();
+          subTarget.selectAll();
+          canvas.renderAll();
+        }, 0);
+      }
+    };
+
     canvas.on('selection:created', handleSelection);
     canvas.on('selection:updated', handleSelection);
     canvas.on('selection:cleared', () => onSelectionChange?.(null));
     canvas.on('object:modified', handleModified);
     canvas.on('text:changed', handleModified);
+    canvas.on('mouse:down', handleMouseDown);
 
     return () => { canvas.dispose(); };
   }, []); // eslint-disable-line
@@ -226,7 +242,7 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       const current = hist.undoStack.pop();
       hist.redoStack.push(current);
       canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(() => {
-        canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -240,7 +256,7 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       const state = hist.redoStack.pop();
       hist.undoStack.push(state);
       canvas.loadFromJSON(JSON.parse(state)).then(() => {
-        canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -254,6 +270,7 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       historyRef.current.isRestoring = true;
       if (json) { await canvas.loadFromJSON(typeof json === 'string' ? JSON.parse(json) : json); }
       else { canvas.clear(); canvas.backgroundColor = '#ffffff'; }
+      restoreTableGroups(canvas, fabric);
       canvas.renderAll();
       historyRef.current.isRestoring = false;
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];

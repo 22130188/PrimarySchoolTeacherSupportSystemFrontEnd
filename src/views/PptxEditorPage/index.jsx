@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Eye, Copy, Loader2 } from 'lucide-react';
 import PptxToolbar from './PptxToolbar';
 import PptxSidebar from './PptxSidebar';
 import SlideCanvas from './SlideCanvas';
@@ -7,6 +8,7 @@ import PptxPropertiesPanel from './PptxPropertiesPanel';
 import SlidePanel from './SlidePanel';
 import { DEFAULT_TEXT_FORMAT, CUSTOM_SERIALIZATION_PROPS } from './pptxConstants';
 import lessonDraftApi from '../../services/lessonDraftApi';
+import { usePptxExport } from '../../hooks/usePptxExport';
 import './PptxEditor.css';
 
 export default function PptxEditorPage() {
@@ -15,8 +17,11 @@ export default function PptxEditorPage() {
   const canvasRef = useRef(null);
   const slidesRef = useRef([{ id: 1, json: null, thumbnail: null, notes: '' }]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
+  const viewMode = searchParams.get('mode');
+  const isReadOnly = viewMode === 'view' || viewMode === 'copy';
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   const [fileName, setFileName] = useState('Trình chiếu không tên');
   const [subject, setSubject] = useState('');
@@ -35,16 +40,19 @@ export default function PptxEditorPage() {
 
   useEffect(() => { slidesRef.current = slides; }, [slides]);
 
-  const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
+  const { exportToPptx } = usePptxExport();
 
-  // Load draft
+  const markDirty = useCallback(() => { if (!isReadOnly) isDirtyRef.current = true; }, [isReadOnly]);
+
   useEffect(() => {
     const loadDraft = async () => {
       const id = draftIdRef.current;
       if (!id || !canvasRef.current) return;
       try {
         setSaveStatus('Đang tải...');
-        const draft = await lessonDraftApi.getDraft(id);
+        const draft = isReadOnly
+          ? await lessonDraftApi.getSharedDraft(id)
+          : await lessonDraftApi.getDraft(id);
         setFileName(draft.title || 'Trình chiếu không tên');
         setSubject(draft.subject || '');
         setGrade(draft.grade || '');
@@ -65,8 +73,8 @@ export default function PptxEditorPage() {
             }
           }
         }
-        setSaveStatus('Đã tải bản nháp');
-        setTimeout(() => setSaveStatus(''), 2000);
+        setSaveStatus(isReadOnly ? 'Chế độ xem' : 'Đã tải bản nháp');
+        if (!isReadOnly) setTimeout(() => setSaveStatus(''), 2000);
       } catch (err) {
         console.error('Failed to load draft:', err);
         setSaveStatus('Lỗi tải bản nháp');
@@ -75,7 +83,22 @@ export default function PptxEditorPage() {
     };
     const timer = setTimeout(loadDraft, 500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isReadOnly]);
+
+  const handleDuplicate = useCallback(async () => {
+    const id = draftIdRef.current;
+    if (!id) return;
+    try {
+      setDuplicating(true);
+      await lessonDraftApi.duplicateSharedDraft(id);
+      alert('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
+      navigate('/lessons');
+    } catch (err) {
+      alert('Không thể tạo bản sao: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setDuplicating(false);
+    }
+  }, [navigate]);
 
   const handleSelectionChange = useCallback((obj) => {
     setSelectedObject(obj);
@@ -182,9 +205,23 @@ export default function PptxEditorPage() {
 
   const handleExport = useCallback(async () => {
     saveCurrentSlide();
-    // TODO: implement PPTX export
-    alert('PPTX');
-  }, [saveCurrentSlide]);
+    try {
+      setSaveStatus('Đang xuất PPTX...');
+      await exportToPptx({
+        slides: slidesRef.current,
+        fileName: fileName || 'Trình chiếu',
+        subject,
+        grade,
+      });
+      setSaveStatus('Đã xuất PPTX');
+      setTimeout(() => setSaveStatus(''), 2000);
+    } catch (err) {
+      console.error('PPTX export failed:', err);
+      setSaveStatus('Lỗi xuất PPTX');
+      setTimeout(() => setSaveStatus(''), 3000);
+      alert('Xuất file thất bại. Vui lòng thử lại.');
+    }
+  }, [saveCurrentSlide, exportToPptx, fileName, subject, grade]);
 
   const fileNameRef = useRef(fileName);
   const subjectRef = useRef(subject);
@@ -194,7 +231,7 @@ export default function PptxEditorPage() {
   useEffect(() => { gradeRef.current = grade; }, [grade]);
 
   const performAutoSave = useCallback(async () => {
-    if (!isDirtyRef.current || isSavingRef.current) return;
+    if (isReadOnly || !isDirtyRef.current || isSavingRef.current) return;
     const curSubject = subjectRef.current;
     const curGrade = gradeRef.current;
     if (!curSubject || !curGrade) return;
@@ -251,21 +288,42 @@ export default function PptxEditorPage() {
   return (
     <div className="fixed inset-0 flex flex-col z-[9999] font-[Inter,sans-serif] overflow-hidden bg-gray-100" id="pptx-editor-page">
       <PptxToolbar
-        fileName={fileName} onFileNameChange={setFileName}
-        subject={subject} onSubjectChange={setSubject}
-        grade={grade} onGradeChange={setGrade}
-        textFormat={textFormat} onTextFormatChange={handleTextFormatChange}
-        canUndo={canUndo} canRedo={canRedo}
-        onUndo={() => canvasRef.current?.undo()} onRedo={() => canvasRef.current?.redo()}
+        fileName={fileName} onFileNameChange={isReadOnly ? () => {} : setFileName}
+        subject={subject} onSubjectChange={isReadOnly ? () => {} : setSubject}
+        grade={grade} onGradeChange={isReadOnly ? () => {} : setGrade}
+        textFormat={textFormat} onTextFormatChange={isReadOnly ? () => {} : handleTextFormatChange}
+        canUndo={!isReadOnly && canUndo} canRedo={!isReadOnly && canRedo}
+        onUndo={() => !isReadOnly && canvasRef.current?.undo()} onRedo={() => !isReadOnly && canvasRef.current?.redo()}
         zoom={zoom} onZoomChange={setZoom}
         onExport={handleExport} saveStatus={saveStatus}
         onBack={() => navigate('/lessons')}
-        hasSelection={!!selectedObject} selectionType={selectedObject?.type}
-        onDeleteSelected={() => canvasRef.current?.deleteSelected()}
-        onDuplicateSelected={() => canvasRef.current?.duplicateSelected()}
+        hasSelection={!isReadOnly && !!selectedObject} selectionType={selectedObject?.type}
+        onDeleteSelected={() => !isReadOnly && canvasRef.current?.deleteSelected()}
+        onDuplicateSelected={() => !isReadOnly && canvasRef.current?.duplicateSelected()}
+        readOnly={isReadOnly}
       />
 
-      {(!subject || !grade) && (
+      {/* Read-only banner */}
+      {isReadOnly && (
+        <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-2 flex items-center justify-between z-[200]">
+          <div className="flex items-center gap-2 text-sm">
+            <Eye className="w-4 h-4" />
+            <span className="font-medium">Bạn đang xem trình chiếu được chia sẻ (chỉ đọc)</span>
+          </div>
+          {viewMode === 'copy' && (
+            <button
+              onClick={handleDuplicate}
+              disabled={duplicating}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+            >
+              {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+              Tạo bản sao
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isReadOnly && (!subject || !grade) && (
         <div className="absolute inset-0 top-[96px] z-[200] bg-gray-100/80 backdrop-blur-sm flex items-center justify-center" id="pptx-gate-overlay">
           <div className="bg-white rounded-2xl shadow-xl px-10 py-8 flex flex-col items-center gap-4 max-w-md mx-4 border border-gray-200">
             <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
@@ -280,24 +338,27 @@ export default function PptxEditorPage() {
       )}
 
       <div className="flex-1 flex overflow-hidden relative">
-        <PptxSidebar
-          activeTab={activeSidebarTab} onTabChange={setActiveSidebarTab}
-          expanded={sidebarExpanded} onToggle={setSidebarExpanded}
-          onAddText={(p) => canvasRef.current?.addText(p)}
-          onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
-          onAddShape={(s) => canvasRef.current?.addShape(s)}
-          onAddImage={(d) => canvasRef.current?.addImage(d)}
-          onSetBackground={(c) => canvasRef.current?.setBackgroundColor(c)}
-        />
+        {!isReadOnly && (
+          <PptxSidebar
+            activeTab={activeSidebarTab} onTabChange={setActiveSidebarTab}
+            expanded={sidebarExpanded} onToggle={setSidebarExpanded}
+            onAddText={(p) => canvasRef.current?.addText(p)}
+            onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
+            onAddShape={(s) => canvasRef.current?.addShape(s)}
+            onAddImage={(d) => canvasRef.current?.addImage(d)}
+            onSetBackground={(c) => canvasRef.current?.setBackgroundColor(c)}
+          />
+        )}
 
         <SlideCanvas
           ref={canvasRef} zoom={zoom}
-          onSelectionChange={handleSelectionChange}
-          onObjectModified={markDirty}
-          onHistoryChange={handleHistoryChange}
+          onSelectionChange={isReadOnly ? () => {} : handleSelectionChange}
+          onObjectModified={isReadOnly ? () => {} : markDirty}
+          onHistoryChange={isReadOnly ? () => {} : handleHistoryChange}
+          readOnly={isReadOnly}
         />
 
-        <PptxPropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />
+        {!isReadOnly && <PptxPropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />}
       </div>
 
       <SlidePanel
@@ -310,6 +371,7 @@ export default function PptxEditorPage() {
         onSpeakerNotesChange={handleSpeakerNotesChange}
         showNotes={showNotes}
         onToggleNotes={() => setShowNotes(!showNotes)}
+        readOnly={isReadOnly}
       />
 
       <div className="h-8 min-h-[32px] bg-white border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-[100]">

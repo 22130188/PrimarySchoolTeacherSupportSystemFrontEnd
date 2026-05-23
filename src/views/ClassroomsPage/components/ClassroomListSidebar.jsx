@@ -60,6 +60,8 @@ export default function ClassroomListSidebar({ currentClassroomId }) {
         {classrooms.map((cls) => {
           const isActive = cls.id === activeId;
           const bannerColor = BANNER_COLORS[(cls.id || 0) % BANNER_COLORS.length];
+          const teacherAvatar = cls.teacherAvatarUrl
+            || (isTeacher && user?.avatarUrl ? user.avatarUrl : null);
 
           return (
             <button
@@ -72,9 +74,9 @@ export default function ClassroomListSidebar({ currentClassroomId }) {
               }`}
               title={cls.name}
             >
-              {(cls.teacherAvatarUrl || user?.avatarUrl) ? (
+              {teacherAvatar ? (
                 <img
-                  src={cls.teacherAvatarUrl || user.avatarUrl}
+                  src={teacherAvatar}
                   alt={cls.teacherName || cls.name}
                   className={`w-8 h-8 rounded-full object-cover flex-shrink-0 ${
                     isActive ? 'ring-2 ring-violet-300 ring-offset-1' : ''

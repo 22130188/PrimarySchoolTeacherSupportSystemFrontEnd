@@ -52,6 +52,41 @@ const lessonDraftApi = {
     const response = await axios.patch(`${BASE_URL}/${id}/status`, { status }, { headers: getAuthHeader() });
     return response.data;
   },
+
+  shareDraft: async (draftId, { email, permission }) => {
+    const response = await axios.post(`${BASE_URL}/${draftId}/shares`, { email, permission }, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  getShares: async (draftId) => {
+    const response = await axios.get(`${BASE_URL}/${draftId}/shares`, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  updateSharePermission: async (draftId, userId, permission) => {
+    const response = await axios.patch(`${BASE_URL}/${draftId}/shares/${userId}`, { permission }, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  revokeShare: async (draftId, userId) => {
+    const response = await axios.delete(`${BASE_URL}/${draftId}/shares/${userId}`, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  getSharedWithMe: async () => {
+    const response = await axios.get(`${GATEWAY_URL}/api/lessons/shared-with-me`, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  getSharedDraft: async (id) => {
+    const response = await axios.get(`${GATEWAY_URL}/api/lessons/shared-with-me/${id}`, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  duplicateSharedDraft: async (id) => {
+    const response = await axios.post(`${GATEWAY_URL}/api/lessons/shared-with-me/${id}/duplicate`, {}, { headers: getAuthHeader() });
+    return response.data;
+  },
 };
 
 export default lessonDraftApi;

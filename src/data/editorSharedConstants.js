@@ -45,7 +45,115 @@ export const TEXT_PRESETS = [
   { id: 'caption', label: 'CHÚ THÍCH', preview: 'Thêm chú thích', style: 'text-[12px] font-normal text-gray-500' },
 ];
 
-export const CUSTOM_SERIALIZATION_PROPS = ['isTable', 'tableRows', 'tableCols'];
+export const CUSTOM_SERIALIZATION_PROPS = [
+  'isTable', 'tableRows', 'tableCols',
+  'subTargetCheck', 'interactive',
+];
+
+export function restoreTableGroups(canvas, fabricModule) {
+  if (!canvas || !fabricModule) return;
+
+  const tables = canvas.getObjects().filter(
+    (obj) => obj.type === 'group' && obj.isTable
+  );
+
+  tables.forEach((group) => {
+    const fixChildren = (objects) => {
+      (objects || []).forEach((child) => {
+        if (child.type === 'rect') {
+          child.set({
+            selectable: false, evented: false,
+            lockMovementX: true, lockMovementY: true,
+            lockScalingX: true, lockScalingY: true, lockRotation: true,
+          });
+        } else if (child.type === 'textbox') {
+          child.set({
+            editable: true, selectable: true, evented: true,
+            lockMovementX: true, lockMovementY: true,
+            lockScalingX: true, lockScalingY: true, lockRotation: true,
+            hasControls: false, hasBorders: false,
+          });
+        }
+      });
+    };
+
+    if (group.interactive && group.subTargetCheck) {
+      fixChildren(group._objects);
+      return;
+    }
+
+    const rows = group.tableRows || 3;
+    const cols = group.tableCols || 3;
+    const savedLeft = group.left;
+    const savedTop = group.top;
+    const savedOriginX = group.originX || 'center';
+    const savedOriginY = group.originY || 'center';
+    const savedScaleX = group.scaleX ?? 1;
+    const savedScaleY = group.scaleY ?? 1;
+    const savedAngle = group.angle || 0;
+
+    const existingTextboxes = (group._objects || []).filter(
+      (ch) => ch.type === 'textbox'
+    );
+    const cellData = existingTextboxes.map((tb) => ({
+      text: tb.text || ' ',
+      fontSize: tb.fontSize || 12,
+      fontFamily: tb.fontFamily || 'Inter',
+      fill: tb.fill || '#374151',
+      fontWeight: tb.fontWeight || 'normal',
+    }));
+
+    const firstRect = (group._objects || []).find((ch) => ch.type === 'rect');
+    const cellW = firstRect ? firstRect.width : 120;
+    const cellH = firstRect ? firstRect.height : 36;
+
+    canvas.remove(group);
+
+    const objects = [];
+    let cellIdx = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cd = cellData[cellIdx] || {
+          text: ' ', fontSize: 12, fontFamily: 'Inter',
+          fill: '#374151', fontWeight: 'normal',
+        };
+        objects.push(new fabricModule.Rect({
+          left: c * cellW, top: r * cellH, width: cellW, height: cellH,
+          fill: r === 0 ? '#f1f5f9' : '#ffffff', stroke: '#cbd5e1',
+          strokeWidth: 1, strokeUniform: true,
+          selectable: false, evented: false,
+          lockMovementX: true, lockMovementY: true,
+          lockScalingX: true, lockScalingY: true, lockRotation: true,
+        }));
+        objects.push(new fabricModule.Textbox(cd.text, {
+          left: c * cellW + 4, top: r * cellH + 4,
+          width: cellW - 8,
+          fontSize: cd.fontSize, fontFamily: cd.fontFamily,
+          fill: cd.fill, fontWeight: cd.fontWeight,
+          editable: true, selectable: true, evented: true,
+          lockMovementX: true, lockMovementY: true,
+          lockScalingX: true, lockScalingY: true, lockRotation: true,
+          hasControls: false, hasBorders: false,
+        }));
+        cellIdx++;
+      }
+    }
+
+    const newGroup = new fabricModule.Group(objects, {
+      left: savedLeft, top: savedTop,
+      originX: savedOriginX, originY: savedOriginY,
+      scaleX: savedScaleX, scaleY: savedScaleY,
+      angle: savedAngle,
+      subTargetCheck: true, interactive: true,
+      ...CONTROL_STYLE,
+    });
+    newGroup.isTable = true;
+    newGroup.tableRows = rows;
+    newGroup.tableCols = cols;
+
+    canvas.add(newGroup);
+  });
+}
 
 export const EDITOR_BTN = 'w-8 h-8 rounded-md bg-transparent text-gray-600 inline-flex items-center justify-center cursor-pointer transition-all duration-150 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent shrink-0';
 

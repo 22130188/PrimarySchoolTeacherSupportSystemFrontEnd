@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config';
 import { useAuthStore } from '../stores/authStore';
+import { saveImageToLibrary } from '../helpers/aiImageHelpers';
 
 export default function useImageLibrary() {
   const { user } = useAuthStore();
@@ -9,6 +10,10 @@ export default function useImageLibrary() {
   const [libraryImages, setLibraryImages] = useState([]);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [uploadingToLibrary, setUploadingToLibrary] = useState(false);
+
+  const [pendingFile, setPendingFile] = useState(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveForm, setSaveForm] = useState({ description: '', subject: '' });
 
   const loadLibraryImages = useCallback(async () => {
     if (!user?.id) return;
@@ -25,43 +30,61 @@ export default function useImageLibrary() {
     }
   }, [user?.id]);
 
-  const uploadToLibrary = useCallback(async (file) => {
+  const handleUploadFileChange = useCallback((e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Vui lòng chọn file ảnh'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('File ảnh không được vượt quá 5MB'); return; }
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file ảnh');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File ảnh không được vượt quá 5MB');
+      e.target.value = '';
+      return;
+    }
+    if (!user?.id) {
+      alert('Vui lòng đăng nhập để lưu ảnh');
+      e.target.value = '';
+      return;
+    }
+    const baseName = file.name.replace(/\.[^/.]+$/, '');
+    setPendingFile(file);
+    setSaveForm({ description: baseName, subject: '' });
+    setShowSaveModal(true);
+    e.target.value = '';
+  }, [user]);
 
+  const cancelSave = useCallback(() => {
+    setShowSaveModal(false);
+    setPendingFile(null);
+  }, []);
+
+  const confirmSave = useCallback(async () => {
+    if (!pendingFile) return;
+    if (!saveForm.description.trim() || !saveForm.subject.trim()) {
+      alert('Vui lòng nhập mô tả và môn học cho ảnh');
+      return;
+    }
     setUploadingToLibrary(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const cloudRes = await axios.post(
-        `${API_CONFIG.CANVAS_API_URL}/api/canvas/upload-image`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
-      if (cloudRes.data.success) {
-        await axios.post(`${API_CONFIG.IMAGE_API_URL}/save`, {
-          description: file.name.replace(/\.[^/.]+$/, ''),
-          subject: '',
-          imageUrl: cloudRes.data.image_url,
-          userId: user?.id || 0,
-          userName: user?.fullName || user?.name || user?.username || 'Unknown',
-        });
-        loadLibraryImages();
-      }
+      await saveImageToLibrary({
+        blob: pendingFile,
+        description: saveForm.description,
+        subject: saveForm.subject,
+        user,
+      });
+      alert('Lưu ảnh thành công!');
+      setShowSaveModal(false);
+      setPendingFile(null);
+      loadLibraryImages();
     } catch (error) {
       console.error('Upload to library failed:', error);
       alert('Lỗi tải ảnh lên thư viện');
     } finally {
       setUploadingToLibrary(false);
-      if (libraryUploadRef.current) libraryUploadRef.current.value = '';
     }
-  }, [user, loadLibraryImages]);
-
-  const handleUploadFileChange = useCallback((e) => {
-    const file = e.target.files?.[0];
-    if (file) uploadToLibrary(file);
-  }, [uploadToLibrary]);
+  }, [pendingFile, saveForm, user, loadLibraryImages]);
 
   return {
     user,
@@ -71,5 +94,10 @@ export default function useImageLibrary() {
     uploadingToLibrary,
     loadLibraryImages,
     handleUploadFileChange,
+    showSaveModal,
+    saveForm,
+    setSaveForm,
+    cancelSave,
+    confirmSave,
   };
 }
