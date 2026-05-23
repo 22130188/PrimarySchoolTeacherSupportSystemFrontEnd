@@ -2,18 +2,21 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import EditorToolbar from './EditorToolbar';
 import LeftSidebar from './LeftSidebar';
-import FabricCanvas from './FabricCanvas';
+import MultiPageCanvas from './MultiPageCanvas';
 import PropertiesPanel from './PropertiesPanel';
 import { useDocxExport } from '../../hooks/useDocxExport';
-import { DEFAULT_TEXT_FORMAT, CUSTOM_SERIALIZATION_PROPS } from './editorConstants';
+import { DEFAULT_TEXT_FORMAT } from './editorConstants';
 import lessonDraftApi from '../../services/lessonDraftApi';
 import './DocxEditor.css';
+
+const createBlankPage = () => ({ id: Date.now() + Math.random(), json: null, thumbnail: null });
 
 export default function DocxEditorPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const canvasRef = useRef(null);
-  const pagesRef = useRef([{ id: 1, json: null, thumbnail: null }]);
+  const initialPage = useRef(createBlankPage()).current;
+  const pagesRef = useRef([initialPage]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
@@ -21,8 +24,8 @@ export default function DocxEditorPage() {
   const [fileName, setFileName] = useState('Bài giảng không tên');
   const [subject, setSubject] = useState('');
   const [grade, setGrade] = useState('');
-  const [pages, setPages] = useState([{ id: 1, json: null, thumbnail: null }]);
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [pages, setPages] = useState([initialPage]);
+  const [activePageId, setActivePageId] = useState(initialPage.id);
   const [zoom, setZoom] = useState(1);
   const [selectedObject, setSelectedObject] = useState(null);
   const [textFormat, setTextFormat] = useState({ ...DEFAULT_TEXT_FORMAT });
@@ -38,10 +41,13 @@ export default function DocxEditorPage() {
 
   const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
 
+  const currentPageIndex = pages.findIndex((p) => p.id === activePageId);
+  const safeCurrentPageIndex = currentPageIndex < 0 ? 0 : currentPageIndex;
+
   useEffect(() => {
     const loadDraft = async () => {
       const id = draftIdRef.current;
-      if (!id || !canvasRef.current) return;
+      if (!id) return;
       try {
         setSaveStatus('Đang tải...');
         const draft = await lessonDraftApi.getDraft(id);
@@ -52,16 +58,13 @@ export default function DocxEditorPage() {
           const parsed = JSON.parse(draft.canvasJson);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const loadedPages = parsed.map((p, i) => ({
-              id: p.id || Date.now() + i,
+              id: p.id ?? Date.now() + i,
               json: p.json || null,
               thumbnail: null,
             }));
             pagesRef.current = loadedPages;
             setPages(loadedPages);
-            setCurrentPageIndex(0);
-            if (loadedPages[0]?.json) {
-              canvasRef.current.loadFromJSON(loadedPages[0].json);
-            }
+            setActivePageId(loadedPages[0].id);
           }
         }
         setSaveStatus('Đã tải bản nháp');
@@ -72,7 +75,7 @@ export default function DocxEditorPage() {
         setTimeout(() => setSaveStatus(''), 3000);
       }
     };
-    const timer = setTimeout(loadDraft, 500);
+    const timer = setTimeout(loadDraft, 100);
     return () => clearTimeout(timer);
   }, []);
 
@@ -101,7 +104,18 @@ export default function DocxEditorPage() {
     markDirty();
   }, [markDirty]);
 
-  const handleHistoryChange = useCallback((u, r) => { setCanUndo(u); setCanRedo(r); markDirty(); }, [markDirty]);
+  const handleHistoryChange = useCallback((u, r) => {
+    setCanUndo(u);
+    setCanRedo(r);
+    markDirty();
+  }, [markDirty]);
+
+  const handleObjectModified = useCallback(() => { markDirty(); }, [markDirty]);
+
+  const handleActivatePage = useCallback((id) => {
+    setActivePageId(id);
+    setSelectedObject(null);
+  }, []);
 
   useEffect(() => {
     const h = (e) => {
@@ -112,7 +126,6 @@ export default function DocxEditorPage() {
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT' ||
           target.isContentEditable);
-
       if (isTypingInFormField) return;
 
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); canvasRef.current?.undo(); }
@@ -122,66 +135,50 @@ export default function DocxEditorPage() {
     return () => document.removeEventListener('keydown', h);
   }, []);
 
-  const saveCurrentPage = useCallback(() => {
-    if (!canvasRef.current) return;
-    const json = canvasRef.current.toJSON();
-    const thumbnail = canvasRef.current.toDataURL();
-    const np = [...pagesRef.current];
-    np[currentPageIndex] = { ...np[currentPageIndex], json, thumbnail };
-    pagesRef.current = np;
-    setPages(np);
-  }, [currentPageIndex]);
-
-  const switchToPage = useCallback((index) => {
-    if (index === currentPageIndex || !canvasRef.current) return;
-    const json = canvasRef.current.toJSON();
-    const thumbnail = canvasRef.current.toDataURL();
-    const np = [...pagesRef.current];
-    np[currentPageIndex] = { ...np[currentPageIndex], json, thumbnail };
-    const target = np[index];
-    if (target?.json) canvasRef.current.loadFromJSON(target.json);
-    else canvasRef.current.clearCanvas();
-    pagesRef.current = np;
-    setPages(np);
-    setCurrentPageIndex(index);
+  const switchToPageByIndex = useCallback((index) => {
+    const target = pagesRef.current[index];
+    if (!target) return;
+    setActivePageId(target.id);
     setSelectedObject(null);
-  }, [currentPageIndex]);
+    canvasRef.current?.scrollToPage(target.id);
+  }, []);
 
   const addPage = useCallback(() => {
-    saveCurrentPage();
-    const newPage = { id: Date.now(), json: null, thumbnail: null };
+    const newPage = createBlankPage();
     const np = [...pagesRef.current, newPage];
     pagesRef.current = np;
     setPages(np);
-    setCurrentPageIndex(np.length - 1);
-    canvasRef.current?.clearCanvas();
+    setActivePageId(newPage.id);
     setSelectedObject(null);
     markDirty();
-  }, [saveCurrentPage, markDirty]);
+    setTimeout(() => canvasRef.current?.scrollToPage(newPage.id), 50);
+  }, [markDirty]);
 
   const deletePage = useCallback((index) => {
     if (pagesRef.current.length <= 1) return;
+    const removed = pagesRef.current[index];
     const np = pagesRef.current.filter((_, i) => i !== index);
-    let ni = currentPageIndex;
-    if (index === currentPageIndex) {
-      ni = Math.min(currentPageIndex, np.length - 1);
-      const t = np[ni];
-      if (t?.json) canvasRef.current?.loadFromJSON(t.json);
-      else canvasRef.current?.clearCanvas();
-    } else if (index < currentPageIndex) { ni = currentPageIndex - 1; }
     pagesRef.current = np;
     setPages(np);
-    setCurrentPageIndex(ni);
+    if (activePageId === removed.id) {
+      const ni = Math.min(index, np.length - 1);
+      setActivePageId(np[ni].id);
+    }
     setSelectedObject(null);
     markDirty();
-  }, [currentPageIndex, markDirty]);
+  }, [activePageId, markDirty]);
 
   const handleExport = useCallback(async () => {
-    saveCurrentPage();
+    const serialized = canvasRef.current?.serializeAllPages?.() || pagesRef.current;
+    pagesRef.current = serialized;
+    setPages(serialized);
     try {
-      await exportToDocx({ canvasRef: { current: canvasRef.current }, pages: pagesRef.current, currentPageIndex, fileName });
-    } catch (err) { console.error('Export failed:', err); alert('Xuất file thất bại. Vui lòng thử lại.'); }
-  }, [saveCurrentPage, exportToDocx, currentPageIndex, fileName]);
+      await exportToDocx({ pages: serialized, fileName });
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Xuất file thất bại. Vui lòng thử lại.');
+    }
+  }, [exportToDocx, fileName]);
 
   const fileNameRef = useRef(fileName);
   const subjectRef = useRef(subject);
@@ -197,12 +194,11 @@ export default function DocxEditorPage() {
     if (!curSubject || !curGrade) return;
     isSavingRef.current = true;
     try {
-      saveCurrentPage();
+      const serialized = canvasRef.current?.serializeAllPages?.() || pagesRef.current;
+      pagesRef.current = serialized;
+      setPages(serialized);
       setSaveStatus('Đang tự động lưu...');
-      const pagesData = pagesRef.current.map(p => ({
-        id: p.id,
-        json: p.json,
-      }));
+      const pagesData = serialized.map((p) => ({ id: p.id, json: p.json }));
       const result = await lessonDraftApi.saveDraft({
         draftId: draftIdRef.current,
         title: fileNameRef.current,
@@ -223,12 +219,10 @@ export default function DocxEditorPage() {
     } finally {
       isSavingRef.current = false;
     }
-  }, [saveCurrentPage, setSearchParams]);
+  }, [setSearchParams]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      performAutoSave();
-    }, 5000);
+    const interval = setInterval(() => { performAutoSave(); }, 5000);
     return () => clearInterval(interval);
   }, [performAutoSave]);
 
@@ -282,15 +276,20 @@ export default function DocxEditorPage() {
           onAddText={(p) => canvasRef.current?.addText(p)}
           onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
           onAddImage={(d) => canvasRef.current?.addImage(d)}
-          pages={pages} currentPageIndex={currentPageIndex}
-          onSwitchPage={switchToPage} onAddPage={addPage} onDeletePage={deletePage}
+          pages={pages} currentPageIndex={safeCurrentPageIndex}
+          onSwitchPage={switchToPageByIndex} onAddPage={addPage} onDeletePage={deletePage}
         />
 
-        <FabricCanvas
-          ref={canvasRef} zoom={zoom}
+        <MultiPageCanvas
+          ref={canvasRef}
+          pages={pages}
+          zoom={zoom}
+          activePageId={activePageId}
+          onActivatePage={handleActivatePage}
           onSelectionChange={handleSelectionChange}
-          onObjectModified={markDirty}
+          onObjectModified={handleObjectModified}
           onHistoryChange={handleHistoryChange}
+          onAddPage={addPage}
         />
 
         <PropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />
@@ -298,7 +297,7 @@ export default function DocxEditorPage() {
 
       <div className="h-8 min-h-[32px] bg-white border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-[100]">
         <div className="flex items-center gap-3">
-          <span>Trang {currentPageIndex + 1} / {pages.length}</span>
+          <span>Trang {safeCurrentPageIndex + 1} / {pages.length}</span>
           <span>·</span>
           <span>A4 (595 × 842)</span>
         </div>

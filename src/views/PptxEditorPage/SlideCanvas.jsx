@@ -1,6 +1,6 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import * as fabric from 'fabric';
-import { SLIDE_WIDTH, SLIDE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS } from './pptxConstants';
+import { SLIDE_WIDTH, SLIDE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups } from './pptxConstants';
 
 const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange }, ref) => {
   const canvasElRef = useRef(null);
@@ -46,11 +46,26 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       if (active) onSelectionChange?.(active);
     };
 
+    const handleMouseDown = (opt) => {
+      const group = opt.target;
+      if (!group || !group.isTable) return;
+      const subTarget = opt.subTargets?.[0];
+      if (subTarget && subTarget.type === 'textbox' && subTarget.editable) {
+        setTimeout(() => {
+          canvas.setActiveObject(subTarget);
+          subTarget.enterEditing();
+          subTarget.selectAll();
+          canvas.renderAll();
+        }, 0);
+      }
+    };
+
     canvas.on('selection:created', handleSelection);
     canvas.on('selection:updated', handleSelection);
     canvas.on('selection:cleared', () => onSelectionChange?.(null));
     canvas.on('object:modified', handleModified);
     canvas.on('text:changed', handleModified);
+    canvas.on('mouse:down', handleMouseDown);
 
     return () => { canvas.dispose(); };
   }, []); // eslint-disable-line
@@ -158,6 +173,8 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
             fill: r === 0 ? '#f1f5f9' : '#ffffff', stroke: '#cbd5e1',
             strokeWidth: 1, strokeUniform: true,
             selectable: false, evented: false,
+            lockMovementX: true, lockMovementY: true,
+            lockScalingX: true, lockScalingY: true, lockRotation: true,
           }));
           objects.push(new fabric.Textbox(r === 0 ? `Cột ${c + 1}` : ' ', {
             left: c * cellW + 4, top: r * cellH + 4,
@@ -166,6 +183,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
             fontWeight: r === 0 ? '600' : 'normal',
             editable: true, selectable: true, evented: true,
             lockMovementX: true, lockMovementY: true,
+            lockScalingX: true, lockScalingY: true, lockRotation: true,
             hasControls: false, hasBorders: false,
           }));
         }
@@ -260,7 +278,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       const current = hist.undoStack.pop();
       hist.redoStack.push(current);
       canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(() => {
-        canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -274,7 +292,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       const state = hist.redoStack.pop();
       hist.undoStack.push(state);
       canvas.loadFromJSON(JSON.parse(state)).then(() => {
-        canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -288,6 +306,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       historyRef.current.isRestoring = true;
       if (json) { await canvas.loadFromJSON(typeof json === 'string' ? JSON.parse(json) : json); }
       else { canvas.clear(); canvas.backgroundColor = '#ffffff'; }
+      restoreTableGroups(canvas, fabric);
       canvas.renderAll();
       historyRef.current.isRestoring = false;
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];

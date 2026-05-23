@@ -1,6 +1,7 @@
+import * as fabric from 'fabric';
 import { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType, Table, TableRow, TableCell, WidthType } from 'docx';
 import { saveAs } from 'file-saver';
-import { CUSTOM_SERIALIZATION_PROPS } from '../views/DocxEditorPage/editorConstants';
+import { PAGE_WIDTH, PAGE_HEIGHT } from '../views/DocxEditorPage/editorConstants';
 
 const ALIGNMENT_MAP = {
   left: AlignmentType.LEFT,
@@ -98,13 +99,15 @@ function tableGroupToDocxTable(group) {
       const t = texts[r * cols + c];
       const cellText = (t?.text || '').trim();
       cells.push(new TableCell({
-        children: [new Paragraph({ children: [new TextRun({
-          text: cellText,
-          font: t?.fontFamily || 'Inter',
-          size: Math.round((t?.fontSize || 12) * 2),
-          bold: t?.fontWeight === 'bold' || t?.fontWeight === '600' || t?.fontWeight === '700',
-          color: (t?.fill || '#000000').replace('#', ''),
-        })] })],
+        children: [new Paragraph({
+          children: [new TextRun({
+            text: cellText,
+            font: t?.fontFamily || 'Inter',
+            size: Math.round((t?.fontSize || 12) * 2),
+            bold: t?.fontWeight === 'bold' || t?.fontWeight === '600' || t?.fontWeight === '700',
+            color: (t?.fill || '#000000').replace('#', ''),
+          })]
+        })],
         width: { size: cellWidth, type: WidthType.DXA },
         shading: r === 0 ? { fill: 'f1f5f9' } : undefined,
       }));
@@ -143,44 +146,47 @@ async function processPageObjects(fabricCanvas) {
 }
 
 export function useDocxExport() {
-  const exportToDocx = async ({ canvasRef, pages, currentPageIndex, fileName }) => {
-    const ref = canvasRef.current;
-    if (!ref) return;
+  const exportToDocx = async ({ pages, fileName }) => {
+    if (!Array.isArray(pages) || pages.length === 0) return;
 
-    const fabricCanvas = ref.getCanvas();
-    if (!fabricCanvas) return;
+    const offscreenEl = document.createElement('canvas');
+    offscreenEl.width = PAGE_WIDTH;
+    offscreenEl.height = PAGE_HEIGHT;
+    const offscreen = new fabric.Canvas(offscreenEl, {
+      width: PAGE_WIDTH,
+      height: PAGE_HEIGHT,
+      backgroundColor: '#ffffff',
+      renderOnAddRemove: false,
+    });
 
-    const currentState = JSON.stringify(fabricCanvas.toJSON(CUSTOM_SERIALIZATION_PROPS));
     const sections = [];
 
-    for (let i = 0; i < pages.length; i++) {
-      if (i === currentPageIndex) {
-        await fabricCanvas.loadFromJSON(JSON.parse(currentState));
-        fabricCanvas.renderAll();
-      } else if (pages[i].json) {
-        await fabricCanvas.loadFromJSON(typeof pages[i].json === 'string' ? JSON.parse(pages[i].json) : pages[i].json);
-        fabricCanvas.renderAll();
-      } else {
-        fabricCanvas.clear();
-        fabricCanvas.backgroundColor = '#ffffff';
-        fabricCanvas.renderAll();
-      }
+    try {
+      for (const page of pages) {
+        if (page.json) {
+          const data = typeof page.json === 'string' ? JSON.parse(page.json) : page.json;
+          await offscreen.loadFromJSON(data);
+        } else {
+          offscreen.clear();
+          offscreen.backgroundColor = '#ffffff';
+        }
+        offscreen.renderAll();
 
-      const children = await processPageObjects(fabricCanvas);
+        const children = await processPageObjects(offscreen);
 
-      sections.push({
-        properties: {
-          page: {
-            size: { width: 11906, height: 16838 },
-            margin: { top: 720, right: 720, bottom: 720, left: 720 },
+        sections.push({
+          properties: {
+            page: {
+              size: { width: 11906, height: 16838 },
+              margin: { top: 720, right: 720, bottom: 720, left: 720 },
+            },
           },
-        },
-        children,
-      });
+          children,
+        });
+      }
+    } finally {
+      offscreen.dispose();
     }
-
-    await fabricCanvas.loadFromJSON(JSON.parse(currentState));
-    fabricCanvas.renderAll();
 
     const doc = new Document({ sections });
     const blob = await Packer.toBlob(doc);

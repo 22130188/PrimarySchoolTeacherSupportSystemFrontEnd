@@ -3,6 +3,7 @@ import { Type, ImagePlus, Table2, Shapes, Sparkles } from 'lucide-react';
 export {
   CONTROL_STYLE, FONT_LIST, FONT_SIZES, COLOR_PRESETS, COLORS_SMALL,
   TEXT_PRESETS, CUSTOM_SERIALIZATION_PROPS, EDITOR_BTN, EDITOR_BTN_ACTIVE,
+  restoreTableGroups,
 } from '../../data/editorSharedConstants';
 
 export const SLIDE_WIDTH = 960;

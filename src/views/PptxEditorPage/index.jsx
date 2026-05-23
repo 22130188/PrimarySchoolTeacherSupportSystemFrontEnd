@@ -7,6 +7,7 @@ import PptxPropertiesPanel from './PptxPropertiesPanel';
 import SlidePanel from './SlidePanel';
 import { DEFAULT_TEXT_FORMAT, CUSTOM_SERIALIZATION_PROPS } from './pptxConstants';
 import lessonDraftApi from '../../services/lessonDraftApi';
+import { usePptxExport } from '../../hooks/usePptxExport';
 import './PptxEditor.css';
 
 export default function PptxEditorPage() {
@@ -34,6 +35,8 @@ export default function PptxEditorPage() {
   const [showNotes, setShowNotes] = useState(false);
 
   useEffect(() => { slidesRef.current = slides; }, [slides]);
+
+  const { exportToPptx } = usePptxExport();
 
   const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
 
@@ -182,9 +185,23 @@ export default function PptxEditorPage() {
 
   const handleExport = useCallback(async () => {
     saveCurrentSlide();
-    // TODO: implement PPTX export
-    alert('PPTX');
-  }, [saveCurrentSlide]);
+    try {
+      setSaveStatus('Đang xuất PPTX...');
+      await exportToPptx({
+        slides: slidesRef.current,
+        fileName: fileName || 'Trình chiếu',
+        subject,
+        grade,
+      });
+      setSaveStatus('Đã xuất PPTX');
+      setTimeout(() => setSaveStatus(''), 2000);
+    } catch (err) {
+      console.error('PPTX export failed:', err);
+      setSaveStatus('Lỗi xuất PPTX');
+      setTimeout(() => setSaveStatus(''), 3000);
+      alert('Xuất file thất bại. Vui lòng thử lại.');
+    }
+  }, [saveCurrentSlide, exportToPptx, fileName, subject, grade]);
 
   const fileNameRef = useRef(fileName);
   const subjectRef = useRef(subject);

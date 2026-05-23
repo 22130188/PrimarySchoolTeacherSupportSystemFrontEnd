@@ -2,11 +2,22 @@ import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 
 import * as fabric from 'fabric';
 import { PAGE_WIDTH, PAGE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups } from './editorConstants';
 
-const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange }, ref) => {
+const PageCanvas = forwardRef(function PageCanvas({
+  pageId,
+  initialJson,
+  zoom = 1,
+  isActive,
+  onActivate,
+  onSelectionChange,
+  onObjectModified,
+  onHistoryChange,
+}, ref) {
   const canvasElRef = useRef(null);
   const fabricRef = useRef(null);
   const historyRef = useRef({ undoStack: [], redoStack: [], isRestoring: false });
-  const clipboardRef = useRef(null);
+  const isActiveRef = useRef(isActive);
+
+  useEffect(() => { isActiveRef.current = isActive; }, [isActive]);
 
   const saveToHistory = useCallback(() => {
     const hist = historyRef.current;
@@ -17,7 +28,9 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
     hist.undoStack.push(json);
     hist.redoStack = [];
     if (hist.undoStack.length > 50) hist.undoStack.shift();
-    onHistoryChange?.(hist.undoStack.length > 1, false);
+    if (isActiveRef.current) {
+      onHistoryChange?.(hist.undoStack.length > 1, false);
+    }
   }, [onHistoryChange]);
 
   useEffect(() => {
@@ -29,47 +42,69 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       preserveObjectStacking: true,
       controlsAboveOverlay: true,
     });
-    fabricRef.current = canvas;
     canvas.selectionColor = 'rgba(99, 102, 241, 0.06)';
     canvas.selectionBorderColor = '#6366f1';
     canvas.selectionLineWidth = 1;
-    setTimeout(() => saveToHistory(), 50);
+    fabricRef.current = canvas;
+
+    const initLoad = async () => {
+      if (initialJson) {
+        try {
+          await canvas.loadFromJSON(typeof initialJson === 'string' ? JSON.parse(initialJson) : initialJson);
+          restoreTableGroups(canvas, fabric);
+          canvas.renderAll();
+        } catch (err) {
+          console.error('PageCanvas load JSON failed', err);
+        }
+      }
+      historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];
+      historyRef.current.redoStack = [];
+    };
+    initLoad();
 
     const handleSelection = () => {
+      onActivate?.(pageId);
       const active = canvas.getActiveObject();
       onSelectionChange?.(active || null);
     };
+    const handleSelectionCleared = () => {
+      if (isActiveRef.current) onSelectionChange?.(null);
+    };
     const handleModified = () => {
       saveToHistory();
-      onObjectModified?.();
+      onObjectModified?.(pageId);
       const active = canvas.getActiveObject();
-      if (active) onSelectionChange?.(active);
+      if (active && isActiveRef.current) onSelectionChange?.(active);
     };
-
-    // Single-click to edit table cells (instead of double-click)
     const handleMouseDown = (opt) => {
+      onActivate?.(pageId);
       const group = opt.target;
-      if (!group || !group.isTable) return;
-      const subTarget = opt.subTargets?.[0];
-      if (subTarget && subTarget.type === 'textbox' && subTarget.editable) {
-        setTimeout(() => {
-          canvas.setActiveObject(subTarget);
-          subTarget.enterEditing();
-          subTarget.selectAll();
-          canvas.renderAll();
-        }, 0);
+      if (group && group.isTable) {
+        const subTarget = opt.subTargets?.[0];
+        if (subTarget && subTarget.type === 'textbox' && subTarget.editable) {
+          setTimeout(() => {
+            canvas.setActiveObject(subTarget);
+            subTarget.enterEditing();
+            subTarget.selectAll();
+            canvas.renderAll();
+          }, 0);
+        }
       }
     };
 
     canvas.on('selection:created', handleSelection);
     canvas.on('selection:updated', handleSelection);
-    canvas.on('selection:cleared', () => onSelectionChange?.(null));
+    canvas.on('selection:cleared', handleSelectionCleared);
     canvas.on('object:modified', handleModified);
     canvas.on('text:changed', handleModified);
     canvas.on('mouse:down', handleMouseDown);
 
-    return () => { canvas.dispose(); };
-  }, []); // eslint-disable-line
+    return () => {
+      canvas.dispose();
+      fabricRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId]);
 
   useEffect(() => {
     const canvas = fabricRef.current;
@@ -80,58 +115,16 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
   }, [zoom]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      const target = e.target;
-      const isTypingInFormField =
-        target instanceof HTMLElement &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable);
-
-      if (isTypingInFormField) return;
-
-      const canvas = fabricRef.current;
-      if (!canvas) return;
-      const active = canvas.getActiveObject();
-      if (active?.isEditing) return;
-
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (active) {
-          e.preventDefault();
-          canvas.remove(active);
-          canvas.discardActiveObject();
-          canvas.renderAll();
-          saveToHistory();
-          onSelectionChange?.(null);
-        }
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && active) {
-        active.clone().then((cloned) => { clipboardRef.current = cloned; });
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'v' && clipboardRef.current) {
-        clipboardRef.current.clone().then((cloned) => {
-          cloned.set({ left: (cloned.left || 50) + 15, top: (cloned.top || 50) + 15, ...CONTROL_STYLE });
-          canvas.add(cloned);
-          canvas.setActiveObject(cloned);
-          canvas.renderAll();
-          saveToHistory();
-        });
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        e.preventDefault();
-        const objs = canvas.getObjects();
-        if (objs.length > 0) {
-          const sel = new fabric.ActiveSelection(objs, { canvas });
-          canvas.setActiveObject(sel);
-          canvas.renderAll();
-        }
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [saveToHistory, onSelectionChange]);
-
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    if (!isActive) {
+      canvas.discardActiveObject();
+      canvas.renderAll();
+    } else {
+      const hist = historyRef.current;
+      onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
+    }
+  }, [isActive, onHistoryChange]);
 
   useImperativeHandle(ref, () => ({
     getCanvas: () => fabricRef.current,
@@ -160,7 +153,6 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       saveToHistory();
     },
 
-
     addTable: (rows, cols) => {
       const canvas = fabricRef.current;
       if (!canvas) return;
@@ -175,6 +167,8 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
             fill: r === 0 ? '#f1f5f9' : '#ffffff', stroke: '#cbd5e1',
             strokeWidth: 1, strokeUniform: true,
             selectable: false, evented: false,
+            lockMovementX: true, lockMovementY: true,
+            lockScalingX: true, lockScalingY: true, lockRotation: true,
           }));
           objects.push(new fabric.Textbox(r === 0 ? `Cột ${c + 1}` : ' ', {
             left: c * cellW + 4, top: r * cellH + 4,
@@ -183,11 +177,11 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
             fontWeight: r === 0 ? '600' : 'normal',
             editable: true, selectable: true, evented: true,
             lockMovementX: true, lockMovementY: true,
+            lockScalingX: true, lockScalingY: true, lockRotation: true,
             hasControls: false, hasBorders: false,
           }));
         }
       }
-      const totalH = rows * cellH;
       const group = new fabric.Group(objects, {
         left: PAGE_WIDTH / 2, top: PAGE_HEIGHT / 2,
         originX: 'center', originY: 'center',
@@ -209,7 +203,11 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
         const img = await fabric.FabricImage.fromURL(dataUrl, { crossOrigin: 'anonymous' });
         const maxW = PAGE_WIDTH - 100, maxH = PAGE_HEIGHT / 2;
         const scale = Math.min(maxW / img.width, maxH / img.height, 1);
-        img.set({ left: PAGE_WIDTH / 2, top: PAGE_HEIGHT / 2, originX: 'center', originY: 'center', scaleX: scale, scaleY: scale, ...CONTROL_STYLE });
+        img.set({
+          left: PAGE_WIDTH / 2, top: PAGE_HEIGHT / 2,
+          originX: 'center', originY: 'center',
+          scaleX: scale, scaleY: scale, ...CONTROL_STYLE,
+        });
         canvas.add(img); canvas.setActiveObject(img); canvas.renderAll(); saveToHistory();
       } catch (err) { console.error('Failed to add image:', err); }
     },
@@ -219,7 +217,8 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       if (!canvas) return;
       const active = canvas.getActiveObject();
       if (active && !active.isEditing) {
-        canvas.remove(active); canvas.discardActiveObject(); canvas.renderAll(); saveToHistory(); onSelectionChange?.(null);
+        canvas.remove(active); canvas.discardActiveObject(); canvas.renderAll(); saveToHistory();
+        if (isActiveRef.current) onSelectionChange?.(null);
       }
     },
 
@@ -243,8 +242,10 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       hist.redoStack.push(current);
       canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(() => {
         restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
-        onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
-        onSelectionChange?.(null);
+        if (isActiveRef.current) {
+          onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
+          onSelectionChange?.(null);
+        }
       });
     },
 
@@ -257,8 +258,10 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       hist.undoStack.push(state);
       canvas.loadFromJSON(JSON.parse(state)).then(() => {
         restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
-        onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
-        onSelectionChange?.(null);
+        if (isActiveRef.current) {
+          onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
+          onSelectionChange?.(null);
+        }
       });
     },
 
@@ -275,7 +278,7 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       historyRef.current.isRestoring = false;
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];
       historyRef.current.redoStack = [];
-      onHistoryChange?.(false, false);
+      if (isActiveRef.current) onHistoryChange?.(false, false);
     },
 
     toDataURL: () => {
@@ -285,7 +288,8 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       canvas.setZoom(1); canvas.setDimensions({ width: PAGE_WIDTH, height: PAGE_HEIGHT });
       const url = canvas.toDataURL({ format: 'png', quality: 0.4, multiplier: 0.25 });
       canvas.setZoom(prev); canvas.setDimensions({ width: PAGE_WIDTH * prev, height: PAGE_HEIGHT * prev });
-      canvas.renderAll(); return url;
+      canvas.renderAll();
+      return url;
     },
 
     updateActiveObject: (props) => {
@@ -303,20 +307,35 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll();
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];
       historyRef.current.redoStack = [];
-      onHistoryChange?.(false, false);
+      if (isActiveRef.current) onHistoryChange?.(false, false);
     },
 
     getObjects: () => fabricRef.current?.getObjects() || [],
+
+    getHistoryState: () => {
+      const hist = historyRef.current;
+      return { canUndo: hist.undoStack.length > 1, canRedo: hist.redoStack.length > 0 };
+    },
+
+    discardSelection: () => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      canvas.discardActiveObject();
+      canvas.renderAll();
+    },
   }));
 
   return (
-    <div className="flex-1 overflow-auto flex justify-center items-start px-5 pt-10 pb-16 canvas-dot-bg">
-      <div className="relative shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.08)] rounded-sm shrink-0 transition-shadow duration-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_12px_32px_rgba(0,0,0,0.12)]">
-        <canvas ref={canvasElRef} id="docx-fabric-canvas" className="block rounded-sm" />
-      </div>
+    <div
+      data-page-id={pageId}
+      className={`relative shrink-0 transition-shadow duration-200 rounded-sm ${isActive
+          ? 'shadow-[0_0_0_2px_rgba(79,70,229,0.45),0_4px_16px_rgba(79,70,229,0.18)]'
+          : 'shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_12px_32px_rgba(0,0,0,0.12)]'
+        }`}
+    >
+      <canvas ref={canvasElRef} className="block rounded-sm" />
     </div>
   );
 });
 
-FabricCanvas.displayName = 'FabricCanvas';
-export default FabricCanvas;
+export default PageCanvas;
