@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Presentation, Loader2, BookOpen, AlertTriangle, FileText, Eye, Copy, Plus, Trash2 } from 'lucide-react';
+import { Presentation, Loader2, BookOpen, AlertTriangle, FileText, Eye, Copy, Plus, Trash2, Edit2 } from 'lucide-react';
 import lessonDraftApi from '../../../services/lessonDraftApi';
 import SelectLessonModal from './SelectLessonModal';
 
@@ -111,7 +111,7 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher }) {
                 type="button"
                 onClick={() => {
                   const editorPath = lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
-                  const mode = lesson.permission === 'COPY' ? 'copy' : 'view';
+                  const mode = isTeacher ? 'edit' : (lesson.permission === 'COPY' ? 'copy' : 'view');
                   navigate(`${editorPath}?draftId=${lesson.id}&mode=${mode}&classroomId=${classroomId}`);
                 }}
                 className="w-full text-left cursor-pointer"
@@ -126,10 +126,17 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher }) {
                       <FileText className="w-6 h-6 text-white" />
                     </div>
                   )}
-                  <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold inline-flex items-center gap-1 ${PERMISSION_STYLE[lesson.permission] || PERMISSION_STYLE.VIEW}`}>
-                    {lesson.permission === 'COPY' ? <Copy className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                    {PERMISSION_LABELS[lesson.permission] || PERMISSION_LABELS.VIEW}
-                  </span>
+                  {isTeacher ? (
+                    <span className="absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold inline-flex items-center gap-1 bg-teal-100 text-teal-700">
+                      <Edit2 className="w-3 h-3" />
+                      Chỉnh sửa
+                    </span>
+                  ) : (
+                    <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold inline-flex items-center gap-1 ${PERMISSION_STYLE[lesson.permission] || PERMISSION_STYLE.VIEW}`}>
+                      {lesson.permission === 'COPY' ? <Copy className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {PERMISSION_LABELS[lesson.permission] || PERMISSION_LABELS.VIEW}
+                    </span>
+                  )}
                   <span className="absolute bottom-2 left-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                     {lesson.type === 'PPTX' ? '.pptx' : '.docx'}
                   </span>
