@@ -68,6 +68,20 @@ const testApi = {
     }
   },
 
+  getTestAttempts: async (testId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/tests/${testId}/attempts`, {
+        headers: getAuthHeaders(),
+      });
+      return response.data.data;
+    } catch (error) {
+      if (error?.response?.status && error.response.status !== 404) {
+        console.warn('getTestAttempts not available or failed:', error.response.status, error.response.data || error.message);
+      }
+      return [];
+    }
+  },
+
   getLessonContents: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/tests/lesson-contents`, {
@@ -77,6 +91,25 @@ const testApi = {
     } catch (error) {
       console.error('Error fetching lesson contents:', error.response?.status, error.response?.data || error.message);
       return [];
+    }
+  },
+
+  createAttempt: async (testId) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/tests/${testId}/attempts`,
+        {},
+        {
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating test attempt:', error.response?.status, error.response?.data || error.message);
+      throw error;
     }
   },
 
@@ -174,6 +207,38 @@ const testApi = {
       console.error('Error uploading audio:', error);
       throw error;
     }
+  },
+
+  submitTestAnswers: async (payload) => {
+    const testId = payload?.testId;
+    if (!testId) throw new Error('Missing testId in payload');
+
+    const endpoints = [
+      `${API_BASE_URL}/api/tests/${testId}/submissions`,
+      `${API_BASE_URL}/api/tests/${testId}/submit`,
+    ];
+
+    let lastError = null;
+    for (const url of endpoints) {
+      try {
+        const response = await axios.post(url, payload, {
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
+        });
+        return response.data;
+      } catch (err) {
+        lastError = err;
+        const status = err?.response?.status;
+        if (status && status >= 400 && status < 500 && status !== 404 && status !== 405) {
+          break;
+        }
+      }
+    }
+
+    console.error('submitTestAnswers failed:', lastError);
+    throw lastError || new Error('Failed to submit test answers');
   },
 };
 

@@ -1,6 +1,8 @@
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
+import TakeTestModal from './components/TakeTestModal';
+import TestTakingInterface from './components/TestTakingInterface';
 import { ClipboardCheck, Plus, Search, CheckCircle, Clock, AlertCircle, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -27,7 +29,12 @@ export default function TestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [openActionMenu, setOpenActionMenu] = useState(null);
+  const [selectedTestForTaking, setSelectedTestForTaking] = useState(null);
+  const [isTakingTest, setIsTakingTest] = useState(false);
+  const [attemptHistory, setAttemptHistory] = useState([]);
+  const [submittingTest, setSubmittingTest] = useState(false);
   const roleId = useAuthStore(s => s.roleId);
+  const isTeacher = roleId === 2;
 
   useEffect(() => {
     fetchTests();
@@ -78,6 +85,55 @@ export default function TestsPage() {
 
   const handleCreateTest = () => {
     navigate('/tests/create');
+  };
+
+  const handleTestClick = async (test) => {
+    if (isTeacher) {
+      navigate(`/tests/${test.id}/edit`);
+    } else {
+      try {
+        const fullTest = await testApi.getTestById(test.id);
+        setSelectedTestForTaking(fullTest);
+        // try fetch attempt history if backend supports it
+        try {
+          const attempts = await testApi.getTestAttempts?.(test.id);
+          setAttemptHistory(Array.isArray(attempts) ? attempts : []);
+        } catch (err) {
+          setAttemptHistory([]);
+        }
+      } catch (err) {
+        alert(err.message || 'Không thể tải bài kiểm tra');
+      }
+    }
+  };
+
+  const handleStartTest = () => {
+    setIsTakingTest(true);
+  };
+
+  const handleSubmitTest = async (answers) => {
+    setSubmittingTest(true);
+    try {
+      const payload = {
+        testId: selectedTestForTaking.id,
+        answers: answers,
+        submittedAt: new Date().toISOString(),
+      };
+      const result = await testApi.submitTestAnswers?.(payload);
+      alert('Nộp bài thành công!');
+      return result;
+    } catch (err) {
+      alert(err.message || 'Có lỗi khi nộp bài');
+      throw err;
+    } finally {
+      setSubmittingTest(false);
+    }
+  };
+
+  const handleCloseTakingTest = () => {
+    setIsTakingTest(false);
+    setSelectedTestForTaking(null);
+    setAttemptHistory([]);
   };
 
   const filteredTests = tests.filter(test =>
@@ -182,7 +238,7 @@ export default function TestsPage() {
                   {filteredTests.map((test) => (
                     <div
                       key={test.id}
-                      onClick={() => navigate(`/tests/${test.id}/edit`)}
+                      onClick={() => handleTestClick(test)}
                       className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                     >
                       <div className={`h-28 bg-gradient-to-br ${test.color} flex items-center justify-center relative`}>
@@ -245,6 +301,28 @@ export default function TestsPage() {
           </main>
         </div>
       </div>
+      {/* Take Test Modal */}
+      {selectedTestForTaking && !isTakingTest && (
+        <TakeTestModal
+          test={selectedTestForTaking}
+          onClose={() => setSelectedTestForTaking(null)}
+          onStartTest={handleStartTest}
+          loading={loading}
+          attemptHistory={attemptHistory}
+          isTeacher={isTeacher}
+        />
+      )}
+
+      {/* Test taking interface */}
+      {isTakingTest && selectedTestForTaking && (
+        <TestTakingInterface
+          test={selectedTestForTaking}
+          onClose={handleCloseTakingTest}
+          onSubmit={handleSubmitTest}
+          submitting={submittingTest}
+          classroom={selectedTestForTaking.classroom}
+        />
+      )}
     </div>
   );
 }
