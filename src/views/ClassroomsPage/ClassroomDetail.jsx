@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard, GraduationCap, BookOpen, FileText } from 'lucide-react';
+import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard, GraduationCap, BookOpen, FileText, Presentation } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import PeopleTab from './components/PeopleTab';
@@ -8,6 +8,7 @@ import InviteDialog from './components/InviteDialog';
 import ClassroomSettings from './components/ClassroomSettings';
 import StreamTab from './components/StreamTab';
 import ClassroomListSidebar from './components/ClassroomListSidebar';
+import ClassroomLessonsTab from './components/ClassroomLessonsTab';
 import { useAuthStore } from '../../stores/authStore';
 import { BANNER_COLORS } from '../../data/classroomData';
 import {
@@ -153,6 +154,7 @@ export default function ClassroomDetail() {
     { id: 'stream', label: 'Bảng tin', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'assignments', label: 'Bài tập', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'tests', label: 'Bài kiểm tra', icon: <FileText className="w-4 h-4" /> },
+    { id: 'lessons', label: 'Bài giảng', icon: <Presentation className="w-4 h-4" /> },
     { id: 'people', label: 'Thành viên', icon: <Users className="w-4 h-4" /> },
     ...(isTeacher ? [{ id: 'settings', label: 'Cài đặt', icon: <Settings className="w-4 h-4" /> }] : []),
   ];
@@ -308,6 +310,13 @@ export default function ClassroomDetail() {
                   onUpdatePost={handleUpdatePost}
                   onDeletePost={handleDeletePost}
                   tabType="TEST"
+                />
+              )}
+
+              {activeTab === 'lessons' && (
+                <ClassroomLessonsTab
+                  classroomId={classroom.id}
+                  isTeacher={isTeacher}
                 />
               )}
 

@@ -87,6 +87,32 @@ const lessonDraftApi = {
     const response = await axios.post(`${GATEWAY_URL}/api/lessons/shared-with-me/${id}/duplicate`, {}, { headers: getAuthHeader() });
     return response.data;
   },
+
+
+  shareToClassroom: async (draftId, classroomId) => {
+    const response = await axios.post(`${BASE_URL}/${draftId}/classroom-shares`, { classroomId }, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  getClassroomShares: async (draftId) => {
+    const response = await axios.get(`${BASE_URL}/${draftId}/classroom-shares`, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  revokeClassroomShare: async (draftId, classroomId) => {
+    const response = await axios.delete(`${BASE_URL}/${draftId}/classroom-shares/${classroomId}`, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  getLessonsSharedToClassroom: async (classroomId) => {
+    const response = await axios.get(`${GATEWAY_URL}/api/lessons/classrooms/${classroomId}/shared-drafts`, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  getClassroomSharedDraft: async (classroomId, draftId) => {
+    const response = await axios.get(`${GATEWAY_URL}/api/lessons/classrooms/${classroomId}/shared-drafts/${draftId}`, { headers: getAuthHeader() });
+    return response.data;
+  }
 };
 
 export default lessonDraftApi;

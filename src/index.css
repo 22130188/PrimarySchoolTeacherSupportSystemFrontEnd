@@ -9,27 +9,27 @@
   --bg-tertiary: #f3f4f6;
   --bg-hover: #f3f4f6;
   --bg-active: #e5e7eb;
-  
+
   --text-primary: #111827;
   --text-secondary: #374151;
   --text-muted: #6b7280;
   --text-disabled: #9ca3af;
-  
+
   --border-primary: #e5e7eb;
   --border-secondary: #d1d5db;
   --border-focus: #6366f1;
-  
+
   --accent-primary: #6366f1;
   --accent-hover: #4f46e5;
   --accent-light: #eef2ff;
-  
+
   --success: #10b981;
   --success-bg: #d1fae5;
   --error: #ef4444;
   --error-bg: #fee2e2;
   --warning: #f59e0b;
   --info: #3b82f6;
-  
+
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
@@ -42,27 +42,27 @@
   --bg-tertiary: #374151;
   --bg-hover: #374151;
   --bg-active: #4b5563;
-  
+
   --text-primary: #f9fafb;
   --text-secondary: #e5e7eb;
   --text-muted: #9ca3af;
   --text-disabled: #6b7280;
-  
+
   --border-primary: #374151;
   --border-secondary: #4b5563;
   --border-focus: #818cf8;
-  
+
   --accent-primary: #818cf8;
   --accent-hover: #6366f1;
   --accent-light: #312e81;
-  
+
   --success: #34d399;
   --success-bg: #064e3b;
   --error: #f87171;
   --error-bg: #7f1d1d;
   --warning: #fbbf24;
   --info: #60a5fa;
-  
+
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
@@ -75,27 +75,27 @@
     --bg-tertiary: #374151;
     --bg-hover: #374151;
     --bg-active: #4b5563;
-    
+
     --text-primary: #f9fafb;
     --text-secondary: #e5e7eb;
     --text-muted: #9ca3af;
     --text-disabled: #6b7280;
-    
+
     --border-primary: #374151;
     --border-secondary: #4b5563;
     --border-focus: #818cf8;
-    
+
     --accent-primary: #818cf8;
     --accent-hover: #6366f1;
     --accent-light: #312e81;
-    
+
     --success: #34d399;
     --success-bg: #064e3b;
     --error: #f87171;
     --error-bg: #7f1d1d;
     --warning: #fbbf24;
     --info: #60a5fa;
-    
+
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
@@ -133,23 +133,28 @@
 .stream-modal-editor .ck.ck-editor__top {
   border-bottom: 1px solid #e2e8f0 !important;
 }
+
 .stream-modal-editor .ck.ck-toolbar {
   border: none !important;
   background: #f8fafc !important;
 }
-.stream-modal-editor .ck.ck-editor__main > .ck-editor__editable {
+
+.stream-modal-editor .ck.ck-editor__main>.ck-editor__editable {
   border: none !important;
   min-height: 140px;
   max-height: 300px;
   box-shadow: none !important;
 }
+
 .stream-modal-editor .ck.ck-editor {
   border: none !important;
 }
+
 .ck-content ul {
   list-style-type: disc !important;
   padding-left: 1.5em !important;
 }
+
 .ck-content ol {
   list-style-type: decimal !important;
   padding-left: 1.5em !important;
@@ -159,31 +164,38 @@
 .rich-content b {
   font-weight: 700;
 }
+
 .rich-content em,
 .rich-content i {
   font-style: italic;
 }
+
 .rich-content u {
   text-decoration: underline;
 }
+
 .rich-content s,
 .rich-content del,
 .rich-content strike {
   text-decoration: line-through;
 }
+
 .rich-content ul {
   list-style-type: disc;
   padding-left: 1.5em;
   margin: 0.5em 0;
 }
+
 .rich-content ol {
   list-style-type: decimal;
   padding-left: 1.5em;
   margin: 0.5em 0;
 }
+
 .rich-content li {
   margin: 0.25em 0;
 }
+
 .rich-content blockquote {
   border-left: 3px solid #cbd5e1;
   padding-left: 1em;
@@ -191,20 +203,36 @@
   color: #64748b;
   font-style: italic;
 }
+
 .rich-content a {
   color: #2563eb;
   text-decoration: underline;
 }
+
 .rich-content a:hover {
   color: #1d4ed8;
 }
+
 .rich-content p {
   margin: 0.35em 0;
 }
-.rich-content h1, .rich-content h2, .rich-content h3, .rich-content h4 {
+
+.rich-content h1,
+.rich-content h2,
+.rich-content h3,
+.rich-content h4 {
   font-weight: 700;
   margin: 0.75em 0 0.25em;
 }
-.rich-content h1 { font-size: 1.5em; }
-.rich-content h2 { font-size: 1.25em; }
-.rich-content h3 { font-size: 1.1em; }
+
+.rich-content h1 {
+  font-size: 1.5em;
+}
+
+.rich-content h2 {
+  font-size: 1.25em;
+}
+
+.rich-content h3 {
+  font-size: 1.1em;
+}
