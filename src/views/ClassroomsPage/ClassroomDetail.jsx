@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard, GraduationCap, BookOpen, FileText, Presentation } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import DashboardSidebar from '../../components/DashboardSidebar';
@@ -26,13 +26,19 @@ import {
 export default function ClassroomDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const roleId = useAuthStore(s => s.roleId);
   const isTeacher = roleId === 2;
 
   const [classroom, setClassroom] = useState(null);
   const [roster, setRoster] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('stream');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'stream');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
   const [showInvite, setShowInvite] = useState(false);
   const [copied, setCopied] = useState('');
   const [posts, setPosts] = useState([]);

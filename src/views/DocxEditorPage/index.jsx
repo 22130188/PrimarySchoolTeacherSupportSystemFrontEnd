@@ -276,7 +276,10 @@ export default function DocxEditorPage() {
         onUndo={() => !isReadOnly && canvasRef.current?.undo()} onRedo={() => !isReadOnly && canvasRef.current?.redo()}
         zoom={zoom} onZoomChange={setZoom}
         onExport={handleExport} saveStatus={saveStatus}
-        onBack={() => navigate('/lessons')}
+        onBack={() => {
+          if (classroomId) navigate(`/classrooms/${classroomId}?tab=lessons`);
+          else navigate('/lessons');
+        }}
         hasSelection={!isReadOnly && !!selectedObject} selectionType={selectedObject?.type}
         onDeleteSelected={() => !isReadOnly && canvasRef.current?.deleteSelected()}
         onDuplicateSelected={() => !isReadOnly && canvasRef.current?.duplicateSelected()}
