@@ -17,6 +17,7 @@ export default function PptxEditorPage() {
   const canvasRef = useRef(null);
   const slidesRef = useRef([{ id: 1, json: null, thumbnail: null, notes: '' }]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
+  const classroomId = searchParams.get('classroomId');
   const viewMode = searchParams.get('mode');
   const isReadOnly = viewMode === 'view' || viewMode === 'copy';
   const isDirtyRef = useRef(false);
@@ -50,9 +51,14 @@ export default function PptxEditorPage() {
       if (!id || !canvasRef.current) return;
       try {
         setSaveStatus('Đang tải...');
-        const draft = isReadOnly
-          ? await lessonDraftApi.getSharedDraft(id)
-          : await lessonDraftApi.getDraft(id);
+        let draft;
+        if (classroomId) {
+          draft = await lessonDraftApi.getClassroomSharedDraft(classroomId, id);
+        } else if (isReadOnly) {
+          draft = await lessonDraftApi.getSharedDraft(id);
+        } else {
+          draft = await lessonDraftApi.getDraft(id);
+        }
         setFileName(draft.title || 'Trình chiếu không tên');
         setSubject(draft.subject || '');
         setGrade(draft.grade || '');

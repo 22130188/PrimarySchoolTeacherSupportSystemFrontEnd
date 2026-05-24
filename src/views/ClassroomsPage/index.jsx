@@ -34,16 +34,15 @@ export default function ClassroomsPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const minDelay = new Promise(r => setTimeout(r, 5000));
     try {
       if (isTeacher) {
-        const [data] = await Promise.all([getMyClassrooms(), minDelay]);
+        const data = await getMyClassrooms();
         setClassrooms(data);
         setFetchError(false);
       } else {
-        const [[joinedResult, invitesResult]] = await Promise.all([
-          Promise.allSettled([getMyJoinedClassrooms(), getMyInvitations()]),
-          minDelay,
+        const [joinedResult, invitesResult] = await Promise.allSettled([
+          getMyJoinedClassrooms(),
+          getMyInvitations(),
         ]);
 
         if (joinedResult.status === 'fulfilled') {
@@ -63,7 +62,6 @@ export default function ClassroomsPage() {
         }
       }
     } catch (err) {
-      await minDelay;
       console.error('Failed to load classrooms:', err.message);
       setFetchError(true);
     } finally {

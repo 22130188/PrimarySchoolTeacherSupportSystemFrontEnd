@@ -279,13 +279,13 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
 
         {/* Table */}
         {studentData.length === 0 ? (
-          <div className="text-center py-10">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-0">
+          <div className="text-center pt-2 pb-8">
+            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-2">
               <UserPlus className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm text-gray-400">Chưa có học sinh nào</p>
             {isTeacher && (
-              <button onClick={onInvite} className="mt-1 text-sm font-semibold text-teal-600 hover:underline">
+              <button onClick={onInvite} className="mt-1 text-sm font-semibold text-teal-600 hover:text-teal-700 hover:underline transition-colors">
                 Mời học sinh ngay
               </button>
             )}
