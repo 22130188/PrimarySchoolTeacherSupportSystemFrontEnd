@@ -227,6 +227,15 @@ export async function createClassroomPost(classroomId, data) {
   return handleRes(res);
 }
 
+export async function updateClassroomPost(classroomId, postId, data) {
+  const res = await fetch(`${BASE}/api/classrooms/${classroomId}/posts/${postId}`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+}
+
 export async function deleteClassroomPost(classroomId, postId) {
   const res = await fetch(`${BASE}/api/classrooms/${classroomId}/posts/${postId}`, {
     method: 'DELETE',

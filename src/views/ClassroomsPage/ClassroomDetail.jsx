@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard, GraduationCap, BookOpen } from 'lucide-react';
+import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard, GraduationCap, BookOpen, FileText } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import PeopleTab from './components/PeopleTab';
@@ -18,6 +18,7 @@ import {
   deleteClassroom,
   getClassroomPosts,
   createClassroomPost,
+  updateClassroomPost,
   deleteClassroomPost,
 } from '../../services/classroomApi';
 
@@ -113,6 +114,19 @@ export default function ClassroomDetail() {
     }
   };
 
+  const handleUpdatePost = async (postId, payload) => {
+    setPostSubmitting(true);
+    try {
+      await updateClassroomPost(id, postId, payload);
+      await fetchPosts();
+    } catch (err) {
+      alert(err.message || 'Không thể cập nhật bài đăng');
+      throw err;
+    } finally {
+      setPostSubmitting(false);
+    }
+  };
+
   const handleDeletePost = async (postId) => {
     const postToDelete = posts.find((post) => post.id === postId);
     const normalizedTeacherName = (classroom?.teacherName || '').trim().toLowerCase();
@@ -137,6 +151,8 @@ export default function ClassroomDetail() {
 
   const tabs = [
     { id: 'stream', label: 'Bảng tin', icon: <MessageSquare className="w-4 h-4" /> },
+    { id: 'assignments', label: 'Bài tập', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'tests', label: 'Bài kiểm tra', icon: <FileText className="w-4 h-4" /> },
     { id: 'people', label: 'Thành viên', icon: <Users className="w-4 h-4" /> },
     ...(isTeacher ? [{ id: 'settings', label: 'Cài đặt', icon: <Settings className="w-4 h-4" /> }] : []),
   ];
@@ -259,7 +275,39 @@ export default function ClassroomDetail() {
                   submitting={postSubmitting}
                   deletingId={deletingPostId}
                   onCreatePost={handleCreatePost}
+                  onUpdatePost={handleUpdatePost}
                   onDeletePost={handleDeletePost}
+                  tabType="ANNOUNCEMENT"
+                />
+              )}
+
+              {activeTab === 'assignments' && (
+                <StreamTab
+                  classroom={classroom}
+                  isTeacher={isTeacher}
+                  posts={posts}
+                  loading={postsLoading}
+                  submitting={postSubmitting}
+                  deletingId={deletingPostId}
+                  onCreatePost={handleCreatePost}
+                  onUpdatePost={handleUpdatePost}
+                  onDeletePost={handleDeletePost}
+                  tabType="ASSIGNMENT"
+                />
+              )}
+
+              {activeTab === 'tests' && (
+                <StreamTab
+                  classroom={classroom}
+                  isTeacher={isTeacher}
+                  posts={posts}
+                  loading={postsLoading}
+                  submitting={postSubmitting}
+                  deletingId={deletingPostId}
+                  onCreatePost={handleCreatePost}
+                  onUpdatePost={handleUpdatePost}
+                  onDeletePost={handleDeletePost}
+                  tabType="TEST"
                 />
               )}
 
