@@ -20,6 +20,21 @@ class AdminTestService {
     }
   }
 
+  async getTestById(testId) {
+    try {
+      const token = useAuthStore.getState().token;
+      const response = await axios.get(`${GATEWAY_URL}/api/tests/admin/${testId}`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching test:', error);
+      throw error;
+    }
+  }
+
   async deleteTest(testId) {
     try {
       const token = useAuthStore.getState().token;
