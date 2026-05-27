@@ -506,16 +506,13 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
   };
   return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
-        {/* Thêm h-full md:h-auto và flex flex-col để kiểm soát chiều cao chặt chẽ hơn */}
         <div className="w-full max-w-3xl rounded-3xl bg-white shadow-2xl max-h-[calc(100vh-3rem)] flex flex-col overflow-hidden">
 
-          {/* HEADER: Giữ cố định ở trên cùng */}
           <div className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-8 py-6 shrink-0">
             <h2 className="text-2xl font-bold">Kết quả làm bài</h2>
             <p className="mt-2 text-sm text-cyan-100">{test?.name || 'Bài kiểm tra'} • {test?.subject || ''}</p>
           </div>
 
-          {/* CONTENT: flex-1 kết hợp overflow-y-auto giúp phần này tự cuộn, không đẩy nút Đóng xuống */}
           <div className="px-8 py-8 space-y-6 overflow-y-auto flex-1">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="rounded-3xl border border-slate-200 p-6 text-center flex-1">
@@ -582,7 +579,6 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
             )}
           </div>
 
-          {/* FOOTER: Luôn cố định ở dưới cùng nhờ cấu trúc flex-col của cha, không sợ bị đè */}
           <div className="bg-slate-50 px-8 py-5 flex justify-end border-t border-slate-100 shrink-0">
             <button
                 type="button"
@@ -683,8 +679,14 @@ export default function StreamTab({
 
       setSelectedTest(test);
       try {
-        const attempts = post.referenceTestId ? await testApi.getTestAttempts(post.referenceTestId) : [];
-        setAttemptHistory(Array.isArray(attempts) ? attempts : []);
+        const response = post.referenceTestId ? await testApi.getTestAttempts(post.referenceTestId) : [];
+        if (Array.isArray(response)) {
+          setAttemptHistory(response);
+        } else if (response && typeof response === 'object' && response.attempts) {
+          setAttemptHistory(response);
+        } else {
+          setAttemptHistory([]);
+        }
       } catch {
         setAttemptHistory([]);
       }
@@ -700,7 +702,8 @@ export default function StreamTab({
   const handleStartTest = async () => {
     setIsTakingTest(true);
     setTestModalOpen(false);
-    if (selectedTest?.id && !selectedTest?.id.toString().startsWith('post-')) {
+    
+    if (!isTeacher && selectedTest?.id && !selectedTest?.id.toString().startsWith('post-')) {
       try {
         const attempt = await testApi.createAttempt(selectedTest.id);
         setAttemptMeta(attempt);
@@ -711,6 +714,13 @@ export default function StreamTab({
   };
 
   const handleSubmitTest = async (payloadOrAnswers) => {
+    if (isTeacher) {
+      console.log('✓ Teacher viewing test - not saving to history');
+      setIsTakingTest(false);
+      setSelectedPost(null);
+      return;
+    }
+
     setSubmittingTest(true);
     try {
       const answers = payloadOrAnswers?.answers ?? payloadOrAnswers;

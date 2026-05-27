@@ -94,10 +94,15 @@ export default function TestsPage() {
       try {
         const fullTest = await testApi.getTestById(test.id);
         setSelectedTestForTaking(fullTest);
-        // try fetch attempt history if backend supports it
         try {
-          const attempts = await testApi.getTestAttempts?.(test.id);
-          setAttemptHistory(Array.isArray(attempts) ? attempts : []);
+          const response = await testApi.getTestAttempts?.(test.id);
+          if (Array.isArray(response)) {
+            setAttemptHistory(response);
+          } else if (response && typeof response === 'object' && response.attempts) {
+            setAttemptHistory(response);
+          } else {
+            setAttemptHistory([]);
+          }
         } catch (err) {
           setAttemptHistory([]);
         }
@@ -112,6 +117,14 @@ export default function TestsPage() {
   };
 
   const handleSubmitTest = async (answers) => {
+    if (isTeacher) {
+      console.log('✓ Teacher viewing test - not saving to history');
+      setIsTakingTest(false);
+      setSelectedTestForTaking(null);
+      setAttemptHistory([]);
+      return;
+    }
+
     setSubmittingTest(true);
     try {
       const payload = {
@@ -301,7 +314,6 @@ export default function TestsPage() {
           </main>
         </div>
       </div>
-      {/* Take Test Modal */}
       {selectedTestForTaking && !isTakingTest && (
         <TakeTestModal
           test={selectedTestForTaking}
@@ -313,7 +325,6 @@ export default function TestsPage() {
         />
       )}
 
-      {/* Test taking interface */}
       {isTakingTest && selectedTestForTaking && (
         <TestTakingInterface
           test={selectedTestForTaking}
