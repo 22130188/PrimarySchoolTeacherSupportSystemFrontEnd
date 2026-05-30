@@ -448,6 +448,8 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
   const score = result?.score ?? result?.totalScore ?? 0;
   const maxScore = result?.maxScore ?? test?.totalPoints ?? 0;
   const status = result?.status || (score >= maxScore * 0.5 ? 'Đạt' : 'Chưa đạt');
+  const audioEvaluations = result?.audioEvaluations || [];
+  const audioPassedCount = audioEvaluations.filter((item) => item.passed).length;
 
   const renderAnswerReview = (question, answer) => {
     if (!question) return null;
@@ -519,20 +521,36 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
     if (type === 'AUDIO') {
       const questionAudioSrc = getAudioSource(question.audioUrl);
       const answerAudioSrc = getAudioSource(answer?.audio);
+      const evaluation = audioEvaluations.find((item) => item.questionId === question.id);
       return (
-        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-semibold text-slate-700 mb-3">Nghe và trả lời</p>
-          {questionAudioSrc && (
-            <div className="mb-4">
-              <p className="text-sm font-semibold text-slate-700 mb-2">Câu hỏi</p>
-              <audio controls src={questionAudioSrc} className="w-full rounded" preload="metadata" />
+        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-3">Nghe và trả lời</p>
+            {questionAudioSrc && (
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-slate-700 mb-2">Câu hỏi</p>
+                <audio controls src={questionAudioSrc} className="w-full rounded" preload="metadata" />
+              </div>
+            )}
+            <p className="text-sm font-semibold text-slate-700 mb-2">Câu trả lời của bạn</p>
+            {answerAudioSrc ? (
+              <audio controls src={answerAudioSrc} className="w-full rounded" preload="metadata" />
+            ) : (
+              <p className="text-sm text-slate-600">Chưa ghi âm</p>
+            )}
+          </div>
+          {evaluation && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-sm font-semibold text-slate-700">Đánh giá phát âm</p>
+              <p className="mt-2 text-sm text-slate-900">
+                Độ chính xác: {evaluation.accuracyScore != null ? evaluation.accuracyScore : 'Chưa có'}
+              </p>
+              <p className={`mt-1 text-sm ${evaluation.passed === true ? 'text-emerald-700' : 'text-rose-700'}`}>
+                Kết quả: {evaluation.passed === true ? 'Đạt full điểm' : evaluation.passed === false ? 'Không cộng điểm' : 'Chưa rõ'}
+              </p>
+              {evaluation.message && <p className="mt-2 text-sm text-slate-600">Gợi ý: {evaluation.message}</p>}
+              {evaluation.feedback && <p className="mt-2 text-sm text-slate-600">Phân tích: {evaluation.feedback}</p>}
             </div>
-          )}
-          <p className="text-sm font-semibold text-slate-700 mb-2">Câu trả lời của bạn</p>
-          {answerAudioSrc ? (
-            <audio controls src={answerAudioSrc} className="w-full rounded" preload="metadata" />
-          ) : (
-            <p className="text-sm text-slate-600">Chưa ghi âm</p>
           )}
         </div>
       );
@@ -555,6 +573,9 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
                 <p className="text-sm text-slate-500">Điểm đạt được</p>
                 <p className="text-5xl font-bold text-slate-900 mt-3">{score}/{maxScore}</p>
                 <p className="mt-3 text-sm text-slate-600">Trạng thái: <span className="font-semibold text-slate-900">{status}</span></p>
+                {audioEvaluations.length > 0 && (
+                  <p className="mt-3 text-sm text-slate-600">Đánh giá phát âm: {audioPassedCount}/{audioEvaluations.length} câu đạt 80%.</p>
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
                 <div className="rounded-3xl border border-slate-200 p-4">

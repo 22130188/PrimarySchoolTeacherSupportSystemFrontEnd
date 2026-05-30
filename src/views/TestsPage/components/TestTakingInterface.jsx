@@ -540,6 +540,7 @@ export default function TestTakingInterface({
 
   const calculateResult = (serverResult) => {
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    const payload = serverResult?.data ?? serverResult;
     const correctCount = questions.reduce((acc, question) => {
       const answer = answers[question.id];
       if (!answer) return acc;
@@ -567,17 +568,18 @@ export default function TestTakingInterface({
     }, 0);
 
     const maxScore = test?.totalPoints ?? totalQuestions;
-    const score = serverResult?.score ?? Math.round((correctCount / totalQuestions) * maxScore);
-    const status = serverResult?.status || (score >= (maxScore * 0.5) ? 'Đạt' : 'Chưa đạt');
+    const score = payload?.score ?? Math.round((correctCount / totalQuestions) * maxScore);
+    const status = payload?.status || (score >= (maxScore * 0.5) ? 'Đạt' : 'Chưa đạt');
 
     return {
       correctCount,
       totalQuestions,
       score,
       maxScore,
-      durationSeconds: serverResult?.durationSeconds ?? elapsedSeconds,
+      durationSeconds: payload?.durationSeconds ?? elapsedSeconds,
       status,
       pendingReviewCount,
+      audioEvaluations: payload?.audioEvaluations || [],
     };
   };
 
@@ -665,6 +667,7 @@ export default function TestTakingInterface({
     }
 
     if (qType === QUESTION_TYPES.AUDIO) {
+      const evaluation = submissionResult?.audioEvaluations?.find((item) => item.questionId === question.id);
       return (
         <div className="space-y-3 text-sm text-slate-700">
           <p className="font-semibold">Trả lời của bạn:</p>
@@ -678,6 +681,19 @@ export default function TestTakingInterface({
               <p className="font-semibold">Transcript / Gợi ý:</p>
               <p>{question.transcript}</p>
             </>
+          )}
+          {evaluation && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-700">Đánh giá phát âm</p>
+              <p className="mt-2 text-sm text-slate-900">
+                Độ chính xác: {evaluation.accuracyScore != null ? evaluation.accuracyScore : 'Chưa có'}
+              </p>
+              <p className={`mt-1 text-sm ${evaluation.passed === true ? 'text-emerald-700' : 'text-rose-700'}`}>
+                Kết quả: {evaluation.passed === true ? 'Đạt full điểm' : evaluation.passed === false ? 'Không cộng điểm' : 'Chưa rõ'}
+              </p>
+              {evaluation.message && <p className="mt-2 text-sm text-slate-600">Gợi ý: {evaluation.message}</p>}
+              {evaluation.feedback && <p className="mt-2 text-sm text-slate-600">Phân tích: {evaluation.feedback}</p>}
+            </div>
           )}
         </div>
       );
@@ -1006,6 +1022,11 @@ export default function TestTakingInterface({
                   <p className="mt-3 text-sm text-slate-600">Trạng thái: <span className="font-semibold text-slate-900">{submissionResult.status}</span></p>
                   {submissionResult.pendingReviewCount > 0 && (
                     <p className="mt-3 text-sm text-orange-600">Có {submissionResult.pendingReviewCount} câu tự luận/phát âm chờ chấm sau.</p>
+                  )}
+                  {submissionResult.audioEvaluations?.length > 0 && (
+                    <p className="mt-3 text-sm text-slate-600">
+                      Đánh giá phát âm: {submissionResult.audioEvaluations.filter((item) => item.passed).length}/{submissionResult.audioEvaluations.length} câu đạt 80%.
+                    </p>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-4">
