@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import testApi from '../../services/testApi';
+import resourceService from '../../services/resourceService';
 
 const STATUS_STYLE = {
   DRAFT: 'bg-yellow-100 text-yellow-700',
@@ -34,6 +35,7 @@ export default function TestsPage() {
   const [attemptHistory, setAttemptHistory] = useState([]);
   const [submittingTest, setSubmittingTest] = useState(false);
   const roleId = useAuthStore(s => s.roleId);
+  const user = useAuthStore(s => s.user);
   const isTeacher = roleId === 2;
 
   useEffect(() => {
@@ -116,6 +118,29 @@ export default function TestsPage() {
     setIsTakingTest(true);
   };
 
+  const uploadAudioAnswer = async (questionId, answer) => {
+    if (!answer?.audio || typeof answer.audio === 'string') return answer;
+
+    const audioBlob = answer.audio;
+    if (!(audioBlob instanceof Blob)) return answer;
+
+    const audioName = `${selectedTestForTaking?.name || 'Test'} - Câu ${questionId}`;
+    const subject = selectedTestForTaking?.subject || '';
+    const userId = user?.id || user?.userId || null;
+    const userName = user?.fullName || user?.name || user?.username || 'Unknown';
+
+    const uploadResponse = await resourceService.uploadAudio(audioBlob, audioName, subject, userId, userName);
+    const uploadedUrl = uploadResponse?.audioUrl || uploadResponse?.audio_url || uploadResponse?.data?.audioUrl || uploadResponse?.data?.audio_url || uploadResponse?.url || uploadResponse?.data?.url;
+    if (!uploadedUrl) {
+      throw new Error('Không lấy được đường dẫn audio sau khi tải lên');
+    }
+
+    return {
+      ...answer,
+      audio: uploadedUrl,
+    };
+  };
+
   const handleSubmitTest = async (answers) => {
     if (isTeacher) {
       console.log('✓ Teacher viewing test - not saving to history');
@@ -127,9 +152,16 @@ export default function TestsPage() {
 
     setSubmittingTest(true);
     try {
+      const preparedAnswers = { ...answers };
+      for (const [questionId, answer] of Object.entries(answers || {})) {
+        if (answer?.audio && !(typeof answer.audio === 'string')) {
+          preparedAnswers[questionId] = await uploadAudioAnswer(questionId, answer);
+        }
+      }
+
       const payload = {
         testId: selectedTestForTaking.id,
-        answers: answers,
+        answers: preparedAnswers,
         submittedAt: new Date().toISOString(),
       };
       const result = await testApi.submitTestAnswers?.(payload);

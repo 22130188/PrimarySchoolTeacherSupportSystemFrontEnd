@@ -40,6 +40,14 @@ function parseAttemptAnswers(rawAnswers) {
   return rawAnswers;
 }
 
+function getAudioSource(audio) {
+  if (!audio) return null;
+  if (typeof audio === 'string') return audio;
+  if (audio instanceof Blob) return URL.createObjectURL(audio);
+  if (audio?.audioUrl) return audio.audioUrl;
+  return null;
+}
+
 function renderAnswerReview(question, answer) {
   if (!question) return null;
   const type = question.type ? question.type.toString().toUpperCase().replace(/-/g, '_') : 'MULTIPLE_CHOICE';
@@ -106,12 +114,19 @@ function renderAnswerReview(question, answer) {
 
   if (type === 'AUDIO') {
     return (
-      <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-slate-900">
-        <p className="text-sm font-semibold">Phát âm</p>
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-semibold text-slate-700 mb-3">Nghe và trả lời</p>
+        {question.audioUrl && (
+          <div className="mb-4">
+            <p className="text-sm font-semibold text-slate-700 mb-2">Câu hỏi</p>
+            <audio controls src={question.audioUrl} className="w-full rounded" />
+          </div>
+        )}
+        <p className="text-sm font-semibold text-slate-700 mb-2">Câu trả lời của bạn</p>
         {answer?.audio ? (
-          <p className="mt-2 text-sm">Đã ghi âm</p>
+          <audio controls src={getAudioSource(answer.audio)} className="w-full rounded" />
         ) : (
-          <p className="mt-2 text-sm">Chưa trả lời</p>
+          <p className="text-sm text-slate-600">Chưa ghi âm</p>
         )}
       </div>
     );
@@ -344,11 +359,15 @@ export default function TakeTestModal({
                             const ans = selectedAttemptAnswers[question.id];
                             const normalizedType = question.type ? question.type.toString().toUpperCase().replace(/-/g, '_') : 'MULTIPLE_CHOICE';
                             let isCorrect = false;
+                            let isPartial = false;
                             if (normalizedType === 'MULTIPLE_CHOICE') {
                               isCorrect = question.answers?.[ans?.selectedIndex]?.isCorrect;
                             } else if (normalizedType === 'MATCHING') {
                               const mappings = ans?.mappings || [];
-                              isCorrect = question.matchingPairs?.every((pair, index) => mappings[index] === pair.right);
+                              const totalPairs = question.matchingPairs?.length || 0;
+                              const correctPairs = question.matchingPairs?.filter((pair, index) => mappings[index] === pair.right).length || 0;
+                              isCorrect = correctPairs === totalPairs;
+                              isPartial = correctPairs > 0 && correctPairs < totalPairs;
                             } else if (normalizedType === 'FILL_IN_BLANK') {
                               if (question.blanks?.length && ans?.answers?.length) {
                                 isCorrect = question.blanks.every((blank, index) => {
@@ -366,8 +385,8 @@ export default function TakeTestModal({
                                     <p className="text-sm font-semibold text-slate-900">Câu {idx + 1}</p>
                                     <p className="text-sm text-slate-600 mt-1">{question.content || question.prompt || 'Nội dung câu hỏi'}</p>
                                   </div>
-                                  <span className={`rounded-full px-3 py-1 text-xs font-semibold shrink-0 ${isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                    {isCorrect ? '✓ Đúng' : '✗ Sai'}
+                                  <span className={`rounded-full px-3 py-1 text-xs font-semibold shrink-0 ${isCorrect ? 'bg-emerald-100 text-emerald-700' : isPartial ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {isCorrect ? '✓ Đúng' : isPartial ? '⚠ Một phần' : '✗ Sai'}
                                   </span>
                                 </div>
                                 {renderAnswerReview(question, ans)}

@@ -15,6 +15,7 @@ export default function CreateTestPage() {
   const { id } = useParams();
   const isEditing = !!id;
   const { user } = useAuthStore();
+  const currentUserId = user?.id || user?.userId || null;
   const { libraryImages, loadingLibrary, loadLibraryImages } = useImageLibrary();
 
   const subjectOptions = ['Toán', 'Tiếng Việt', 'Tiếng Anh'];
@@ -100,6 +101,14 @@ export default function CreateTestPage() {
   const [filterLessonContent, setFilterLessonContent] = useState('');
   const [filterTestType, setFilterTestType] = useState('all');
   const [isOtherSelected, setIsOtherSelected] = useState(false);
+
+  const availableSubjects = Array.from(new Set(contentOptions.map((c) => c.subject).filter(Boolean)));
+  const availableLessonContents = Array.from(new Set(
+    contentOptions
+      .filter((c) => !filterSubject || c.subject === filterSubject)
+      .map((c) => c.name)
+      .filter(Boolean)
+  ));
   const [initialLoading, setInitialLoading] = useState(isEditing);
 
   useEffect(() => {
@@ -168,6 +177,8 @@ export default function CreateTestPage() {
                     { id: 1, left: '', right: '' },
                     { id: 2, left: '', right: '' },
                     { id: 3, left: '', right: '' },
+                    { id: 4, left: '', right: '' },
+                    { id: 5, left: '', right: '' },
                   ],
                 };
               case 'FILL_IN_BLANK':
@@ -272,6 +283,8 @@ export default function CreateTestPage() {
         { id: 1, left: '', right: '' },
         { id: 2, left: '', right: '' },
         { id: 3, left: '', right: '' },
+        { id: 4, left: '', right: '' },
+        { id: 5, left: '', right: '' },
       ],
     }]);
     setShowQuestionTypeModal(false);
@@ -341,6 +354,8 @@ export default function CreateTestPage() {
             { id: 1, left: '', right: '' },
             { id: 2, left: '', right: '' },
             { id: 3, left: '', right: '' },
+            { id: 4, left: '', right: '' },
+            { id: 5, left: '', right: '' },
           ],
         };
         break;
@@ -419,6 +434,78 @@ export default function CreateTestPage() {
           return q;
         })
     );
+  };
+
+  const buildQuestionPayload = (q, orderIndex) => {
+    const type = q.type ? q.type.toString().trim().toUpperCase().replace(/-/g, '_') : '';
+    const baseQuestion = {
+      content: q.content || '',
+      points: q.points ? parseInt(q.points, 10) : 0,
+      orderIndex,
+      audioUrl: q.audioUrl || null,
+      imageUrl: q.imageUrl || null,
+      transcript: q.transcript || '',
+    };
+
+    switch (type) {
+      case 'MULTIPLE_CHOICE':
+        return {
+          ...baseQuestion,
+          type: 'MULTIPLE_CHOICE',
+          title: q.title || '',
+          numberQuestions: 0,
+          answers: (q.answers || []).map((a, aIdx) => ({
+            id: a.id || aIdx + 1,
+            label: a.label || String.fromCharCode(65 + aIdx),
+            content: a.content || '',
+            isCorrect: a.isCorrect || false,
+          })),
+        };
+      case 'AUDIO':
+        return { ...baseQuestion, type: 'AUDIO', title: '', numberQuestions: 0 };
+      case 'MATCHING':
+        return {
+          ...baseQuestion,
+          type: 'MATCHING',
+          title: '',
+          numberQuestions: 0,
+          matchingPairs: (q.matchingPairs || []).map((pair) => ({
+            left: pair.left || '',
+            right: pair.right || '',
+          })),
+        };
+      case 'FILL_IN_BLANK':
+        return {
+          ...baseQuestion,
+          type: 'FILL_IN_BLANK',
+          title: '',
+          numberQuestions: 0,
+          textWithBlanks: q.textWithBlanks || '',
+          blanks: q.blanks || [],
+        };
+      case 'ESSAY':
+        return {
+          ...baseQuestion,
+          type: 'ESSAY',
+          title: '',
+          numberQuestions: 0,
+          prompt: q.prompt || '',
+          maxLength: q.maxLength || 500,
+        };
+      default:
+        return {
+          ...baseQuestion,
+          type: 'MULTIPLE_CHOICE',
+          title: q.title || '',
+          numberQuestions: 0,
+          answers: (q.answers || []).map((a, aIdx) => ({
+            id: a.id || aIdx + 1,
+            label: a.label || String.fromCharCode(65 + aIdx),
+            content: a.content || '',
+            isCorrect: a.isCorrect || false,
+          })),
+        };
+    }
   };
 
   const handleAudioQuestionUpdate = (questionId, field, value) => {
@@ -553,6 +640,46 @@ export default function CreateTestPage() {
     }
   };
 
+  const isRemoteAudioUrl = (audioUrl) => {
+    return typeof audioUrl === 'string' && /^(https?:)?\/\//.test(audioUrl);
+  };
+
+  const autoUploadRecordedAudios = async () => {
+    const { user } = useAuthStore.getState();
+    const updatedQuestions = [...questions];
+    let uploadedCount = 0;
+
+    for (const [questionId, audioBlob] of Object.entries(recordingBlobs)) {
+      if (!audioBlob) continue;
+      const questionIdx = updatedQuestions.findIndex((q) => q.id === parseInt(questionId, 10));
+      if (questionIdx === -1) continue;
+      const question = updatedQuestions[questionIdx];
+      if (question.audioUrl && isRemoteAudioUrl(question.audioUrl)) continue; // already uploaded remote audio
+
+      try {
+        const uploadResponse = await resourceService.uploadAudio(
+          audioBlob,
+          `auto-upload-${Date.now()}.wav`,
+          testInfo.subject,
+          user?.id,
+          user?.fullName || user?.name || user?.username || 'Unknown'
+        );
+        const uploadedUrl = uploadResponse?.audioUrl || uploadResponse?.audio_url || uploadResponse?.data?.audioUrl || uploadResponse?.data?.audio_url;
+        if (uploadedUrl) {
+          updatedQuestions[questionIdx] = { ...question, audioUrl: uploadedUrl };
+          uploadedCount++;
+        }
+      } catch (error) {
+        console.warn(`Failed to auto-upload audio for question ${questionId}:`, error);
+      }
+    }
+
+    if (uploadedCount > 0) {
+      setQuestions(updatedQuestions);
+    }
+    return updatedQuestions;
+  };
+
   const handleSaveTest = async (status = saveStatus) => {
     setShowSaveModal(false);
     if (!testInfo.name || !testInfo.subject || !testInfo.duration) {
@@ -561,7 +688,16 @@ export default function CreateTestPage() {
     if (questions.length === 0) { alert('Vui lòng thêm ít nhất 1 câu hỏi'); return; }
 
     try {
+      const invalidMatching = questions.some((q) => q.type === 'matching' && (q.matchingPairs || []).some((pair) => !pair.left?.trim() || !pair.right?.trim()));
+      if (invalidMatching) {
+        alert('Vui lòng điền đầy đủ các cặp nối từ hoặc xóa các cặp trống trước khi lưu.');
+        return;
+      }
       setLoading(true);
+      
+      // Auto-upload any recorded audio that hasn't been uploaded yet
+      const finalQuestions = await autoUploadRecordedAudios();
+      
       const { user } = useAuthStore.getState();
       const testData = {
         name: testInfo.name,
@@ -573,31 +709,21 @@ export default function CreateTestPage() {
         status,
         userId: user?.id,
         userName: user?.fullName || user?.name || user?.username || 'Unknown',
-        questions: questions.map((q, index) => {
-          const baseQuestion = {
-            content: q.content || '',
-            points: q.points ? parseInt(q.points, 10) : 0,
-            orderIndex: index,
-            audioUrl: q.audioUrl || null,
-            imageUrl: q.imageUrl || null,
-            transcript: q.transcript || '',
-          };
-          switch (q.type) {
-            case 'multiple-choice':
-              return { ...baseQuestion, type: 'MULTIPLE_CHOICE', title: q.title || '', numberQuestions: 0, answers: (q.answers || []).map((a, aIdx) => ({ id: a.id || aIdx + 1, label: a.label || String.fromCharCode(65 + aIdx), content: a.content || '', isCorrect: a.isCorrect || false })) };
-            case 'audio':
-              return { ...baseQuestion, type: 'AUDIO', title: '', numberQuestions: 0 };
-            case 'matching':
-              return { ...baseQuestion, type: 'MATCHING', title: '', numberQuestions: 0, matchingPairs: q.matchingPairs || [] };
-            case 'fill-in-blank':
-              return { ...baseQuestion, type: 'FILL_IN_BLANK', title: '', numberQuestions: 0, textWithBlanks: q.textWithBlanks || '', blanks: q.blanks || [] };
-            case 'essay':
-              return { ...baseQuestion, type: 'ESSAY', title: '', numberQuestions: 0, prompt: q.prompt || '', maxLength: q.maxLength || 500 };
-            default:
-              return { ...baseQuestion, type: 'MULTIPLE_CHOICE', title: q.title || '', numberQuestions: 0, answers: (q.answers || []).map((a, aIdx) => ({ id: a.id || aIdx + 1, label: a.label || String.fromCharCode(65 + aIdx), content: a.content || '', isCorrect: a.isCorrect || false })) };
-          }
-        }),
+        questions: finalQuestions.map((q, index) => buildQuestionPayload(q, index)),
       };
+
+      console.log('Saving test payload', {
+        ...testData,
+        questions: testData.questions.map((q) => ({
+          ...q,
+          matchingPairs: q.matchingPairs?.length ? q.matchingPairs : undefined,
+        })),
+      });
+      testData.questions.forEach((q, idx) => {
+        if (q.type === 'MATCHING') {
+          console.log(`Saving matching question #${idx}`, q.matchingPairs);
+        }
+      });
 
       if (isEditing && id) {
         await testApi.updateTest(id, testData);
@@ -629,30 +755,7 @@ export default function CreateTestPage() {
         duration: parseInt(testInfo.duration, 10),
         testType: testInfo.testType,
         includeAnswers,
-        questions: questions.map((q, index) => {
-          const baseQuestion = {
-            content: q.content || '',
-            points: q.points ? parseInt(q.points, 10) : 0,
-            orderIndex: index,
-            audioUrl: q.audioUrl || null,
-            imageUrl: q.imageUrl || null,
-            transcript: q.transcript || '',
-          };
-          switch (q.type) {
-            case 'multiple-choice':
-              return { ...baseQuestion, type: 'MULTIPLE_CHOICE', title: q.title || '', numberQuestions: 0, answers: (q.answers || []).map((a, aIdx) => ({ id: a.id || aIdx + 1, label: a.label || String.fromCharCode(65 + aIdx), content: a.content || '', isCorrect: a.isCorrect || false })) };
-            case 'audio':
-              return { ...baseQuestion, type: 'AUDIO', title: '', numberQuestions: 0 };
-            case 'matching':
-              return { ...baseQuestion, type: 'MATCHING', title: '', numberQuestions: 0, matchingPairs: q.matchingPairs || [] };
-            case 'fill-in-blank':
-              return { ...baseQuestion, type: 'FILL_IN_BLANK', title: '', numberQuestions: 0, textWithBlanks: q.textWithBlanks || '', blanks: q.blanks || [] };
-            case 'essay':
-              return { ...baseQuestion, type: 'ESSAY', title: '', numberQuestions: 0, prompt: q.prompt || '', maxLength: q.maxLength || 500 };
-            default:
-              return { ...baseQuestion, type: 'MULTIPLE_CHOICE', title: q.title || '', numberQuestions: 0, answers: (q.answers || []).map((a, aIdx) => ({ id: a.id || aIdx + 1, label: a.label || String.fromCharCode(65 + aIdx), content: a.content || '', isCorrect: a.isCorrect || false })) };
-          }
-        }),
+        questions: questions.map((q, index) => buildQuestionPayload(q, index)),
       };
       await testApi.downloadTestAsDocx(testData);
     } catch (error) {
@@ -1033,18 +1136,20 @@ export default function CreateTestPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Môn học</label>
-                      <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300">
+                      <select value={filterSubject} onChange={(e) => { setFilterSubject(e.target.value); setFilterLessonContent(''); }} className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300">
                         <option value="">Tất cả môn</option>
-                        <option value="Toán">Toán</option>
-                        <option value="Tiếng Việt">Tiếng Việt</option>
-                        <option value="Tiếng Anh">Tiếng Anh</option>
+                        {availableSubjects.map((subject) => (
+                          <option key={subject} value={subject}>{subject}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Bài học</label>
                       <select value={filterLessonContent} onChange={(e) => setFilterLessonContent(e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300">
                         <option value="">Tất cả bài học</option>
-                        {contentOptions.map((content) => <option key={`${content.subject}-${content.grade}-${content.name}`} value={content.name}>{content.name}</option>)}
+                        {availableLessonContents.map((lessonName) => (
+                          <option key={lessonName} value={lessonName}>{lessonName}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1065,21 +1170,31 @@ export default function CreateTestPage() {
                       <div className="text-center py-8"><p className="text-gray-600">Không tìm thấy câu hỏi nào.</p></div>
                   ) : (
                       <div className="space-y-3">
-                        {existingQuestions.map((question) => (
+                        {existingQuestions.map((question) => {
+                          const authorLabel = question.createdBy === currentUserId ? 'Của bạn' : (question.createdByName || 'Không rõ');
+                          const questionTypeLabel = question.type === 'MULTIPLE_CHOICE' ? 'Trắc nghiệm'
+                            : question.type === 'AUDIO' ? 'Âm thanh'
+                            : question.type === 'MATCHING' ? 'Nối từ'
+                            : question.type === 'FILL_IN_BLANK' ? 'Điền khuyết'
+                            : question.type === 'ESSAY' ? 'Tự luận'
+                            : 'Không xác định';
+                          return (
                             <div key={question.id} className="border border-gray-200 rounded-lg p-4 hover:border-orange-300 hover:bg-orange-50 transition-all">
-                              <div className="flex items-start justify-between">
+                              <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className="text-xs font-semibold bg-orange-100 text-orange-700 px-2 py-1 rounded">
-                              {question.type === 'MULTIPLE_CHOICE' ? 'Trắc nghiệm' : question.type === 'AUDIO' ? 'Âm thanh' : question.type === 'MATCHING' ? 'Nối từ' : question.type === 'FILL_IN_BLANK' ? 'Điền khuyết' : question.type === 'ESSAY' ? 'Tự luận' : 'Không xác định'}
-                            </span>
-                                    <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{question.points} điểm</span>
+                                  <div className="flex flex-wrap gap-2 mb-3 items-center">
+                                    <span className="text-xs font-semibold bg-orange-100 text-orange-700 px-2 py-1 rounded">{questionTypeLabel}</span>
+                                    <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{question.points || 0} điểm</span>
                                     {question.subject && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">{question.subject}</span>}
                                     {question.lessonContentName && <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">{question.lessonContentName}</span>}
-                                    {question.testType && <span className="text-xs bg-violet-50 text-violet-700 px-2 py-1 rounded">{question.testType === 'EXAM' ? 'Bài kiểm tra' : 'Bài tập'}</span>}
                                   </div>
-                                  <div className="text-sm text-gray-900 font-medium mb-1 line-clamp-1">{question.content || question.title || 'Không có nội dung'}</div>
-                                  {question.createdByName && <div className="text-xs text-gray-600"><span className="font-medium">Tác giả:</span> {question.createdByName}</div>}
+                                  <div className="text-sm text-gray-900 font-semibold mb-1 line-clamp-2">{question.title || question.content || 'Không có nội dung'}</div>
+                                  {question.title && question.content && (
+                                    <div className="text-xs text-slate-600 line-clamp-2">{question.content}</div>
+                                  )}
+                                  <div className="mt-3 text-xs text-gray-600">
+                                    <span className="font-medium">Người tạo:</span> {authorLabel}
+                                  </div>
                                 </div>
                                 <div className="ml-3 flex gap-2 flex-shrink-0">
                                   <button onClick={() => { setSelectedQuestionDetail(question); setShowQuestionDetailModal(true); }} className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors">Xem</button>
@@ -1087,7 +1202,8 @@ export default function CreateTestPage() {
                                 </div>
                               </div>
                             </div>
-                        ))}
+                          );
+                        })}
                       </div>
                   )}
                 </div>
@@ -1126,7 +1242,7 @@ export default function CreateTestPage() {
                     </div>
                     <div className="col-span-2">
                       <p className="text-xs font-medium text-gray-600 mb-1">Tác giả</p>
-                      <p className="text-sm font-semibold text-gray-900">{selectedQuestionDetail.createdByName || 'N/A'}</p>
+                      <p className="text-sm font-semibold text-gray-900">{selectedQuestionDetail.createdBy === currentUserId ? 'Của bạn' : (selectedQuestionDetail.createdByName || 'N/A')}</p>
                     </div>
                   </div>
                   <div className="border-t pt-4">

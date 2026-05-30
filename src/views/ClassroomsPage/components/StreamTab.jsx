@@ -11,6 +11,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import TakeTestModal from '../../../views/TestsPage/components/TakeTestModal';
 import TestTakingInterface from '../../../views/TestsPage/components/TestTakingInterface';
 import testApi from '../../../services/testApi';
+import resourceService from '../../../services/resourceService';
 
 const GOOGLE_PICKER_CONFIG = {
   apiKey: import.meta.env.VITE_GOOGLE_PICKER_API_KEY,
@@ -52,6 +53,26 @@ function stripHtml(html) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
   return (doc.body.textContent || '').trim();
+}
+
+function getAudioSource(audio) {
+  if (!audio) return null;
+  if (typeof audio === 'string') {
+    try {
+      const parsed = JSON.parse(audio);
+      if (parsed && typeof parsed !== 'string') {
+        return getAudioSource(parsed);
+      }
+    } catch {
+    }
+    return audio;
+  }
+  if (audio instanceof Blob) return URL.createObjectURL(audio);
+  if (audio?.audioUrl) return getAudioSource(audio.audioUrl);
+  if (audio?.secure_url) return getAudioSource(audio.secure_url);
+  if (audio?.url) return getAudioSource(audio.url);
+  if (audio?.src) return getAudioSource(audio.src);
+  return null;
 }
 
 function canDeletePost({ post, isTeacher, teacherName }) {
@@ -450,10 +471,16 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
 
     if (type === 'MATCHING') {
       const mappings = answer?.mappings || [];
+      const totalPairs = question.matchingPairs?.length || 0;
+      const correctPairs = question.matchingPairs?.filter((pair, index) => mappings[index] === pair.right).length || 0;
+      const scorePerPair = question.points ? question.points / totalPairs : 0;
       return (
         <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-semibold text-slate-700">Nối đúng</p>
-          <div className="space-y-3 mt-3">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-slate-700">Nối đúng</p>
+            <p className="text-xs text-slate-500">{correctPairs}/{totalPairs} cặp • {Math.round(correctPairs * scorePerPair * 10) / 10} điểm</p>
+          </div>
+          <div className="space-y-3">
             {question.matchingPairs?.map((pair, idx) => {
               const selected = mappings[idx];
               const correct = selected === pair.right;
@@ -490,13 +517,22 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
     }
 
     if (type === 'AUDIO') {
+      const questionAudioSrc = getAudioSource(question.audioUrl);
+      const answerAudioSrc = getAudioSource(answer?.audio);
       return (
-        <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-slate-900">
-          <p className="text-sm font-semibold">Phát âm</p>
-          {answer?.audio ? (
-            <p className="mt-2 text-sm">Đã ghi âm</p>
+        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-700 mb-3">Nghe và trả lời</p>
+          {questionAudioSrc && (
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-slate-700 mb-2">Câu hỏi</p>
+              <audio controls src={questionAudioSrc} className="w-full rounded" preload="metadata" />
+            </div>
+          )}
+          <p className="text-sm font-semibold text-slate-700 mb-2">Câu trả lời của bạn</p>
+          {answerAudioSrc ? (
+            <audio controls src={answerAudioSrc} className="w-full rounded" preload="metadata" />
           ) : (
-            <p className="mt-2 text-sm">Chưa trả lời</p>
+            <p className="text-sm text-slate-600">Chưa ghi âm</p>
           )}
         </div>
       );
@@ -556,8 +592,11 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
                               }
                               if (normalizedType === 'MATCHING') {
                                 const mappings = ans?.mappings || [];
-                                const correct = question.matchingPairs?.every((pair, index) => mappings[index] === pair.right);
-                                return correct ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700';
+                                const totalPairs = question.matchingPairs?.length || 0;
+                                const correctPairs = question.matchingPairs?.filter((pair, index) => mappings[index] === pair.right).length || 0;
+                                const isCorrect = correctPairs === totalPairs;
+                                const isPartial = correctPairs > 0 && correctPairs < totalPairs;
+                                return isCorrect ? 'bg-emerald-100 text-emerald-700' : isPartial ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700';
                               }
                               if (normalizedType === 'ESSAY' || normalizedType === 'AUDIO') {
                                 return ans?.text || ans?.audio ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700';
@@ -568,6 +607,16 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
                               return 'bg-slate-100 text-slate-700';
                             })()}`}>{(() => {
                               const normalizedType = question.type ? question.type.toString().toUpperCase().replace(/-/g, '_') : 'MULTIPLE_CHOICE';
+                              const ans = submittedAnswers[question.id];
+                              if (normalizedType === 'MATCHING' && ans) {
+                                const mappings = ans?.mappings || [];
+                                const totalPairs = question.matchingPairs?.length || 0;
+                                const correctPairs = question.matchingPairs?.filter((pair, index) => mappings[index] === pair.right).length || 0;
+                                const isPartial = correctPairs > 0 && correctPairs < totalPairs;
+                                if (isPartial) return '⚠ Một phần';
+                                if (correctPairs === totalPairs) return '✓ Đúng';
+                                return '✗ Sai';
+                              }
                               return normalizedType === 'MULTIPLE_CHOICE' ? 'Trắc nghiệm' : normalizedType === 'MATCHING' ? 'Nối từ' : normalizedType === 'FILL_IN_BLANK' ? 'Điền khuyết' : normalizedType === 'ESSAY' ? 'Tự luận' : normalizedType === 'AUDIO' ? 'Phát âm' : 'Khác';
                             })()}</span>
                           </div>
@@ -713,6 +762,38 @@ export default function StreamTab({
     }
   };
 
+  const uploadAudioAnswer = async (questionId, answer) => {
+    if (!answer?.audio) return answer;
+    if (typeof answer.audio === 'string' && !answer.audio.startsWith('blob:')) return answer;
+
+    let audioBlob = null;
+    if (answer.audio instanceof Blob) {
+      audioBlob = answer.audio;
+    } else if (typeof answer.audio === 'string' && answer.audio.startsWith('blob:')) {
+      const response = await fetch(answer.audio);
+      audioBlob = await response.blob();
+    }
+
+    if (!audioBlob || audioBlob.size === 0) return answer;
+
+    const audioName = `${selectedTest?.name || 'Test'} - Câu ${questionId}`;
+    const subject = selectedTest?.subject || '';
+    const userState = useAuthStore.getState();
+    const userId = userState?.user?.id || 0;
+    const userName = userState?.user?.fullName || userState?.user?.name || userState?.user?.username || 'Unknown';
+
+    const uploadResponse = await resourceService.uploadAudio(audioBlob, audioName, subject, userId, userName);
+    const uploadedUrl = uploadResponse?.audioUrl || uploadResponse?.audio_url || uploadResponse?.data?.audioUrl || uploadResponse?.data?.audio_url || uploadResponse?.url || uploadResponse?.data?.url;
+    if (!uploadedUrl) {
+      throw new Error('Không lấy được đường dẫn audio sau khi tải lên');
+    }
+
+    return {
+      ...answer,
+      audio: uploadedUrl,
+    };
+  };
+
   const handleSubmitTest = async (payloadOrAnswers) => {
     if (isTeacher) {
       console.log('✓ Teacher viewing test - not saving to history');
@@ -723,11 +804,21 @@ export default function StreamTab({
 
     setSubmittingTest(true);
     try {
-      const answers = payloadOrAnswers?.answers ?? payloadOrAnswers;
+      const rawAnswers = payloadOrAnswers?.answers ?? payloadOrAnswers;
       const startedAt = payloadOrAnswers?.startedAt ?? attemptMeta?.startedAt;
+      const preparedAnswers = { ...rawAnswers };
+
+      for (const [questionId, answer] of Object.entries(rawAnswers || {})) {
+        if (answer?.audio && typeof answer.audio !== 'string') {
+          preparedAnswers[questionId] = await uploadAudioAnswer(questionId, answer);
+        } else if (typeof answer?.audio === 'string' && answer.audio.startsWith('blob:')) {
+          preparedAnswers[questionId] = await uploadAudioAnswer(questionId, answer);
+        }
+      }
+
       const payload = {
         testId: selectedTest?.id,
-        answers,
+        answers: preparedAnswers,
         submittedAt: new Date().toISOString(),
         classroomPostId: selectedPost?.id,
         startedAt,
@@ -736,7 +827,7 @@ export default function StreamTab({
       const response = await testApi.submitTestAnswers(payload);
       const result = response?.data ?? response;
       setResultData(result || { score: 0, maxScore: selectedTest?.totalPoints ?? 0, status: 'Đã nộp' });
-      setSubmittedAnswers(answers);
+      setSubmittedAnswers(preparedAnswers);
       setIsTakingTest(false);
       setSelectedPost(null);
     } catch (err) {
