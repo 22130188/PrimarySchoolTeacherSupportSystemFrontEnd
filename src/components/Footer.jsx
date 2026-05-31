@@ -1,4 +1,4 @@
-import { BookOpen, Mail, Phone, MapPin, Facebook, Youtube, Twitter } from 'lucide-react';
+import { BookOpen, Mail, Phone, MapPin, Globe, Play, Share } from 'lucide-react';
 import { FOOTER_LINKS } from '../data/homePageData';
 
 
@@ -34,9 +34,9 @@ export default function Footer() {
 
             <div className="flex gap-3 mt-6">
               {[
-                { icon: <Facebook className="w-4 h-4" />, label: 'Facebook' },
-                { icon: <Youtube className="w-4 h-4" />, label: 'YouTube' },
-                { icon: <Twitter className="w-4 h-4" />, label: 'Twitter' },
+                { icon: <Globe className="w-4 h-4" />, label: 'Facebook' },
+                { icon: <Play className="w-4 h-4" />, label: 'YouTube' },
+                { icon: <Share className="w-4 h-4" />, label: 'Twitter' },
               ].map((s) => (
                 <a
                   key={s.label}

@@ -40,6 +40,14 @@ function parseAttemptAnswers(rawAnswers) {
   return rawAnswers;
 }
 
+function getAudioSource(audio) {
+  if (!audio) return null;
+  if (typeof audio === 'string') return audio;
+  if (audio instanceof Blob) return URL.createObjectURL(audio);
+  if (audio?.audioUrl) return audio.audioUrl;
+  return null;
+}
+
 function renderAnswerReview(question, answer) {
   if (!question) return null;
   const type = question.type ? question.type.toString().toUpperCase().replace(/-/g, '_') : 'MULTIPLE_CHOICE';
@@ -106,12 +114,19 @@ function renderAnswerReview(question, answer) {
 
   if (type === 'AUDIO') {
     return (
-      <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-slate-900">
-        <p className="text-sm font-semibold">Phát âm</p>
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-semibold text-slate-700 mb-3">Nghe và trả lời</p>
+        {question.audioUrl && (
+          <div className="mb-4">
+            <p className="text-sm font-semibold text-slate-700 mb-2">Câu hỏi</p>
+            <audio controls src={question.audioUrl} className="w-full rounded" />
+          </div>
+        )}
+        <p className="text-sm font-semibold text-slate-700 mb-2">Câu trả lời của bạn</p>
         {answer?.audio ? (
-          <p className="mt-2 text-sm">Đã ghi âm</p>
+          <audio controls src={getAudioSource(answer.audio)} className="w-full rounded" />
         ) : (
-          <p className="mt-2 text-sm">Chưa trả lời</p>
+          <p className="text-sm text-slate-600">Chưa ghi âm</p>
         )}
       </div>
     );
@@ -133,11 +148,21 @@ export default function TakeTestModal({
   attemptHistory = [],
   isTeacher = false,
 }) {
+  let attempts = attemptHistory;
+  let statistics = null;
+  
+  if (attemptHistory && typeof attemptHistory === 'object' && !Array.isArray(attemptHistory)) {
+    statistics = attemptHistory.statistics;
+    attempts = attemptHistory.attempts || [];
+  } else if (Array.isArray(attemptHistory)) {
+    attempts = attemptHistory;
+  }
+
   const attemptLimit = test?.attemptLimit ?? 1;
-  const canRetake = isTeacher || attemptLimit > attemptHistory.length;
-  const hasAttemptedBefore = attemptHistory.length > 0;
-  const bestScore = attemptHistory.length > 0
-    ? Math.max(...attemptHistory.map((a) => a.score || 0))
+  const canRetake = isTeacher || attemptLimit > attempts.length;
+  const hasAttemptedBefore = attempts.length > 0;
+  const bestScore = attempts.length > 0
+    ? Math.max(...attempts.map((a) => a.score || 0))
     : 0;
   const [selectedAttempt, setSelectedAttempt] = useState(null);
   const [historyResultOpen, setHistoryResultOpen] = useState(false);
@@ -196,12 +221,37 @@ export default function TakeTestModal({
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          {/* Lịch sử làm bài */}
           <div className="px-8 py-6">
             <h3 className="text-lg font-bold text-slate-800 mb-4">Lịch sử làm bài</h3>
-            {attemptHistory.length === 0 ? (
+            
+            {isTeacher && statistics && (
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-3xl border border-slate-200 p-5 bg-gradient-to-br from-blue-50 to-cyan-50">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-600 font-semibold">Số bài đã làm</p>
+                  <p className="text-3xl font-bold text-blue-700 mt-2">{statistics.totalAttempts || 0}</p>
+                  <p className="text-xs text-slate-600 mt-1">{statistics.completedAttempts || 0} bài hoàn thành</p>
+                </div>
+                
+                <div className="rounded-3xl border border-slate-200 p-5 bg-gradient-to-br from-emerald-50 to-teal-50">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-600 font-semibold">Điểm trung bình</p>
+                  <p className="text-3xl font-bold text-emerald-700 mt-2">{(statistics.averageScore || 0).toFixed(1)}</p>
+                  <p className="text-xs text-slate-600 mt-1">{(statistics.averageScorePercentage || 0).toFixed(1)}% tổng điểm</p>
+                </div>
+                
+                <div className="rounded-3xl border border-slate-200 p-5 bg-gradient-to-br from-orange-50 to-amber-50">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-600 font-semibold">Điểm cao nhất / Thấp nhất</p>
+                  <div className="mt-2">
+                    <p className="text-xl font-bold text-orange-700">
+                      {statistics.maxScore || 0} <span className="text-sm font-normal text-slate-600">/ {statistics.minScore || 0}</span>
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">Tỷ lệ hoàn thành: {(statistics.completionRate || 0).toFixed(1)}%</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {attempts.length === 0 ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
                   <AlertCircle className="w-8 h-8 text-slate-400" />
@@ -214,6 +264,7 @@ export default function TakeTestModal({
                   <thead>
                     <tr className="border-b border-slate-200">
                       <th className="px-3 py-3 text-left text-xs font-semibold text-slate-700">STT</th>
+                      {isTeacher && <th className="px-3 py-3 text-left text-xs font-semibold text-slate-700">Học sinh</th>}
                       <th className="px-3 py-3 text-left text-xs font-semibold text-slate-700">Bắt đầu làm</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-slate-700">Thời gian làm</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold text-slate-700">Kết quả</th>
@@ -221,7 +272,7 @@ export default function TakeTestModal({
                     </tr>
                   </thead>
                   <tbody>
-                    {attemptHistory.map((attempt, idx) => (
+                    {attempts.map((attempt, idx) => (
                       <tr
                         key={attempt.id || idx}
                         className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
@@ -231,6 +282,7 @@ export default function TakeTestModal({
                         }}
                       >
                         <td className="px-3 py-3 text-sm text-slate-700">{idx + 1}</td>
+                        {isTeacher && <td className="px-3 py-3 text-sm text-slate-700 font-medium">{attempt.userName || 'N/A'}</td>}
                         <td className="px-3 py-3 text-sm text-slate-700">
                           {formatDateTime(attempt.startedAt)}
                         </td>
@@ -258,8 +310,7 @@ export default function TakeTestModal({
               </div>
             )}
 
-            {/* Best score */}
-            {hasAttemptedBefore && (
+            {hasAttemptedBefore && !isTeacher && (
               <div className="mt-4 p-3 rounded-xl bg-blue-50 border border-blue-200">
                 <p className="text-sm text-blue-700">
                   <span className="font-semibold">Điểm cao nhất:</span> {bestScore}/{test?.totalPoints}
@@ -308,11 +359,15 @@ export default function TakeTestModal({
                             const ans = selectedAttemptAnswers[question.id];
                             const normalizedType = question.type ? question.type.toString().toUpperCase().replace(/-/g, '_') : 'MULTIPLE_CHOICE';
                             let isCorrect = false;
+                            let isPartial = false;
                             if (normalizedType === 'MULTIPLE_CHOICE') {
                               isCorrect = question.answers?.[ans?.selectedIndex]?.isCorrect;
                             } else if (normalizedType === 'MATCHING') {
                               const mappings = ans?.mappings || [];
-                              isCorrect = question.matchingPairs?.every((pair, index) => mappings[index] === pair.right);
+                              const totalPairs = question.matchingPairs?.length || 0;
+                              const correctPairs = question.matchingPairs?.filter((pair, index) => mappings[index] === pair.right).length || 0;
+                              isCorrect = correctPairs === totalPairs;
+                              isPartial = correctPairs > 0 && correctPairs < totalPairs;
                             } else if (normalizedType === 'FILL_IN_BLANK') {
                               if (question.blanks?.length && ans?.answers?.length) {
                                 isCorrect = question.blanks.every((blank, index) => {
@@ -330,8 +385,8 @@ export default function TakeTestModal({
                                     <p className="text-sm font-semibold text-slate-900">Câu {idx + 1}</p>
                                     <p className="text-sm text-slate-600 mt-1">{question.content || question.prompt || 'Nội dung câu hỏi'}</p>
                                   </div>
-                                  <span className={`rounded-full px-3 py-1 text-xs font-semibold shrink-0 ${isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                    {isCorrect ? '✓ Đúng' : '✗ Sai'}
+                                  <span className={`rounded-full px-3 py-1 text-xs font-semibold shrink-0 ${isCorrect ? 'bg-emerald-100 text-emerald-700' : isPartial ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {isCorrect ? '✓ Đúng' : isPartial ? '⚠ Một phần' : '✗ Sai'}
                                   </span>
                                 </div>
                                 {renderAnswerReview(question, ans)}
@@ -360,7 +415,15 @@ export default function TakeTestModal({
             )}
 
             {/* Attempt info */}
-            {test?.testType === 'EXAM' && hasAttemptedBefore && (
+            {isTeacher && (
+              <div className="mt-3 p-3 rounded-xl bg-blue-50 border border-blue-200">
+                <p className="text-sm text-blue-700">
+                  ℹ️ Giáo viên ở chế độ xem trước. Bạn có thể xem bài tập để kiểm tra nội dung trước khi gán cho học sinh.
+                </p>
+              </div>
+            )}
+
+            {test?.testType === 'EXAM' && hasAttemptedBefore && !isTeacher && (
               <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
                 <p className="text-sm text-amber-700">
                   💡 Bài kiểm tra chỉ cho phép làm 1 lần. Bạn không thể làm lại.
@@ -368,10 +431,10 @@ export default function TakeTestModal({
               </div>
             )}
 
-            {test?.testType === 'EXERCISE' && canRetake && (
+            {test?.testType === 'EXERCISE' && !isTeacher && canRetake && (
               <div className="mt-3 p-3 rounded-xl bg-blue-50 border border-blue-200">
                 <p className="text-sm text-blue-700">
-                  💡 Còn {test.attemptLimit - attemptHistory.length} lần làm bài nữa
+                  💡 Còn {test.attemptLimit - attempts.length} lần làm bài nữa
                 </p>
               </div>
             )}

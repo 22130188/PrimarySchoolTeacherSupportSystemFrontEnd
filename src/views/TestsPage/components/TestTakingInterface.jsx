@@ -8,8 +8,28 @@ import ConfirmModal from '../../../common/ConfirmModal';
 function AudioRecorder({ value, onChange }) {
   const mediaRef = useRef(null);
   const [recording, setRecording] = useState(false);
-  const [audioUrl, setAudioUrl] = useState(value ? URL.createObjectURL(value) : null);
-  const [recBlob, setRecBlob] = useState(value || null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [recBlob, setRecBlob] = useState(null);
+
+  useEffect(() => {
+    let objectUrl = null;
+    if (value instanceof Blob) {
+      objectUrl = URL.createObjectURL(value);
+      setAudioUrl(objectUrl);
+      setRecBlob(value);
+    } else if (typeof value === 'string') {
+      setAudioUrl(value);
+      setRecBlob(null);
+    } else {
+      setAudioUrl(null);
+      setRecBlob(null);
+    }
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [value]);
 
   const startRecording = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -417,24 +437,11 @@ function QuestionRenderer({ question, answer, onAnswerChange }) {
     return (
       <div className="space-y-4">
         <p className="font-semibold text-slate-900">{question.content}</p>
-        {question.audioUrl && (
-          <div className="flex items-center gap-3 p-4 bg-slate-100 rounded-xl">
-            <button
-              type="button"
-              className="w-12 h-12 rounded-full bg-cyan-500 text-white flex items-center justify-center hover:bg-cyan-600 transition-colors"
-              onClick={() => {
-                const audio = new Audio(question.audioUrl);
-                audio.play();
-              }}
-            >
-              <Volume2 className="w-6 h-6" />
-            </button>
-            <div>
-              <p className="text-sm font-semibold text-slate-700">Nghe và trả lời</p>
-              <p className="text-xs text-slate-500">Nhấn nút để nghe lại</p>
-            </div>
-          </div>
-        )}
+
+        {/*{question.audioUrl && (*/}
+        {/*  <audio controls src={question.audioUrl} className="w-full rounded" />*/}
+        {/*)}*/}
+        
         {question.transcript && (
           <details className="p-3 bg-slate-50 rounded-lg">
             <summary className="cursor-pointer text-sm font-semibold text-slate-700">
@@ -487,6 +494,7 @@ export default function TestTakingInterface({
     if (answer.text?.trim()) return true;
     if (answer.answers?.some((a) => a?.trim())) return true;
     if (answer.mappings?.some((m) => m?.trim())) return true;
+    if (answer.audio) return true;
     return false;
   }).length;
 
@@ -532,6 +540,7 @@ export default function TestTakingInterface({
 
   const calculateResult = (serverResult) => {
     const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+    const payload = serverResult?.data ?? serverResult;
     const correctCount = questions.reduce((acc, question) => {
       const answer = answers[question.id];
       if (!answer) return acc;
@@ -541,7 +550,10 @@ export default function TestTakingInterface({
       }
       if (qType === QUESTION_TYPES.MATCHING) {
         const mappings = answer?.mappings || [];
-        return acc + (question.matchingPairs?.every((pair, index) => mappings[index] === pair.right) ? 1 : 0);
+        const totalPairs = question.matchingPairs?.length || 0;
+        if (totalPairs === 0) return acc;
+        const correctPairs = question.matchingPairs.filter((pair, index) => mappings[index] === pair.right).length;
+        return acc + (correctPairs / totalPairs);
       }
       if (qType === QUESTION_TYPES.FILL_IN_BLANK) {
         if (question.blanks?.length) {
@@ -556,23 +568,32 @@ export default function TestTakingInterface({
     }, 0);
 
     const maxScore = test?.totalPoints ?? totalQuestions;
-    const score = serverResult?.score ?? Math.round((correctCount / totalQuestions) * maxScore);
-    const status = serverResult?.status || (score >= (maxScore * 0.5) ? 'Đạt' : 'Chưa đạt');
+    const score = payload?.score ?? Math.round((correctCount / totalQuestions) * maxScore);
+    const status = payload?.status || (score >= (maxScore * 0.5) ? 'Đạt' : 'Chưa đạt');
 
     return {
       correctCount,
       totalQuestions,
       score,
       maxScore,
-      durationSeconds: serverResult?.durationSeconds ?? elapsedSeconds,
+      durationSeconds: payload?.durationSeconds ?? elapsedSeconds,
       status,
       pendingReviewCount,
+      audioEvaluations: payload?.audioEvaluations || [],
     };
   };
 
   const getCorrectOption = (question) => {
     if (!question?.answers) return null;
     return question.answers.find((opt) => opt.isCorrect) || question.answers[0] || null;
+  };
+
+  const getAudioSource = (audio) => {
+    if (!audio) return null;
+    if (typeof audio === 'string') return audio;
+    if (audio instanceof Blob) return URL.createObjectURL(audio);
+    if (audio?.audioUrl) return audio.audioUrl;
+    return null;
   };
 
   const renderAnswerReview = (question) => {
@@ -646,11 +667,12 @@ export default function TestTakingInterface({
     }
 
     if (qType === QUESTION_TYPES.AUDIO) {
+      const evaluation = submissionResult?.audioEvaluations?.find((item) => item.questionId === question.id);
       return (
         <div className="space-y-3 text-sm text-slate-700">
           <p className="font-semibold">Trả lời của bạn:</p>
           {answer?.audio ? (
-            <audio controls src={URL.createObjectURL(answer.audio)} className="w-full" />
+            <audio controls src={getAudioSource(answer.audio)} className="w-full" />
           ) : (
             <p>Chưa trả lời</p>
           )}
@@ -659,6 +681,19 @@ export default function TestTakingInterface({
               <p className="font-semibold">Transcript / Gợi ý:</p>
               <p>{question.transcript}</p>
             </>
+          )}
+          {evaluation && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm font-semibold text-slate-700">Đánh giá phát âm</p>
+              <p className="mt-2 text-sm text-slate-900">
+                Độ chính xác: {evaluation.accuracyScore != null ? evaluation.accuracyScore : 'Chưa có'}
+              </p>
+              <p className={`mt-1 text-sm ${evaluation.passed === true ? 'text-emerald-700' : 'text-rose-700'}`}>
+                Kết quả: {evaluation.passed === true ? 'Đạt full điểm' : evaluation.passed === false ? 'Không cộng điểm' : 'Chưa rõ'}
+              </p>
+              {evaluation.message && <p className="mt-2 text-sm text-slate-600">Gợi ý: {evaluation.message}</p>}
+              {evaluation.feedback && <p className="mt-2 text-sm text-slate-600">Phân tích: {evaluation.feedback}</p>}
+            </div>
           )}
         </div>
       );
@@ -987,6 +1022,11 @@ export default function TestTakingInterface({
                   <p className="mt-3 text-sm text-slate-600">Trạng thái: <span className="font-semibold text-slate-900">{submissionResult.status}</span></p>
                   {submissionResult.pendingReviewCount > 0 && (
                     <p className="mt-3 text-sm text-orange-600">Có {submissionResult.pendingReviewCount} câu tự luận/phát âm chờ chấm sau.</p>
+                  )}
+                  {submissionResult.audioEvaluations?.length > 0 && (
+                    <p className="mt-3 text-sm text-slate-600">
+                      Đánh giá phát âm: {submissionResult.audioEvaluations.filter((item) => item.passed).length}/{submissionResult.audioEvaluations.length} câu đạt 80%.
+                    </p>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-4">

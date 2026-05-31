@@ -1,6 +1,16 @@
-import { 
+import {
   Home, BookOpen, ClipboardCheck, Sparkles, School,
-  Volume2, Globe, Mic, Wand2, FileAudio, Image
+  Volume2, Globe, Mic, Wand2, FileAudio, Image,
+  Apple, Cherry, Banana, Grape, Citrus, Carrot, Nut,
+  Dog, Cat, Fish, Bird, PawPrint, Bug, Rabbit, Snail, Turtle, Squirrel, Rat, Egg,
+  Leaf, Flower2, TreePine, TreeDeciduous, Sun, Moon, Cloud, CloudRain, CloudSnow,
+  Wind, Droplet, Waves, Flame, Snowflake,
+  Pencil, Ruler, Scissors, BookMarked, GraduationCap, Backpack, Calculator, Lightbulb,
+  Triangle, Square, Circle, Star, Heart, Diamond, Hexagon, Pentagon,
+  Bike, Car, Bus, Rocket, Plane, Ship, Train, Tent,
+  Soup, Coffee, Cake, Pizza, Sandwich, Cookie, IceCream, Candy,
+  Badge, Palette, Shield, Trophy, Gift, Bell, Smile, Zap,
+  Box, ShoppingBag, Archive,
 } from 'lucide-react';
 
 export const SIDEBAR_MENU = [
@@ -16,6 +26,14 @@ export const SEARCH_FILTERS = [
   { id: 'subject', label: 'Môn học' },
   { id: 'grade',   label: 'Lớp' },
   { id: 'date',    label: 'Ngày sửa đổi' },
+];
+
+export const AI_TOOL_CATEGORIES = [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'speech', label: 'Giọng nói' },
+  { id: 'translate', label: 'Dịch thuật' },
+  { id: 'image', label: 'Hình ảnh' },
+  { id: 'generative', label: 'AI Generative' },
 ];
 
 export const MOCK_LESSONS = [
@@ -69,6 +87,7 @@ export const AI_TOOLS = [
     tagColor: 'bg-violet-100 text-violet-700',
     gradient: 'from-violet-500 to-purple-600',
     stats: '2 ngôn ngữ · 8 giọng đọc',
+    category: 'speech',
   },
   {
     id: 'translate',
@@ -79,6 +98,7 @@ export const AI_TOOLS = [
     tagColor: 'bg-blue-100 text-blue-700',
     gradient: 'from-blue-500 to-cyan-600',
     stats: 'Độ chính xác 96%',
+    category: 'translate',
   },
   {
     id: 'pronunciation',
@@ -89,6 +109,7 @@ export const AI_TOOLS = [
     tagColor: 'bg-emerald-100 text-emerald-700',
     gradient: 'from-emerald-500 to-teal-600',
     stats: 'Độ chính xác 95%',
+    category: 'speech',
   },
   {
     id: 'audio-gen',
@@ -99,6 +120,7 @@ export const AI_TOOLS = [
     tagColor: 'bg-pink-100 text-pink-700',
     gradient: 'from-pink-500 to-rose-600',
     stats: 'Xuất file .png/.jpg',
+    category: 'image',
   },
   {
     id: 'ai-image',
@@ -109,6 +131,133 @@ export const AI_TOOLS = [
     tagColor: 'bg-violet-100 text-violet-700',
     gradient: 'from-violet-500 to-fuchsia-600',
     stats: '7 model AI · Đa phong cách',
+    category: 'generative',
+  },
+];
+
+export const AI_IMAGE_ICON_LIBRARY = [
+  {
+    category: 'fruit',
+    label: '🍎 Trái cây',
+    icons: [
+      { id: 'apple', label: 'Táo', icon: <Apple className="w-5 h-5" /> },
+      { id: 'cherry', label: 'Anh đào', icon: <Cherry className="w-5 h-5" /> },
+      { id: 'banana', label: 'Chuối', icon: <Banana className="w-5 h-5" /> },
+      { id: 'grape', label: 'Nho', icon: <Grape className="w-5 h-5" /> },
+      { id: 'citrus', label: 'Cam', icon: <Citrus className="w-5 h-5" /> },
+      { id: 'carrot', label: 'Cà rốt', icon: <Carrot className="w-5 h-5" /> },
+      { id: 'nut', label: 'Hạt', icon: <Nut className="w-5 h-5" /> },
+    ],
+  },
+  {
+    category: 'animal',
+    label: '🐶 Động vật',
+    icons: [
+      { id: 'dog', label: 'Chó', icon: <Dog className="w-5 h-5" /> },
+      { id: 'cat', label: 'Mèo', icon: <Cat className="w-5 h-5" /> },
+      { id: 'fish', label: 'Cá', icon: <Fish className="w-5 h-5" /> },
+      { id: 'bird', label: 'Chim', icon: <Bird className="w-5 h-5" /> },
+      { id: 'rabbit', label: 'Thỏ', icon: <Rabbit className="w-5 h-5" /> },
+      { id: 'bug', label: 'Côn trùng', icon: <Bug className="w-5 h-5" /> },
+      { id: 'snail', label: 'Ốc sên', icon: <Snail className="w-5 h-5" /> },
+      { id: 'turtle', label: 'Rùa', icon: <Turtle className="w-5 h-5" /> },
+      { id: 'squirrel', label: 'Sóc', icon: <Squirrel className="w-5 h-5" /> },
+      { id: 'rat', label: 'Chuột', icon: <Rat className="w-5 h-5" /> },
+      { id: 'egg', label: 'Trứng', icon: <Egg className="w-5 h-5" /> },
+      { id: 'pawprint', label: 'Vết chân', icon: <PawPrint className="w-5 h-5" /> },
+    ],
+  },
+  {
+    category: 'nature',
+    label: '🌿 Thiên nhiên',
+    icons: [
+      { id: 'leaf', label: 'Lá cây', icon: <Leaf className="w-5 h-5" /> },
+      { id: 'flower', label: 'Hoa', icon: <Flower2 className="w-5 h-5" /> },
+      { id: 'tree-pine', label: 'Thông', icon: <TreePine className="w-5 h-5" /> },
+      { id: 'tree', label: 'Cây', icon: <TreeDeciduous className="w-5 h-5" /> },
+      { id: 'sun', label: 'Mặt trời', icon: <Sun className="w-5 h-5" /> },
+      { id: 'moon', label: 'Mặt trăng', icon: <Moon className="w-5 h-5" /> },
+      { id: 'cloud', label: 'Mây', icon: <Cloud className="w-5 h-5" /> },
+      { id: 'cloud-rain', label: 'Mưa', icon: <CloudRain className="w-5 h-5" /> },
+      { id: 'cloud-snow', label: 'Tuyết', icon: <CloudSnow className="w-5 h-5" /> },
+      { id: 'wind', label: 'Gió', icon: <Wind className="w-5 h-5" /> },
+      { id: 'droplet', label: 'Nước', icon: <Droplet className="w-5 h-5" /> },
+      { id: 'waves', label: 'Sóng', icon: <Waves className="w-5 h-5" /> },
+      { id: 'flame', label: 'Lửa', icon: <Flame className="w-5 h-5" /> },
+      { id: 'snowflake', label: 'Bông tuyết', icon: <Snowflake className="w-5 h-5" /> },
+    ],
+  },
+  {
+    category: 'school',
+    label: '✏️ Học tập',
+    icons: [
+      { id: 'pencil', label: 'Bút chì', icon: <Pencil className="w-5 h-5" /> },
+      { id: 'ruler', label: 'Thước', icon: <Ruler className="w-5 h-5" /> },
+      { id: 'scissors', label: 'Kéo', icon: <Scissors className="w-5 h-5" /> },
+      { id: 'book', label: 'Sách', icon: <BookMarked className="w-5 h-5" /> },
+      { id: 'graduation', label: 'Tốt nghiệp', icon: <GraduationCap className="w-5 h-5" /> },
+      { id: 'backpack', label: 'Ba lô', icon: <Backpack className="w-5 h-5" /> },
+      { id: 'calculator', label: 'Máy tính', icon: <Calculator className="w-5 h-5" /> },
+      { id: 'lightbulb', label: 'Ý tưởng', icon: <Lightbulb className="w-5 h-5" /> },
+    ],
+  },
+  {
+    category: 'shape',
+    label: '🔷 Hình học',
+    icons: [
+      { id: 'triangle', label: 'Tam giác', icon: <Triangle className="w-5 h-5" /> },
+      { id: 'square', label: 'Vuông', icon: <Square className="w-5 h-5" /> },
+      { id: 'circle', label: 'Tròn', icon: <Circle className="w-5 h-5" /> },
+      { id: 'star', label: 'Ngôi sao', icon: <Star className="w-5 h-5" /> },
+      { id: 'heart', label: 'Tim', icon: <Heart className="w-5 h-5" /> },
+      { id: 'diamond', label: 'Kim cương', icon: <Diamond className="w-5 h-5" /> },
+      { id: 'hexagon', label: 'Lục giác', icon: <Hexagon className="w-5 h-5" /> },
+      { id: 'pentagon', label: 'Ngũ giác', icon: <Pentagon className="w-5 h-5" /> },
+    ],
+  },
+  {
+    category: 'transport',
+    label: '🚗 Phương tiện',
+    icons: [
+      { id: 'bike', label: 'Xe đạp', icon: <Bike className="w-5 h-5" /> },
+      { id: 'car', label: 'Ô tô', icon: <Car className="w-5 h-5" /> },
+      { id: 'bus', label: 'Xe buýt', icon: <Bus className="w-5 h-5" /> },
+      { id: 'rocket', label: 'Tên lửa', icon: <Rocket className="w-5 h-5" /> },
+      { id: 'plane', label: 'Máy bay', icon: <Plane className="w-5 h-5" /> },
+      { id: 'ship', label: 'Tàu thủy', icon: <Ship className="w-5 h-5" /> },
+      { id: 'train', label: 'Tàu hỏa', icon: <Train className="w-5 h-5" /> },
+      { id: 'tent', label: 'Lều', icon: <Tent className="w-5 h-5" /> },
+    ],
+  },
+  {
+    category: 'food',
+    label: '🍕 Thức ăn',
+    icons: [
+      { id: 'soup', label: 'Súp', icon: <Soup className="w-5 h-5" /> },
+      { id: 'coffee', label: 'Cà phê', icon: <Coffee className="w-5 h-5" /> },
+      { id: 'cake', label: 'Bánh', icon: <Cake className="w-5 h-5" /> },
+      { id: 'pizza', label: 'Pizza', icon: <Pizza className="w-5 h-5" /> },
+      { id: 'sandwich', label: 'Bánh mì', icon: <Sandwich className="w-5 h-5" /> },
+      { id: 'cookie', label: 'Cookie', icon: <Cookie className="w-5 h-5" /> },
+      { id: 'ice-cream', label: 'Kem', icon: <IceCream className="w-5 h-5" /> },
+      { id: 'candy', label: 'Kẹo', icon: <Candy className="w-5 h-5" /> },
+    ],
+  },
+  {
+    category: 'symbol',
+    label: '⭐ Biểu tượng',
+    icons: [
+      { id: 'sparkles', label: 'Lấp lánh', icon: <Sparkles className="w-5 h-5" /> },
+      { id: 'shield', label: 'Khiên', icon: <Shield className="w-5 h-5" /> },
+      { id: 'globe', label: 'Trái đất', icon: <Globe className="w-5 h-5" /> },
+      { id: 'badge', label: 'Huy hiệu', icon: <Badge className="w-5 h-5" /> },
+      { id: 'palette', label: 'Màu sắc', icon: <Palette className="w-5 h-5" /> },
+      { id: 'trophy', label: 'Cúp', icon: <Trophy className="w-5 h-5" /> },
+      { id: 'gift', label: 'Quà', icon: <Gift className="w-5 h-5" /> },
+      { id: 'bell', label: 'Chuông', icon: <Bell className="w-5 h-5" /> },
+      { id: 'smile', label: 'Mặt cười', icon: <Smile className="w-5 h-5" /> },
+      { id: 'zap', label: 'Tia chớp', icon: <Zap className="w-5 h-5" /> },
+    ],
   },
 ];
 
