@@ -9,6 +9,7 @@ import {
   TRANSLATION_INSTRUCTION,
   STATUS_COLORS,
 } from '../../data/aiImageConstants';
+import { AI_IMAGE_ICON_LIBRARY } from '../../data/mockDashboardData';
 import {
   normalizePrompt,
   imageToDataUrl,
@@ -34,6 +35,15 @@ export default function AIImagePage() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveForm, setSaveForm] = useState({ description: '', subject: '' });
   const [saving, setSaving] = useState(false);
+  const [activeIconCategory, setActiveIconCategory] = useState(AI_IMAGE_ICON_LIBRARY[0]?.category || 'fruit');
+
+  const activeIconGroup = AI_IMAGE_ICON_LIBRARY.find((group) => group.category === activeIconCategory) || AI_IMAGE_ICON_LIBRARY[0];
+
+  const handleInsertIconKeyword = (keyword) => {
+    if (!keyword) return;
+    const trimmedPrompt = prompt.trim();
+    setPrompt(trimmedPrompt ? `${trimmedPrompt} ${keyword}` : keyword);
+  };
 
   const pollRef = useRef(null);
 
@@ -184,6 +194,45 @@ export default function AIImagePage() {
                         🔤 {translatedPrompt}
                       </div>
                     )}
+
+                    <div className="mt-6 mb-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700">Thư viện ý tưởng (icon theo loại)</p>
+                          <p className="text-xs text-gray-500">Nhấn chọn để thêm keyword vào mô tả.</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {AI_IMAGE_ICON_LIBRARY.map((group) => (
+                          <button
+                            key={group.category}
+                            type="button"
+                            onClick={() => setActiveIconCategory(group.category)}
+                            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${activeIconCategory === group.category ? 'bg-violet-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-200 hover:bg-violet-50'}`}
+                          >
+                            {group.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {activeIconGroup.icons.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleInsertIconKeyword(item.keyword)}
+                            className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-700 hover:border-violet-300 hover:bg-violet-50 transition"
+                          >
+                            <div className="w-8 h-8 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center">
+                              {item.icon}
+                            </div>
+                            <div className="leading-tight">
+                              <p className="font-semibold text-xs text-gray-900">{item.label}</p>
+                              <p className="text-[11px] text-gray-500">{item.keyword}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mb-4">

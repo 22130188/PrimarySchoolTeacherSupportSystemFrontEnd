@@ -1,11 +1,16 @@
+import { useState } from 'react';
 import Navbar from '../../components/Navbar';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { Sparkles } from 'lucide-react';
-import { AI_TOOLS } from '../../data/mockDashboardData';
+import { AI_TOOLS, AI_TOOL_CATEGORIES } from '../../data/mockDashboardData';
 import { useNavigate } from 'react-router-dom';
 
 export default function AIToolsPage() {
   const navigate = useNavigate();
+  const [activeCategory, setActiveCategory] = useState('all');
+  const filteredTools = activeCategory === 'all'
+    ? AI_TOOLS
+    : AI_TOOLS.filter((tool) => tool.category === activeCategory);
 
   const handleToolClick = (toolId) => {
     switch (toolId) {
@@ -45,8 +50,21 @@ export default function AIToolsPage() {
                 </h1>
               </div>
 
+              <div className="mb-6 flex flex-wrap gap-2">
+                {AI_TOOL_CATEGORIES.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setActiveCategory(category.id)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeCategory === category.id ? 'bg-violet-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-200 hover:bg-violet-50'}`}
+                  >
+                    {category.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {AI_TOOLS.map((tool) => (
+                {filteredTools.map((tool) => (
                   <div
                     key={tool.id}
                     id={`ai-tool-${tool.id}`}

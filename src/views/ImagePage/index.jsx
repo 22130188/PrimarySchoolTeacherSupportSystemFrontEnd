@@ -1,12 +1,19 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createRoot } from 'react-dom/client';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { Image, Upload, Download, Trash2, Palette, X, Plus, ChevronDown } from 'lucide-react';
+import { Image, Upload, Download, Trash2, Palette, X, Plus, ChevronDown, Sun } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api.config.js';
 import { useAuthStore } from '../../stores/authStore';
 import { SUBJECT_OPTIONS } from '../../data/aiImageConstants';
+import { AI_IMAGE_ICON_LIBRARY } from '../../data/mockDashboardData.jsx';
+
+const COLOR_OPTIONS = [
+  '#2b5c8f', '#d9534f', '#4b8b3b', '#5b32a1', '#9b1c7a', '#f0ad4e', '#17a2b8', '#5bc0de',
+  '#1d3c61', '#962d2a', '#2c5424', '#3c216b', '#6b1354', '#b07a33', '#107180', '#8c8c8c'
+];
 
 export default function ImagePage() {
   const [icons, setIcons] = useState([]);
@@ -34,6 +41,102 @@ export default function ImagePage() {
     loadIcons();
     loadSavedImages();
   }, [user?.id]);
+
+  const [activeIconCategory, setActiveIconCategory] = useState(AI_IMAGE_ICON_LIBRARY?.[0]?.category || 'all');
+
+  const libraryIcons = (AI_IMAGE_ICON_LIBRARY || []).flatMap((group) =>
+    (group.icons || []).map((ic) => ({ id: `lib-${group.category}-${ic.id}`, name: ic.id, label: ic.label, jsx: ic.icon, category: group.category }))
+  );
+
+  const serverIcons = icons.map((i) => ({ id: i.id, name: i.name || i.id, url: i.url, label: i.id, category: 'server' }));
+
+  const displayIcons = [
+    ...libraryIcons.filter(li => activeIconCategory === 'all' || li.category === activeIconCategory),
+    ...serverIcons.filter(si => activeIconCategory === 'all' || activeIconCategory === 'server')
+  ];
+
+  const iconCategoryOptions = [
+    ...(AI_IMAGE_ICON_LIBRARY || []).map((group) => ({ id: group.category, label: group.label })),
+    { id: 'server', label: 'Server' },
+    { id: 'all', label: 'Tất cả' },
+  ];
+
+  const renderIconToDataUrl = async (iconElement, size = 200, color = '#7c3aed') => {
+    if (!iconElement || typeof document === 'undefined') return null;
+    return new Promise((resolve) => {
+      const container = document.createElement('div');
+      container.style.cssText = 'position:fixed;left:-9999px;top:-9999px;overflow:visible;';
+      document.body.appendChild(container);
+
+      const root = createRoot(container);
+      const coloredIcon = React.cloneElement(iconElement, {
+        color,
+        stroke: color,
+        style: { color },
+      });
+      root.render(coloredIcon);
+
+      setTimeout(() => {
+        try {
+          const svg = container.querySelector('svg');
+          if (!svg) {
+            root.unmount();
+            document.body.removeChild(container);
+            resolve(null);
+            return;
+          }
+
+          const clonedSvg = svg.cloneNode(true);
+          clonedSvg.setAttribute('width', String(size));
+          clonedSvg.setAttribute('height', String(size));
+          clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+          clonedSvg.querySelectorAll('*').forEach((el) => {
+            if (el.getAttribute('stroke') === 'currentColor') {
+              el.setAttribute('stroke', color);
+            }
+            if (el.getAttribute('fill') === 'currentColor') {
+              el.setAttribute('fill', color);
+            }
+          });
+
+          let svgStr = new XMLSerializer().serializeToString(clonedSvg);
+          svgStr = svgStr.replace(/currentColor/gi, color);
+
+          root.unmount();
+          document.body.removeChild(container);
+          resolve(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgStr)}`);
+        } catch (error) {
+          root.unmount();
+          if (document.body.contains(container)) document.body.removeChild(container);
+          resolve(null);
+        }
+      }, 30);
+    });
+  };
+
+  const getLibraryIconElement = (iconName) => {
+    return libraryIcons.find((lib) => lib.name === iconName)?.jsx || null;
+  };
+
+  const handleUpdateItemColor = async (itemId, color) => {
+    const item = placedItems.find((item) => item.id === itemId);
+    if (!item?.isLibraryImage) return;
+
+    setPlacedItems((prev) => prev.map((item) => item.id === itemId ? { ...item, color } : item));
+
+    const iconElement = getLibraryIconElement(item.icon_name);
+    if (!iconElement) return;
+
+    const dataUrl = await renderIconToDataUrl(React.cloneElement(iconElement, { className: 'w-12 h-12' }), 200, color);
+    if (!dataUrl) return;
+
+    setPlacedItems((prev) => prev.map((current) => current.id === itemId ? { ...current, color, imageUrl: dataUrl } : current));
+  };
+
+  const handleUpdateItemIntensity = (itemId, intensity) => {
+    setPlacedItems((prev) => prev.map((item) => item.id === itemId ? { ...item, intensity } : item));
+  };
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -154,7 +257,40 @@ export default function ImagePage() {
       ctx.fillStyle = '#f9f3f0';
       ctx.fillRect(x, y, item.width, item.height);
 
-      if (imageCache.current[imgUrl]) {
+      if (item.isLibraryImage && item.imageUrl) {
+        const imgUrl = item.imageUrl;
+        if (imageCache.current[imgUrl]) {
+          const img = imageCache.current[imgUrl];
+          if (item.intensity != null && item.intensity < 100) {
+            ctx.save();
+            ctx.globalAlpha = item.intensity / 100;
+            ctx.drawImage(img, x, y, item.width, item.height);
+            ctx.restore();
+          } else {
+            ctx.drawImage(img, x, y, item.width, item.height);
+          }
+        } else {
+          const img = new window.Image();
+          img.onload = () => {
+            imageCache.current[imgUrl] = img;
+            if (item.intensity != null && item.intensity < 100) {
+              ctx.save();
+              ctx.globalAlpha = item.intensity / 100;
+              ctx.drawImage(img, x, y, item.width, item.height);
+              ctx.restore();
+            } else {
+              ctx.drawImage(img, x, y, item.width, item.height);
+            }
+            if (selectedPlacedItemId === item.id) {
+              drawSelectionBorder(ctx, x, y, item.width, item.height);
+            }
+          };
+          img.onerror = (error) => {
+            console.warn('Icon image load failed:', imgUrl, error);
+          };
+          img.src = imgUrl;
+        }
+      } else if (imageCache.current[imgUrl]) {
         const img = imageCache.current[imgUrl];
         ctx.drawImage(img, x, y, item.width, item.height);
       } else {
@@ -200,12 +336,53 @@ export default function ImagePage() {
     return x >= right - handleSize && x <= right + handleSize && y >= bottom - handleSize && y <= bottom + handleSize;
   };
 
-  const handleCanvasMouseDown = (e) => {
+  const handleCanvasMouseDown = async (e) => {
     const { x, y } = getCanvasPosition(e);
 
     if (selectedIconId) {
-      const icon = icons.find(i => i.id === selectedIconId);
+      const icon = displayIcons.find(i => i.id === selectedIconId);
       if (!icon) return;
+
+      if (icon.jsx) {
+        const cloned = React.cloneElement(icon.jsx, { className: 'w-12 h-12' });
+        let dataUrl = await renderIconToDataUrl(cloned, 200, '#6b21a8');
+        if (dataUrl) {
+          const newItem = {
+            id: Date.now(),
+            icon_name: icon.name,
+            x: x,
+            y: y,
+            width: 60,
+            height: 60,
+            isLibraryImage: true,
+            color: '#7c3aed',
+            intensity: 100,
+            imageUrl: dataUrl
+          };
+          setPlacedItems(prev => [...prev, newItem]);
+          return;
+        }
+
+        const label = (icon.label || icon.name || 'icon');
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="100%" height="100%" fill="white"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="36" fill="#7c3aed">${label}</text></svg>`;
+        dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+
+        const newItem = {
+          id: Date.now(),
+          icon_name: icon.name,
+          x: x,
+          y: y,
+          width: 60,
+          height: 60,
+          isLibraryImage: true,
+          color: '#7c3aed',
+          intensity: 100,
+          imageUrl: dataUrl
+        };
+
+        setPlacedItems(prev => [...prev, newItem]);
+        return;
+      }
 
       const newItem = {
         id: Date.now(),
@@ -494,8 +671,21 @@ export default function ImagePage() {
                     <div className="space-y-4 overflow-y-auto">
                       <div>
                         <div className="text-sm font-medium text-gray-700 mb-3">Icon sẵn có</div>
+                        <div className="mb-4">
+                          <label className="block text-xs font-semibold text-slate-500 mb-2">Chọn nhóm icon</label>
+                          <select
+                            value={activeIconCategory}
+                            onChange={(e) => setActiveIconCategory(e.target.value)}
+                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition hover:border-pink-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                          >
+                            {iconCategoryOptions.map((option) => (
+                              <option key={option.id} value={option.id}>{option.label}</option>
+                            ))}
+                          </select>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-3 max-h-52 overflow-y-auto pr-1">
-                          {icons.map((icon) => (
+                          {displayIcons.map((icon) => (
                             <button
                               key={icon.id}
                               onClick={() => setSelectedIconId(prev => prev === icon.id ? null : icon.id)}
@@ -505,15 +695,21 @@ export default function ImagePage() {
                                   : 'border-gray-200 hover:border-pink-300'
                               }`}
                             >
-                              <img
-                                src={icon.url}
-                                alt={icon.id}
-                                className="w-12 h-12 object-contain"
-                                onError={(e) => {
-                                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"%3E%3Crect width="48" height="48" fill="%23f0f0f0"/%3E%3C/svg%3E';
-                                }}
-                              />
-                              <span className="text-xs text-gray-600 capitalize">{icon.id}</span>
+                              {icon.jsx ? (
+                                <div className="w-12 h-12 flex items-center justify-center text-gray-600">
+                                  {React.cloneElement(icon.jsx, { className: 'w-8 h-8' })}
+                                </div>
+                              ) : (
+                                <img
+                                  src={icon.url}
+                                  alt={icon.id}
+                                  className="w-12 h-12 object-contain"
+                                  onError={(e) => {
+                                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"%3E%3Crect width="48" height="48" fill="%23f0f0f0"/%3E%3C/svg%3E';
+                                  }}
+                                />
+                              )}
+                              <span className="text-xs text-gray-600 capitalize">{icon.label || icon.id}</span>
                             </button>
                           ))}
                         </div>
@@ -521,7 +717,6 @@ export default function ImagePage() {
                       <div>
                         <div className="text-sm font-medium text-gray-700 mb-3">Thư viện ảnh</div>
                         
-                        {/* Subject Filter Dropdown */}
                         <div className="mb-3">
                           <select
                             value={selectedSubject}
@@ -628,31 +823,81 @@ export default function ImagePage() {
                       {placedItems.length === 0 ? (
                         <div className="text-sm text-gray-500 text-center py-4">Chưa có thành phần nào</div>
                       ) : (
-                        placedItems.map((item, idx) => (
-                          <div
-                            key={item.id}
-                            onClick={() => handleSelectPlacedItem(item)}
-                            className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs cursor-pointer transition-colors ${
-                              selectedPlacedItemId === item.id 
-                                ? 'border-pink-500 bg-pink-50' 
-                                : 'border-gray-200 bg-white hover:bg-gray-50'
-                            }`}
-                          >
-                            <span className="text-left flex-1 text-gray-700 font-medium">
-                              {item.isLibraryImage ? '📷' : '🎨'} {item.isLibraryImage ? 'Ảnh' : 'Icon'} #{idx + 1}
-                            </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveItem(item.id);
-                              }}
-                              className="ml-2 text-red-500 hover:text-red-700 font-bold hover:bg-red-100 px-2 py-1 rounded"
-                              title="Xóa thành phần"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))
+                        placedItems.map((item, idx) => {
+                          const isSelected = selectedPlacedItemId === item.id;
+                          return (
+                            <div key={item.id} className="mb-3">
+                              <div
+                                onClick={() => handleSelectPlacedItem(item)}
+                                className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs cursor-pointer transition-colors ${
+                                  isSelected
+                                    ? 'border-pink-500 bg-pink-50'
+                                    : 'border-gray-200 bg-white hover:bg-gray-50'
+                                }`}
+                              >
+                                <span className="text-left flex-1 text-gray-700 font-medium flex items-center gap-2">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-sm">
+                                    {item.isLibraryImage ? '🎨' : '📷'}
+                                  </span>
+                                  <span>{item.isLibraryImage ? 'Icon' : 'Ảnh'} #{idx + 1}</span>
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveItem(item.id);
+                                  }}
+                                  className="ml-2 text-red-500 hover:text-red-700 font-bold hover:bg-red-100 px-2 py-1 rounded"
+                                  title="Xóa thành phần"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+
+                              {isSelected && item.isLibraryImage && (
+                                <div className="mt-2 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                                  <div className="flex items-center justify-between gap-2 mb-3 text-[11px] font-semibold text-gray-700">
+                                    <span>Bảng màu icon</span>
+                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">Thay màu</span>
+                                  </div>
+
+                                  <div className="grid grid-cols-8 gap-2 mb-3">
+                                    {COLOR_OPTIONS.map((color) => (
+                                      <button
+                                        key={color}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleUpdateItemColor(item.id, color);
+                                        }}
+                                        className={`w-6 h-6 rounded-full transition-transform ${
+                                          item.color === color ? 'ring-2 ring-pink-500 ring-offset-2 scale-110' : 'hover:scale-110'
+                                        }`}
+                                        style={{ backgroundColor: color }}
+                                      />
+                                    ))}
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                                    <Sun className="w-4 h-4 text-gray-400" />
+                                    <input
+                                      type="range"
+                                      min="10"
+                                      max="100"
+                                      value={item.intensity ?? 100}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        handleUpdateItemIntensity(item.id, Number(e.target.value));
+                                      }}
+                                      className="w-full h-1 rounded-lg accent-pink-500"
+                                    />
+                                    <span className="w-10 text-right text-[11px] text-slate-500">{item.intensity ?? 100}%</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>
