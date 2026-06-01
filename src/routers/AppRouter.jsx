@@ -12,6 +12,8 @@ import CreateTestPage     from '../views/TestsPage/CreateTestPage';
 import AIToolsPage        from '../views/AIToolsPage';
 import ClassroomsPage     from '../views/ClassroomsPage';
 import TTSPage            from '../views/TTSPage';
+import TextbooksPage      from '../views/TextbooksPage';
+import TextbookReaderPage from '../views/TextbooksPage/TextbookReaderPage';
 import ImagePage          from '../views/ImagePage';
 import AIImagePage        from '../views/AIImagePage';
 import DocxEditorPage     from '../views/DocxEditorPage';
@@ -70,6 +72,8 @@ export default function AppRouter() {
                 <Route path="/classrooms/:id"  element={renderPrivateRoute(<ClassroomDetail />, [1, 2])} />
                 <Route path="/join/link"        element={<JoinByLinkPage />} />
                 <Route path="/join/invitation"  element={<JoinByInvitationPage />} />
+                <Route path="/textbooks"        element={renderPrivateRoute(<TextbooksPage />, [1, 2])} />
+                <Route path="/textbooks/:slugId" element={renderPrivateRoute(<TextbookReaderPage />, [1, 2])} />
                 <Route path="*"                element={<Navigate to={token ? defaultAuthenticatedPath : '/'} replace />} />
             </Routes>
         </BrowserRouter>

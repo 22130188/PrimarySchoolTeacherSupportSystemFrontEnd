@@ -16,6 +16,7 @@ import {
 export const SIDEBAR_MENU = [
   { id: 'dashboard',  icon: Home,           label: 'Trang chủ',    path: '/dashboard' },
   { id: 'lessons',    icon: BookOpen,       label: 'Bài giảng',    path: '/lessons' },
+  { id: 'textbooks',  icon: BookMarked,     label: 'Sách',          path: '/textbooks' },
   { id: 'tests',      icon: ClipboardCheck, label: 'Kiểm tra',     path: '/tests' },
   { id: 'ai',         icon: Sparkles,       label: 'Công cụ AI',   path: '/ai-tools' },
   { id: 'classrooms', icon: School,         label: 'Lớp học',      path: '/classrooms' },
