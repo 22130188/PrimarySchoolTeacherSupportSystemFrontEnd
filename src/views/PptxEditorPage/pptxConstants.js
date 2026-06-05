@@ -1,9 +1,9 @@
-import { Type, ImagePlus, Table2, Shapes, Sparkles } from 'lucide-react';
+import { Type, ImagePlus, Table2, Shapes, Sparkles, Search } from 'lucide-react';
 
 export {
   CONTROL_STYLE, FONT_LIST, FONT_SIZES, COLOR_PRESETS, COLORS_SMALL,
   TEXT_PRESETS, CUSTOM_SERIALIZATION_PROPS, EDITOR_BTN, EDITOR_BTN_ACTIVE,
-  restoreTableGroups,
+  restoreTableGroups, registerFabricCustomProperties,
 } from '../../data/editorSharedConstants';
 
 export const SLIDE_WIDTH = 960;
@@ -14,6 +14,7 @@ export const SIDEBAR_TABS = [
   { id: 'table', icon: Table2, label: 'Bảng' },
   { id: 'shapes', icon: Shapes, label: 'Hình' },
   { id: 'images', icon: ImagePlus, label: 'Ảnh' },
+  { id: 'pexels', icon: Search, label: 'Pexels' },
   { id: 'ai', icon: Sparkles, label: 'AI' },
 ];
 
@@ -35,15 +36,6 @@ export const DEFAULT_TEXT_FORMAT = {
   color: '#000000',
   align: 'left',
 };
-
-export const SHAPE_PRESETS = [
-  { id: 'rect', label: 'Hình chữ nhật' },
-  { id: 'roundRect', label: 'Bo tròn' },
-  { id: 'circle', label: 'Hình tròn' },
-  { id: 'triangle', label: 'Tam giác' },
-  { id: 'line', label: 'Đường thẳng' },
-  { id: 'arrow', label: 'Mũi tên' },
-];
 
 export const SLIDE_THEME_COLORS = [
   '#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0',

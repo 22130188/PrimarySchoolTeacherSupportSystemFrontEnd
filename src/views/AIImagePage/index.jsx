@@ -18,6 +18,7 @@ import {
   saveImageToLibrary,
   extractErrorMessage,
 } from '../../helpers/aiImageHelpers';
+import { loadPuter } from '../../helpers/puterLoader';
 import SaveImageModal from '../../common/SaveImageModal';
 
 export default function AIImagePage() {
@@ -49,17 +50,28 @@ export default function AIImagePage() {
 
   useEffect(() => {
     if (puterReady) return;
-    let tries = 0;
+    let cancelled = false;
+    loadPuter()
+      .then(() => {
+        if (!cancelled) {
+          setPuterReady(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPuterReady(false);
+        }
+      });
     pollRef.current = setInterval(() => {
-      tries += 1;
       if (typeof window !== 'undefined' && window.puter) {
         setPuterReady(true);
         clearInterval(pollRef.current);
-      } else if (tries > 60) {
-        clearInterval(pollRef.current);
       }
     }, 300);
-    return () => pollRef.current && clearInterval(pollRef.current);
+    return () => {
+      cancelled = true;
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [puterReady]);
 
   const handleGenerate = async () => {

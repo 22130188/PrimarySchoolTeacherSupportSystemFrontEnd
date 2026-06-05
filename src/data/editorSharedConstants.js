@@ -13,6 +13,7 @@ export const FONT_LIST = [
   'Inter', 'Roboto', 'Open Sans', 'Montserrat', 'Nunito',
   'Lora', 'Playfair Display', 'Source Sans 3',
   'Arial', 'Georgia', 'Times New Roman', 'Courier New',
+  'Be Vietnam Pro', 'Lexend', 'Quicksand',
 ];
 
 export const FONT_SIZES = [
@@ -48,10 +49,32 @@ export const TEXT_PRESETS = [
 export const CUSTOM_SERIALIZATION_PROPS = [
   'isTable', 'tableRows', 'tableCols',
   'subTargetCheck', 'interactive',
+  'shapeType',
+  'isTableImage', 'tableData', '_tableData',
 ];
+
+/**
+ * Register custom properties on Fabric.js FabricObject so that
+ * loadFromJSON / fromObject properly restores them during deserialization.
+ * Must be called once before any canvas is created.
+ */
+export function registerFabricCustomProperties(fabricModule) {
+  if (!fabricModule?.FabricObject) return;
+  const existing = fabricModule.FabricObject.customProperties || [];
+  const needed = CUSTOM_SERIALIZATION_PROPS.filter(p => !existing.includes(p));
+  if (needed.length > 0) {
+    fabricModule.FabricObject.customProperties = [...existing, ...needed];
+  }
+}
 
 export function restoreTableGroups(canvas, fabricModule) {
   if (!canvas || !fabricModule) return;
+
+  canvas.getObjects().forEach((obj) => {
+    if (obj.isTableImage && obj._tableData) {
+      obj.isTable = true;
+    }
+  });
 
   const tables = canvas.getObjects().filter(
     (obj) => obj.type === 'group' && obj.isTable

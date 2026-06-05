@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   ArrowLeft, Undo2, Redo2, Download, Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  ZoomIn, ZoomOut, Maximize, Type, Trash2, Copy, Minus, Plus, ChevronDown, Presentation,
+  ZoomIn, ZoomOut, Maximize, Type, Trash2, Copy, Minus, Plus, ChevronDown, Presentation, Palette,
 } from 'lucide-react';
 import { FONT_LIST, FONT_SIZES, EDITOR_BTN, EDITOR_BTN_ACTIVE } from './pptxConstants';
 import { SUBJECTS, GRADES } from '../../data/editorSharedConstants';
@@ -11,12 +11,15 @@ import ColorPicker from '../../common/ColorPicker';
 
 export default function PptxToolbar({
   fileName, onFileNameChange, subject, onSubjectChange, grade, onGradeChange,
-  textFormat, onTextFormatChange,
+  textFormat, onTextFormatChange, shapeFormat, onShapeFormatChange,
   canUndo, canRedo, onUndo, onRedo, zoom, onZoomChange,
-  onExport, saveStatus, onBack, hasSelection, selectionType, onDeleteSelected, onDuplicateSelected,
+  onExport, onExportPdf, saveStatus, onBack, hasSelection, selectionType, onDeleteSelected, onDuplicateSelected,
 }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showFillPicker, setShowFillPicker] = useState(false);
+  const [showStrokePicker, setShowStrokePicker] = useState(false);
   const isTextSelected = hasSelection && (selectionType === 'i-text' || selectionType === 'textbox');
+  const isShapeSelected = hasSelection && shapeFormat?.isShape;
 
   const handleFontSizeInput = (e) => {
     const val = parseInt(e.target.value, 10);
@@ -28,6 +31,16 @@ export default function PptxToolbar({
     const idx = FONT_SIZES.findIndex(s => s >= cur);
     const newIdx = delta > 0 ? Math.min(idx + 1, FONT_SIZES.length - 1) : Math.max(idx - 1, 0);
     onTextFormatChange('fontSize', FONT_SIZES[newIdx]);
+  };
+
+  const handleStrokeWidthInput = (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (!isNaN(val) && val >= 0 && val <= 40) onShapeFormatChange('strokeWidth', val);
+  };
+
+  const adjustStrokeWidth = (delta) => {
+    const cur = shapeFormat?.strokeWidth ?? 2;
+    onShapeFormatChange('strokeWidth', Math.min(40, Math.max(0, cur + delta)));
   };
 
   return (
@@ -102,63 +115,112 @@ export default function PptxToolbar({
             </span>
           )}
           <button onClick={onExport} id="pptx-export-btn"
-            className="h-9 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white border-none rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 shadow-md shadow-orange-500/30 hover:shadow-lg hover:shadow-orange-500/40 hover:-translate-y-px active:translate-y-0 whitespace-nowrap">
+            className="h-9 px-4 bg-white text-black border border-black rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:-translate-y-px active:translate-y-0 whitespace-nowrap">
             <Download size={15} /> Xuất PPTX
           </button>
+          {onExportPdf && (
+            <button onClick={onExportPdf} id="pptx-export-pdf-btn"
+              className="h-9 px-4 bg-white text-black border border-black rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:-translate-y-px active:translate-y-0 whitespace-nowrap">
+              <Download size={15} /> Xuất PDF
+            </button>
+          )}
         </div>
       </div>
 
-      <div className={`h-11 min-h-[44px] bg-white border-b border-gray-200 flex items-center px-4 gap-0.5 z-[99] overflow-x-auto hide-scrollbar ${!isTextSelected ? 'opacity-45 pointer-events-none' : ''}`}>
-        <div className="relative shrink-0">
-          <select value={textFormat.fontFamily || 'Inter'} onChange={(e) => onTextFormatChange('fontFamily', e.target.value)}
-            id="pptx-font-family"
-            className="h-8 pl-2.5 pr-7 border border-transparent rounded-md text-[13px] text-gray-700 bg-transparent cursor-pointer outline-none transition-all hover:bg-gray-100 hover:border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 appearance-none min-w-[120px]"
-            style={{ fontFamily: textFormat.fontFamily }}>
-            {FONT_LIST.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
-          </select>
-          <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
+      <div className={`h-11 min-h-[44px] bg-white border-b border-gray-200 flex items-center px-4 gap-0.5 z-[99] overflow-x-auto hide-scrollbar ${!isTextSelected && !isShapeSelected ? 'opacity-45 pointer-events-none' : ''}`}>
+        {isShapeSelected ? (
+          <>
+            {shapeFormat.hasFill && (
+              <div className="relative shrink-0">
+                <button className={EDITOR_BTN} onClick={() => setShowFillPicker(!showFillPicker)} title="Màu nền hình" id="pptx-shape-fill-btn">
+                  <Palette size={15} />
+                  <span className="absolute bottom-[3px] left-1.5 right-1.5 h-[3px] rounded-full" style={{ backgroundColor: shapeFormat.fill || '#ffffff' }} />
+                </button>
+                {showFillPicker && (
+                  <ColorPicker color={shapeFormat.fill || '#ffffff'} onChange={(c) => onShapeFormatChange('fill', c)} onClose={() => setShowFillPicker(false)} />
+                )}
+              </div>
+            )}
 
-        <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
+            <div className="relative shrink-0">
+              <button className={EDITOR_BTN} onClick={() => setShowStrokePicker(!showStrokePicker)} title="Màu viền hình" id="pptx-shape-stroke-btn">
+                <Minus size={15} />
+                <span className="absolute bottom-[3px] left-1.5 right-1.5 h-[3px] rounded-full" style={{ backgroundColor: shapeFormat.stroke || '#000000' }} />
+              </button>
+              {showStrokePicker && (
+                <ColorPicker color={shapeFormat.stroke || '#000000'} onChange={(c) => onShapeFormatChange('stroke', c)} onClose={() => setShowStrokePicker(false)} />
+              )}
+            </div>
 
-        <div className="flex items-center border border-gray-200 rounded-md overflow-hidden h-8 shrink-0">
-          <button onClick={() => adjustFontSize(-1)} id="pptx-font-size-dec"
-            className="w-[26px] h-full border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center transition-all hover:bg-gray-100 hover:text-indigo-600">
-            <Minus size={12} />
-          </button>
-          <input type="text" value={textFormat.fontSize || 24} onChange={handleFontSizeInput} id="pptx-font-size"
-            className="w-9 h-full border-x border-gray-200 text-center text-[13px] font-medium text-gray-700 outline-none bg-transparent" />
-          <button onClick={() => adjustFontSize(1)} id="pptx-font-size-inc"
-            className="w-[26px] h-full border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center transition-all hover:bg-gray-100 hover:text-indigo-600">
-            <Plus size={12} />
-          </button>
-        </div>
+            <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
 
-        <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
+            <div className="flex items-center border border-gray-200 rounded-md overflow-hidden h-8 shrink-0">
+              <button onClick={() => adjustStrokeWidth(-1)} id="pptx-shape-stroke-dec"
+                className="w-[26px] h-full border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center transition-all hover:bg-gray-100 hover:text-orange-600">
+                <Minus size={12} />
+              </button>
+              <input type="text" value={shapeFormat.strokeWidth ?? 2} onChange={handleStrokeWidthInput} id="pptx-shape-stroke-width"
+                className="w-10 h-full border-x border-gray-200 text-center text-[13px] font-medium text-gray-700 outline-none bg-transparent" />
+              <button onClick={() => adjustStrokeWidth(1)} id="pptx-shape-stroke-inc"
+                className="w-[26px] h-full border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center transition-all hover:bg-gray-100 hover:text-orange-600">
+                <Plus size={12} />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="relative shrink-0">
+              <select value={textFormat.fontFamily || 'Inter'} onChange={(e) => onTextFormatChange('fontFamily', e.target.value)}
+                id="pptx-font-family"
+                className="h-8 pl-2.5 pr-7 border border-transparent rounded-md text-[13px] text-gray-700 bg-transparent cursor-pointer outline-none transition-all hover:bg-gray-100 hover:border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 appearance-none min-w-[120px]"
+                style={{ fontFamily: textFormat.fontFamily }}>
+                {FONT_LIST.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
+              </select>
+              <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
 
-        <button className={`${EDITOR_BTN} ${textFormat.bold ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('bold', !textFormat.bold)} title="Đậm" id="pptx-bold-btn"><Bold size={15} /></button>
-        <button className={`${EDITOR_BTN} ${textFormat.italic ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('italic', !textFormat.italic)} title="Nghiêng" id="pptx-italic-btn"><Italic size={15} /></button>
-        <button className={`${EDITOR_BTN} ${textFormat.underline ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('underline', !textFormat.underline)} title="Gạch chân" id="pptx-underline-btn"><Underline size={15} /></button>
-        <button className={`${EDITOR_BTN} ${textFormat.strikethrough ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('strikethrough', !textFormat.strikethrough)} title="Gạch ngang" id="pptx-strike-btn"><Strikethrough size={15} /></button>
+            <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
 
-        <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
+            <div className="flex items-center border border-gray-200 rounded-md overflow-hidden h-8 shrink-0">
+              <button onClick={() => adjustFontSize(-1)} id="pptx-font-size-dec"
+                className="w-[26px] h-full border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center transition-all hover:bg-gray-100 hover:text-indigo-600">
+                <Minus size={12} />
+              </button>
+              <input type="text" value={textFormat.fontSize || 24} onChange={handleFontSizeInput} id="pptx-font-size"
+                className="w-9 h-full border-x border-gray-200 text-center text-[13px] font-medium text-gray-700 outline-none bg-transparent" />
+              <button onClick={() => adjustFontSize(1)} id="pptx-font-size-inc"
+                className="w-[26px] h-full border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center transition-all hover:bg-gray-100 hover:text-indigo-600">
+                <Plus size={12} />
+              </button>
+            </div>
 
-        <div className="relative shrink-0">
-          <button className={EDITOR_BTN} onClick={() => setShowColorPicker(!showColorPicker)} title="Màu chữ" id="pptx-text-color-btn">
-            <Type size={15} />
-            <span className="absolute bottom-[3px] left-1.5 right-1.5 h-[3px] rounded-full" style={{ backgroundColor: textFormat.color || '#000000' }} />
-          </button>
-          {showColorPicker && (
-            <ColorPicker color={textFormat.color || '#000000'} onChange={(c) => onTextFormatChange('color', c)} onClose={() => setShowColorPicker(false)} />
-          )}
-        </div>
+            <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
 
-        <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
+            <button className={`${EDITOR_BTN} ${textFormat.bold ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('bold', !textFormat.bold)} title="Đậm" id="pptx-bold-btn"><Bold size={15} /></button>
+            <button className={`${EDITOR_BTN} ${textFormat.italic ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('italic', !textFormat.italic)} title="Nghiêng" id="pptx-italic-btn"><Italic size={15} /></button>
+            <button className={`${EDITOR_BTN} ${textFormat.underline ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('underline', !textFormat.underline)} title="Gạch chân" id="pptx-underline-btn"><Underline size={15} /></button>
+            <button className={`${EDITOR_BTN} ${textFormat.strikethrough ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('strikethrough', !textFormat.strikethrough)} title="Gạch ngang" id="pptx-strike-btn"><Strikethrough size={15} /></button>
 
-        <button className={`${EDITOR_BTN} ${textFormat.align === 'left' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'left')} title="Trái" id="pptx-align-left"><AlignLeft size={15} /></button>
-        <button className={`${EDITOR_BTN} ${textFormat.align === 'center' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'center')} title="Giữa" id="pptx-align-center"><AlignCenter size={15} /></button>
-        <button className={`${EDITOR_BTN} ${textFormat.align === 'right' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'right')} title="Phải" id="pptx-align-right"><AlignRight size={15} /></button>
-        <button className={`${EDITOR_BTN} ${textFormat.align === 'justify' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'justify')} title="Đều hai bên" id="pptx-align-justify"><AlignJustify size={15} /></button>
+            <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
+
+            <div className="relative shrink-0">
+              <button className={EDITOR_BTN} onClick={() => setShowColorPicker(!showColorPicker)} title="Màu chữ" id="pptx-text-color-btn">
+                <Type size={15} />
+                <span className="absolute bottom-[3px] left-1.5 right-1.5 h-[3px] rounded-full" style={{ backgroundColor: textFormat.color || '#000000' }} />
+              </button>
+              {showColorPicker && (
+                <ColorPicker color={textFormat.color || '#000000'} onChange={(c) => onTextFormatChange('color', c)} onClose={() => setShowColorPicker(false)} />
+              )}
+            </div>
+
+            <div className="w-px h-6 bg-gray-200 mx-1.5 shrink-0" />
+
+            <button className={`${EDITOR_BTN} ${textFormat.align === 'left' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'left')} title="Trái" id="pptx-align-left"><AlignLeft size={15} /></button>
+            <button className={`${EDITOR_BTN} ${textFormat.align === 'center' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'center')} title="Giữa" id="pptx-align-center"><AlignCenter size={15} /></button>
+            <button className={`${EDITOR_BTN} ${textFormat.align === 'right' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'right')} title="Phải" id="pptx-align-right"><AlignRight size={15} /></button>
+            <button className={`${EDITOR_BTN} ${textFormat.align === 'justify' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'justify')} title="Đều hai bên" id="pptx-align-justify"><AlignJustify size={15} /></button>
+          </>
+        )}
       </div>
     </>
   );

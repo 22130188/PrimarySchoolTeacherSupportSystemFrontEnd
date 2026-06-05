@@ -1,16 +1,20 @@
 import SmallColorPicker from '../../common/SmallColorPicker';
-
+import { getShapeFormat, isFabricShapeObject } from '../../utils/shapeSelection';
 
 export default function PptxPropertiesPanel({ selectedObject, onUpdateObject }) {
   if (!selectedObject) return null;
 
   const type = selectedObject.type;
   const isText = type === 'i-text' || type === 'textbox';
-  const isShape = type === 'rect' || type === 'circle' || type === 'triangle' || type === 'group' || type === 'polyline';
+  const isShape = isFabricShapeObject(selectedObject);
+  const shapeFormat = getShapeFormat(selectedObject);
   const isLine = type === 'line';
 
   const handleChange = (prop, value) => onUpdateObject({ [prop]: value });
-  const handleNum = (prop, e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) handleChange(prop, v); };
+  const handleNum = (prop, e) => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v)) handleChange(prop, v);
+  };
 
   const inputCls = 'flex-1 h-[30px] px-2 border border-gray-200 rounded-md text-xs text-gray-800 outline-none transition-all bg-gray-50/80 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 focus:bg-white';
   const labelCls = 'text-xs text-gray-500 min-w-[50px]';
@@ -49,15 +53,15 @@ export default function PptxPropertiesPanel({ selectedObject, onUpdateObject }) 
       {(isShape || isLine) && (
         <div className={sectionCls}>
           <div className={titleCls}>Hình dạng</div>
-          {!isLine && (
+          {shapeFormat.hasFill && (
             <div className="flex items-center gap-2 mb-2">
               <span className={labelCls}>Nền</span>
-              <SmallColorPicker color={selectedObject.fill || '#e0e7ff'} onChange={(c) => handleChange('fill', c)} />
+              <SmallColorPicker color={selectedObject.fill || '#ffffff'} onChange={(c) => handleChange('fill', c)} />
             </div>
           )}
           <div className="flex items-center gap-2 mb-2">
             <span className={labelCls}>Viền</span>
-            <SmallColorPicker color={selectedObject.stroke || '#6366f1'} onChange={(c) => handleChange('stroke', c)} />
+            <SmallColorPicker color={selectedObject.stroke || '#000000'} onChange={(c) => handleChange('stroke', c)} />
           </div>
           <div className="flex items-center gap-2">
             <span className={labelCls}>Dày</span>
@@ -69,6 +73,10 @@ export default function PptxPropertiesPanel({ selectedObject, onUpdateObject }) 
       {isText && (
         <div className={sectionCls}>
           <div className={titleCls}>Văn bản</div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={labelCls}>Màu</span>
+            <SmallColorPicker color={selectedObject.fill || '#000000'} onChange={(c) => handleChange('fill', c)} />
+          </div>
           <div className="flex items-center gap-2 mb-2">
             <span className={labelCls}>Dòng</span>
             <input className={inputCls} type="number" step="0.1" min="0.5" max="5" value={selectedObject.lineHeight || 1.3} onChange={(e) => handleNum('lineHeight', e)} id="pptx-prop-line" />

@@ -12,6 +12,8 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
   onObjectModified,
   onHistoryChange,
   onAddPage,
+  onTableContextMenu,
+  onTableDoubleClick,
   readOnly = false,
 }, ref) {
   const containerRef = useRef(null);
@@ -97,8 +99,10 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
     };
     return {
       getCanvas: () => getActivePage()?.getCanvas() || null,
+      saveToHistory: proxy('saveToHistory'),
       addText: proxy('addText'),
       addTable: proxy('addTable'),
+      addShape: proxy('addShape'),
       addImage: proxy('addImage'),
       deleteSelected: proxy('deleteSelected'),
       duplicateSelected: proxy('duplicateSelected'),
@@ -151,6 +155,8 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
             onSelectionChange={onSelectionChange}
             onObjectModified={onObjectModified}
             onHistoryChange={onHistoryChange}
+            onTableContextMenu={onTableContextMenu}
+            onTableDoubleClick={onTableDoubleClick}
             ref={(inst) => setPageRef(page.id, inst)}
             readOnly={readOnly}
           />

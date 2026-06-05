@@ -41,7 +41,7 @@ export default function AIToolsPage() {
           <main className="flex-1 p-6">
             <div className="max-w-6xl mx-auto">
 
-              <div className="mb-10">
+              <div className="mb-5">
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3 mb-1">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-teal-400 flex items-center justify-center shadow-lg">
                     <Sparkles className="w-5 h-5 text-white" />
@@ -82,10 +82,9 @@ export default function AIToolsPage() {
                     </span>
 
                     <h3 className="text-base font-bold text-gray-800 mb-1.5">{tool.title}</h3>
-                    <p className="text-sm text-gray-500 leading-snug mb-3">{tool.desc}</p>
+                    <p className="text-sm text-gray-500 leading-snug mb-1.5">{tool.desc}</p>
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400 font-medium">{tool.stats}</span>
+                    <div className="flex items-center justify-end h-4">
                       <span className="text-xs font-semibold text-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         Sử dụng →
                       </span>

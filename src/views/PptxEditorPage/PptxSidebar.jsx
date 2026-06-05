@@ -1,21 +1,14 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, Upload, Palette, Square, Circle, Triangle, Minus, ArrowRight, RectangleHorizontal } from 'lucide-react';
-import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES, SHAPE_PRESETS, SLIDE_THEME_COLORS } from './pptxConstants';
+import { X, Loader2, Upload, Palette } from 'lucide-react';
+import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES, SLIDE_THEME_COLORS } from './pptxConstants';
 import { LIBRARY_SUBJECT_OPTIONS } from '../../data/aiImageConstants';
+import { SHAPE_GROUPS } from '../../data/shapeLibrary';
 import TablePicker from '../../common/TablePicker';
 import useImageLibrary from '../../hooks/useImageLibrary';
 import AIImageGenerator from '../../common/AIImageGenerator';
+import PexelsImageSearch from '../../common/PexelsImageSearch';
 import SaveImageModal from '../../common/SaveImageModal';
 import IllustrationStudioModal from '../../common/IllustrationStudioModal';
-
-const SHAPE_ICONS = {
-  rect: Square,
-  roundRect: RectangleHorizontal,
-  circle: Circle,
-  triangle: Triangle,
-  line: Minus,
-  arrow: ArrowRight,
-};
 
 export default function PptxSidebar({
   activeTab, onTabChange, expanded, onToggle,
@@ -74,7 +67,7 @@ export default function PptxSidebar({
         {expanded && (
           <>
             <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-gray-100 shrink-0">
-              <span className="text-sm font-semibold text-gray-800">{PANEL_TITLES[activeTab]}</span>
+              <span className="text-sm font-semibold text-gray-800">{PANEL_TITLES[activeTab] || 'Pexels'}</span>
               <button onClick={() => onToggle(false)}
                 className="w-7 h-7 rounded-md bg-transparent text-gray-400 inline-flex items-center justify-center cursor-pointer transition-all hover:bg-gray-100 hover:text-gray-600 border-none">
                 <X size={14} />
@@ -105,17 +98,23 @@ export default function PptxSidebar({
               {activeTab === 'shapes' && (
                 <div>
                   <p className="text-xs text-gray-400 mb-3.5">Nhấp để thêm hình dạng vào slide</p>
-                  <div className="grid grid-cols-2 gap-2 mb-5">
-                    {SHAPE_PRESETS.map((shape) => {
-                      const ShapeIcon = SHAPE_ICONS[shape.id] || Square;
-                      return (
-                        <button key={shape.id} onClick={() => onAddShape(shape.id)} id={`pptx-shape-${shape.id}`}
-                          className="flex flex-col items-center gap-2 p-3.5 border border-gray-200 rounded-xl bg-white cursor-pointer transition-all duration-200 hover:border-orange-300 hover:bg-orange-50 hover:shadow-sm">
-                          <ShapeIcon size={26} className="text-gray-500" />
-                          <span className="text-[11px] text-gray-600 font-medium">{shape.label}</span>
-                        </button>
-                      );
-                    })}
+                  <div className="mb-5 space-y-4">
+                    {SHAPE_GROUPS.map((group) => (
+                      <div key={group.title}>
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{group.title}</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {group.tools.map(({ id, label, icon }) => (
+                            <button key={id} onClick={() => onAddShape(id)} id={`pptx-shape-${id}`} title={label}
+                              className="group flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600 hover:shadow-[0_6px_18px_rgba(249,115,22,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
+                              <span className="flex h-9 w-10 items-center justify-center rounded-md border border-orange-100 bg-orange-50 text-orange-500 transition-colors group-hover:border-orange-200 group-hover:bg-white group-hover:text-orange-600">
+                                {icon}
+                              </span>
+                              <span className="w-full text-center text-[10px] font-medium leading-tight">{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="border-t border-gray-100 pt-4">
@@ -212,6 +211,10 @@ export default function PptxSidebar({
 
               {activeTab === 'ai' && (
                 <AIImageGenerator onAddImage={onAddImage} accent="orange" />
+              )}
+
+              {activeTab === 'pexels' && (
+                <PexelsImageSearch onAddImage={onAddImage} onSaved={loadLibraryImages} accent="orange" />
               )}
             </div>
           </>
