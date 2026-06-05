@@ -5,8 +5,15 @@ import EditorToolbar from './EditorToolbar';
 import LeftSidebar from './LeftSidebar';
 import MultiPageCanvas from './MultiPageCanvas';
 import PropertiesPanel from './PropertiesPanel';
+import TableContextMenu from '../../common/TableContextMenu';
+import TableOverlayEditor from '../../common/TableOverlayEditor';
 import { useDocxExport } from '../../hooks/useDocxExport';
-import { DEFAULT_TEXT_FORMAT } from './editorConstants';
+import { usePdfExport } from '../../hooks/usePdfExport';
+import { DEFAULT_TEXT_FORMAT, PAGE_WIDTH, PAGE_HEIGHT } from './editorConstants';
+import { addTableRow, addTableCol, deleteTableRow, deleteTableCol } from '../../utils/fabricTable';
+import { rerenderTableImage, isNewTableImage, ensureTableDataForImage } from '../../utils/tableModel';
+import { getShapeFormat, snapshotFabricObject } from '../../utils/shapeSelection';
+import { applyFabricTextFormat, getTextFormatUpdate, isFabricTextObject } from '../../utils/fabricTextFormatting';
 import lessonDraftApi from '../../services/lessonDraftApi';
 import './DocxEditor.css';
 
@@ -20,7 +27,7 @@ export default function DocxEditorPage() {
   const pagesRef = useRef([initialPage]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
   const classroomId = searchParams.get('classroomId');
-  const viewMode = searchParams.get('mode'); // 'view' | 'copy' | null
+  const viewMode = searchParams.get('mode');
   const isReadOnly = viewMode === 'view' || viewMode === 'copy';
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
@@ -39,8 +46,11 @@ export default function DocxEditorPage() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+  const [tableContextMenu, setTableContextMenu] = useState(null);
+  const [tableOverlay, setTableOverlay] = useState(null);
 
   const { exportToDocx } = useDocxExport();
+  const { exportToPdf } = usePdfExport();
 
   useEffect(() => { pagesRef.current = pages; }, [pages]);
 
@@ -109,25 +119,47 @@ export default function DocxEditorPage() {
   const handleSelectionChange = useCallback((obj) => {
     setSelectedObject(obj);
     if (obj && (obj.type === 'i-text' || obj.type === 'textbox')) {
-      setTextFormat({
-        fontFamily: obj.fontFamily || 'Inter', fontSize: obj.fontSize || 14,
-        bold: obj.fontWeight === 'bold' || obj.fontWeight === '700',
-        italic: obj.fontStyle === 'italic', underline: !!obj.underline,
-        strikethrough: !!obj.linethrough, color: obj.fill || '#000000',
-        align: obj.textAlign || 'left',
-      });
+      if (obj.isEditing && obj.selectionStart !== obj.selectionEnd) {
+        const styles = obj.getSelectionStyles(obj.selectionStart, obj.selectionEnd);
+        const first = styles[0] || {};
+        setTextFormat({
+          fontFamily: first.fontFamily || obj.fontFamily || 'Inter',
+          fontSize: first.fontSize || obj.fontSize || 14,
+          bold: (first.fontWeight || obj.fontWeight) === 'bold' || (first.fontWeight || obj.fontWeight) === '700',
+          italic: (first.fontStyle || obj.fontStyle) === 'italic',
+          underline: first.underline !== undefined ? !!first.underline : !!obj.underline,
+          strikethrough: first.linethrough !== undefined ? !!first.linethrough : !!obj.linethrough,
+          color: first.fill || obj.fill || '#000000',
+          align: obj.textAlign || 'left',
+        });
+      } else {
+        setTextFormat({
+          fontFamily: obj.fontFamily || 'Inter', fontSize: obj.fontSize || 14,
+          bold: obj.fontWeight === 'bold' || obj.fontWeight === '700',
+          italic: obj.fontStyle === 'italic', underline: !!obj.underline,
+          strikethrough: !!obj.linethrough, color: obj.fill || '#000000',
+          align: obj.textAlign || 'left',
+        });
+      }
     }
   }, []);
 
   const handleTextFormatChange = useCallback((prop, value) => {
     setTextFormat((prev) => ({ ...prev, [prop]: value }));
-    const map = { fontFamily: 'fontFamily', fontSize: 'fontSize', bold: 'fontWeight', italic: 'fontStyle', underline: 'underline', strikethrough: 'linethrough', color: 'fill', align: 'textAlign' };
-    const fp = map[prop];
-    if (!fp) return;
-    let fv = value;
-    if (prop === 'bold') fv = value ? 'bold' : 'normal';
-    if (prop === 'italic') fv = value ? 'italic' : 'normal';
-    canvasRef.current?.updateActiveObject({ [fp]: fv });
+    const update = getTextFormatUpdate(prop, value);
+    if (!update) return;
+
+    const canvas = canvasRef.current?.getCanvas?.();
+    const active = canvas?.getActiveObject();
+    if (applyFabricTextFormat(active, update.fabricProp, update.fabricValue)) {
+      canvas.requestRenderAll();
+      canvasRef.current?.saveToHistory?.();
+      setSelectedObject(snapshotFabricObject(active));
+      markDirty();
+      return;
+    }
+
+    canvasRef.current?.updateActiveObject({ [update.fabricProp]: update.fabricValue });
     markDirty();
   }, [markDirty]);
 
@@ -138,6 +170,124 @@ export default function DocxEditorPage() {
   }, [markDirty]);
 
   const handleObjectModified = useCallback(() => { markDirty(); }, [markDirty]);
+
+  const handleTableContextMenu = useCallback((info) => {
+    setTableContextMenu(info);
+  }, []);
+
+  const handleTableAction = useCallback((action) => {
+    if (!tableContextMenu?.table) return;
+    const canvas = canvasRef.current?.getCanvas?.();
+    if (!canvas) return;
+    const table = tableContextMenu.table;
+
+
+    const tableData = ensureTableDataForImage(table);
+    if (isNewTableImage(table) && tableData) {
+      const data = JSON.parse(JSON.stringify(tableData));
+      switch (action) {
+        case 'addRowBefore': {
+          const newRow = Array(data.cols).fill(null).map(() => ({
+            text: '', bold: false, italic: false, color: '', bgColor: '',
+            align: '', fontSize: 0, colSpan: 1, rowSpan: 1, hidden: false,
+          }));
+          data.cells.splice(0, 0, newRow);
+          data.rows += 1;
+          data.rowHeights.splice(0, 0, 0);
+          break;
+        }
+        case 'addRowAfter': {
+          const newRow = Array(data.cols).fill(null).map(() => ({
+            text: '', bold: false, italic: false, color: '', bgColor: '',
+            align: '', fontSize: 0, colSpan: 1, rowSpan: 1, hidden: false,
+          }));
+          data.cells.push(newRow);
+          data.rows += 1;
+          data.rowHeights.push(0);
+          break;
+        }
+        case 'addColBefore': {
+          for (let row of data.cells) {
+            row.splice(0, 0, { text: '', bold: false, italic: false, color: '', bgColor: '', align: '', fontSize: 0, colSpan: 1, rowSpan: 1, hidden: false });
+          }
+          data.cols += 1;
+          data.colWidths.splice(0, 0, 120);
+          break;
+        }
+        case 'addColAfter': {
+          for (let row of data.cells) {
+            row.push({ text: '', bold: false, italic: false, color: '', bgColor: '', align: '', fontSize: 0, colSpan: 1, rowSpan: 1, hidden: false });
+          }
+          data.cols += 1;
+          data.colWidths.push(120);
+          break;
+        }
+        case 'deleteRow': {
+          if (data.rows > 1) { data.cells.pop(); data.rows -= 1; data.rowHeights.pop(); }
+          break;
+        }
+        case 'deleteCol': {
+          if (data.cols > 1) { for (let row of data.cells) row.pop(); data.cols -= 1; data.colWidths.pop(); }
+          break;
+        }
+      }
+      rerenderTableImage(canvas, table, data).then(() => {
+        canvasRef.current?.saveToHistory?.();
+        markDirty();
+      });
+      setTableContextMenu(null);
+      return;
+    }
+
+
+    const rows = table.tableRows || 3;
+    const cols = table.tableCols || 3;
+
+    switch (action) {
+      case 'addRowBefore': addTableRow(canvas, table, 'before'); break;
+      case 'addRowAfter': addTableRow(canvas, table, 'after'); break;
+      case 'addColBefore': addTableCol(canvas, table, 'before'); break;
+      case 'addColAfter': addTableCol(canvas, table, 'after'); break;
+      case 'deleteRow': deleteTableRow(canvas, table, rows - 1); break;
+      case 'deleteCol': deleteTableCol(canvas, table, cols - 1); break;
+      default: break;
+    }
+    canvasRef.current?.saveToHistory?.();
+    markDirty();
+    setTableContextMenu(null);
+  }, [tableContextMenu, markDirty]);
+
+
+  const handleTableDoubleClick = useCallback((fabricObj) => {
+    const tableData = ensureTableDataForImage(fabricObj);
+    if (!fabricObj || !tableData) return;
+    const canvas = canvasRef.current?.getCanvas?.();
+    if (!canvas) return;
+    const canvasEl = canvas.getElement();
+    const rect = canvasEl.getBoundingClientRect();
+    const objCenter = fabricObj.getCenterPoint();
+    const screenX = rect.left + objCenter.x * zoom;
+    const screenY = rect.top + objCenter.y * zoom;
+    const overlayLeft = Math.max(16, Math.min(screenX - 200, window.innerWidth - 500));
+    const overlayTop = Math.max(60, Math.min(screenY - 100, window.innerHeight - 400));
+    setTableOverlay({
+      fabricObj,
+      tableData: JSON.parse(JSON.stringify(tableData)),
+      position: { left: overlayLeft, top: overlayTop },
+    });
+  }, [zoom]);
+
+  const handleTableOverlaySave = useCallback(async (updatedData) => {
+    if (!tableOverlay?.fabricObj) { setTableOverlay(null); return; }
+    const canvas = canvasRef.current?.getCanvas?.();
+    if (!canvas) { setTableOverlay(null); return; }
+    try {
+      await rerenderTableImage(canvas, tableOverlay.fabricObj, updatedData);
+      canvasRef.current?.saveToHistory?.();
+      markDirty();
+    } catch (err) { console.error('Failed to update table:', err); }
+    setTableOverlay(null);
+  }, [tableOverlay, markDirty]);
 
   const handleActivatePage = useCallback((id) => {
     setActivePageId(id);
@@ -207,6 +357,18 @@ export default function DocxEditorPage() {
     }
   }, [exportToDocx, fileName]);
 
+  const handleExportPdf = useCallback(async () => {
+    const serialized = canvasRef.current?.serializeAllPages?.() || pagesRef.current;
+    pagesRef.current = serialized;
+    setPages(serialized);
+    try {
+      await exportToPdf({ pages: serialized, fileName });
+    } catch (err) {
+      console.error('PDF Export failed:', err);
+      alert('Xuất PDF thất bại. Vui lòng thử lại.');
+    }
+  }, [exportToPdf, fileName]);
+
   const fileNameRef = useRef(fileName);
   const subjectRef = useRef(subject);
   const gradeRef = useRef(grade);
@@ -260,22 +422,43 @@ export default function DocxEditorPage() {
   }, [fileName, subject, grade, markDirty]);
 
   const handleUpdateObject = useCallback((props) => {
+    const canvas = canvasRef.current?.getCanvas?.();
+    const active = canvas?.getActiveObject();
+    if (isFabricTextObject(active)) {
+      Object.entries(props).forEach(([prop, value]) => {
+        applyFabricTextFormat(active, prop, value);
+      });
+      canvas.requestRenderAll();
+      canvasRef.current?.saveToHistory?.();
+      setSelectedObject(snapshotFabricObject(active));
+      markDirty();
+      return;
+    }
+
     canvasRef.current?.updateActiveObject(props);
     const obj = canvasRef.current?.getActiveObject();
-    if (obj) setSelectedObject({ ...obj });
-  }, []);
+    if (obj) setSelectedObject(snapshotFabricObject(obj));
+    markDirty();
+  }, [markDirty]);
+
+  const handleShapeFormatChange = useCallback((prop, value) => {
+    handleUpdateObject({ [prop]: value });
+  }, [handleUpdateObject]);
+
+  const shapeFormat = getShapeFormat(selectedObject);
 
   return (
     <div className="fixed inset-0 flex flex-col z-[9999] font-[Inter,sans-serif] overflow-hidden bg-gray-100" id="docx-editor-page">
       <EditorToolbar
-        fileName={fileName} onFileNameChange={isReadOnly ? () => {} : setFileName}
-        subject={subject} onSubjectChange={isReadOnly ? () => {} : setSubject}
-        grade={grade} onGradeChange={isReadOnly ? () => {} : setGrade}
-        textFormat={textFormat} onTextFormatChange={isReadOnly ? () => {} : handleTextFormatChange}
+        fileName={fileName} onFileNameChange={isReadOnly ? () => { } : setFileName}
+        subject={subject} onSubjectChange={isReadOnly ? () => { } : setSubject}
+        grade={grade} onGradeChange={isReadOnly ? () => { } : setGrade}
+        textFormat={textFormat} onTextFormatChange={isReadOnly ? () => { } : handleTextFormatChange}
+        shapeFormat={shapeFormat} onShapeFormatChange={isReadOnly ? () => { } : handleShapeFormatChange}
         canUndo={!isReadOnly && canUndo} canRedo={!isReadOnly && canRedo}
         onUndo={() => !isReadOnly && canvasRef.current?.undo()} onRedo={() => !isReadOnly && canvasRef.current?.redo()}
         zoom={zoom} onZoomChange={setZoom}
-        onExport={handleExport} saveStatus={saveStatus}
+        onExport={handleExport} onExportPdf={handleExportPdf} saveStatus={saveStatus}
         onBack={() => {
           if (classroomId) navigate(`/classrooms/${classroomId}?tab=lessons`);
           else navigate('/lessons');
@@ -286,7 +469,6 @@ export default function DocxEditorPage() {
         readOnly={isReadOnly}
       />
 
-      {/* Read-only banner */}
       {isReadOnly && (
         <div className="bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-4 py-2 flex items-center justify-between z-[200]">
           <div className="flex items-center gap-2 text-sm">
@@ -328,6 +510,7 @@ export default function DocxEditorPage() {
             onAddText={(p) => canvasRef.current?.addText(p)}
             onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
             onAddImage={(d) => canvasRef.current?.addImage(d)}
+            onAddShape={(s) => canvasRef.current?.addShape(s)}
             pages={pages} currentPageIndex={safeCurrentPageIndex}
             onSwitchPage={switchToPageByIndex} onAddPage={addPage} onDeletePage={deletePage}
           />
@@ -339,10 +522,12 @@ export default function DocxEditorPage() {
           zoom={zoom}
           activePageId={activePageId}
           onActivatePage={handleActivatePage}
-          onSelectionChange={isReadOnly ? () => {} : handleSelectionChange}
-          onObjectModified={isReadOnly ? () => {} : handleObjectModified}
-          onHistoryChange={isReadOnly ? () => {} : handleHistoryChange}
-          onAddPage={isReadOnly ? () => {} : addPage}
+          onSelectionChange={isReadOnly ? () => { } : handleSelectionChange}
+          onObjectModified={isReadOnly ? () => { } : handleObjectModified}
+          onHistoryChange={isReadOnly ? () => { } : handleHistoryChange}
+          onAddPage={isReadOnly ? () => { } : addPage}
+          onTableContextMenu={isReadOnly ? undefined : handleTableContextMenu}
+          onTableDoubleClick={isReadOnly ? undefined : handleTableDoubleClick}
           readOnly={isReadOnly}
         />
 
@@ -360,6 +545,25 @@ export default function DocxEditorPage() {
           {saveStatus && <span className="text-indigo-500 font-medium">{saveStatus}</span>}
         </div>
       </div>
+
+      {tableContextMenu && (
+        <TableContextMenu
+          x={tableContextMenu.x}
+          y={tableContextMenu.y}
+          onClose={() => setTableContextMenu(null)}
+          onAction={handleTableAction}
+        />
+      )}
+
+      {tableOverlay && (
+        <TableOverlayEditor
+          tableData={tableOverlay.tableData}
+          position={tableOverlay.position}
+          zoom={zoom}
+          onSave={handleTableOverlaySave}
+          onCancel={() => setTableOverlay(null)}
+        />
+      )}
     </div>
   );
 }

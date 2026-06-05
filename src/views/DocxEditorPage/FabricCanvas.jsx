@@ -1,8 +1,15 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import * as fabric from 'fabric';
-import { PAGE_WIDTH, PAGE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups } from './editorConstants';
+import { PAGE_WIDTH, PAGE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups, registerFabricCustomProperties } from './editorConstants';
+import {
+  createTableData,
+  tableDataToFabricImage,
+  ensureTableDataForImage,
+  isLikelyLegacyTableImage,
+  restoreEditableTableImages,
+} from '../../utils/tableModel';
 
-const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange }, ref) => {
+const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange, onTableContextMenu, onTableDoubleClick }, ref) => {
   const canvasElRef = useRef(null);
   const fabricRef = useRef(null);
   const historyRef = useRef({ undoStack: [], redoStack: [], isRestoring: false });
@@ -21,6 +28,8 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
   }, [onHistoryChange]);
 
   useEffect(() => {
+    registerFabricCustomProperties(fabric);
+
     const canvas = new fabric.Canvas(canvasElRef.current, {
       width: PAGE_WIDTH,
       height: PAGE_HEIGHT,
@@ -46,10 +55,35 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       if (active) onSelectionChange?.(active);
     };
 
-    // Single-click to edit table cells (instead of double-click)
     const handleMouseDown = (opt) => {
-      const group = opt.target;
+      const target = opt.target;
+      if (!target) return;
+
+      if (isLikelyLegacyTableImage(target)) {
+        ensureTableDataForImage(target);
+        if (opt.button === 3) {
+          opt.e.preventDefault();
+          onTableContextMenu?.({
+            x: opt.e.clientX,
+            y: opt.e.clientY,
+            table: target,
+          });
+          return;
+        }
+        return;
+      }
+
+      const group = target;
       if (!group || !group.isTable) return;
+      if (opt.button === 3) {
+        opt.e.preventDefault();
+        onTableContextMenu?.({
+          x: opt.e.clientX,
+          y: opt.e.clientY,
+          table: group,
+        });
+        return;
+      }
       const subTarget = opt.subTargets?.[0];
       if (subTarget && subTarget.type === 'textbox' && subTarget.editable) {
         setTimeout(() => {
@@ -61,15 +95,24 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       }
     };
 
+    const handleDblClick = (opt) => {
+      const target = opt.target;
+      if (target && isLikelyLegacyTableImage(target)) {
+        ensureTableDataForImage(target);
+        onTableDoubleClick?.(target);
+      }
+    };
+
     canvas.on('selection:created', handleSelection);
     canvas.on('selection:updated', handleSelection);
     canvas.on('selection:cleared', () => onSelectionChange?.(null));
     canvas.on('object:modified', handleModified);
     canvas.on('text:changed', handleModified);
     canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:dblclick', handleDblClick);
 
     return () => { canvas.dispose(); };
-  }, []); // eslint-disable-line
+  }, []);
 
   useEffect(() => {
     const canvas = fabricRef.current;
@@ -160,46 +203,29 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       saveToHistory();
     },
 
-
-    addTable: (rows, cols) => {
+    addTable: async (rows, cols) => {
       const canvas = fabricRef.current;
       if (!canvas) return;
       const totalW = Math.min(PAGE_WIDTH - 80, cols * 120);
-      const cellW = totalW / cols;
-      const cellH = 36;
-      const objects = [];
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          objects.push(new fabric.Rect({
-            left: c * cellW, top: r * cellH, width: cellW, height: cellH,
-            fill: r === 0 ? '#f1f5f9' : '#ffffff', stroke: '#cbd5e1',
-            strokeWidth: 1, strokeUniform: true,
-            selectable: false, evented: false,
-          }));
-          objects.push(new fabric.Textbox(r === 0 ? `Cột ${c + 1}` : ' ', {
-            left: c * cellW + 4, top: r * cellH + 4,
-            width: cellW - 8, fontSize: 12, fontFamily: 'Inter',
-            fill: r === 0 ? '#1e293b' : '#374151',
-            fontWeight: r === 0 ? '600' : 'normal',
-            editable: true, selectable: true, evented: true,
-            lockMovementX: true, lockMovementY: true,
-            hasControls: false, hasBorders: false,
-          }));
-        }
+      const colWidth = totalW / cols;
+      const tableData = createTableData(rows, cols, 'plain');
+      tableData.colWidths = Array(cols).fill(colWidth);
+
+      try {
+        const img = await tableDataToFabricImage(tableData, {
+          left: PAGE_WIDTH / 2,
+          top: PAGE_HEIGHT / 2,
+          originX: 'center',
+          originY: 'center',
+          controlStyle: CONTROL_STYLE,
+        });
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+        saveToHistory();
+      } catch (err) {
+        console.error('Failed to create table:', err);
       }
-      const totalH = rows * cellH;
-      const group = new fabric.Group(objects, {
-        left: PAGE_WIDTH / 2, top: PAGE_HEIGHT / 2,
-        originX: 'center', originY: 'center',
-        subTargetCheck: true, interactive: true, ...CONTROL_STYLE,
-      });
-      group.isTable = true;
-      group.tableRows = rows;
-      group.tableCols = cols;
-      canvas.add(group);
-      canvas.setActiveObject(group);
-      canvas.renderAll();
-      saveToHistory();
     },
 
     addImage: async (dataUrl) => {
@@ -242,7 +268,7 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       const current = hist.undoStack.pop();
       hist.redoStack.push(current);
       canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(() => {
-        restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas, true); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -256,13 +282,18 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       const state = hist.redoStack.pop();
       hist.undoStack.push(state);
       canvas.loadFromJSON(JSON.parse(state)).then(() => {
-        restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas, true); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
     },
 
-    toJSON: () => fabricRef.current?.toJSON(CUSTOM_SERIALIZATION_PROPS),
+    toJSON: () => {
+      const canvas = fabricRef.current;
+      if (!canvas) return null;
+      restoreEditableTableImages(canvas, true);
+      return canvas.toJSON(CUSTOM_SERIALIZATION_PROPS);
+    },
 
     loadFromJSON: async (json) => {
       const canvas = fabricRef.current;
@@ -271,6 +302,7 @@ const FabricCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified
       if (json) { await canvas.loadFromJSON(typeof json === 'string' ? JSON.parse(json) : json); }
       else { canvas.clear(); canvas.backgroundColor = '#ffffff'; }
       restoreTableGroups(canvas, fabric);
+      restoreEditableTableImages(canvas, true);
       canvas.renderAll();
       historyRef.current.isRestoring = false;
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];

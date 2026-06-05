@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Plus, X, Loader2, Upload, Palette } from 'lucide-react';
 import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES } from './editorConstants';
 import { LIBRARY_SUBJECT_OPTIONS } from '../../data/aiImageConstants';
+import { SHAPE_GROUPS } from '../../data/shapeLibrary';
 import TablePicker from '../../common/TablePicker';
 import useImageLibrary from '../../hooks/useImageLibrary';
 import AIImageGenerator from '../../common/AIImageGenerator';
+import PexelsImageSearch from '../../common/PexelsImageSearch';
 import SaveImageModal from '../../common/SaveImageModal';
 import IllustrationStudioModal from '../../common/IllustrationStudioModal';
 
@@ -17,7 +19,7 @@ const TABLE_QUICK = [
 
 export default function LeftSidebar({
   activeTab, onTabChange, expanded, onToggle,
-  onAddText, onAddTable, onAddImage,
+  onAddText, onAddTable, onAddImage, onAddShape,
   pages, currentPageIndex, onSwitchPage, onAddPage, onDeletePage,
 }) {
   const {
@@ -73,7 +75,7 @@ export default function LeftSidebar({
         {expanded && (
           <>
             <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-gray-100 shrink-0">
-              <span className="text-sm font-semibold text-gray-800">{PANEL_TITLES[activeTab]}</span>
+              <span className="text-sm font-semibold text-gray-800">{PANEL_TITLES[activeTab] || 'Pexels'}</span>
               <button onClick={() => onToggle(false)}
                 className="w-7 h-7 rounded-md bg-transparent text-gray-400 inline-flex items-center justify-center cursor-pointer transition-all hover:bg-gray-100 hover:text-gray-600 border-none">
                 <X size={14} />
@@ -105,6 +107,30 @@ export default function LeftSidebar({
                         className="w-full text-left px-3 py-2 mb-1.5 border border-gray-200 rounded-lg bg-white text-sm text-gray-700 cursor-pointer transition-all duration-150 hover:border-indigo-300 hover:bg-violet-50 hover:translate-x-0.5">
                         {label}
                       </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'shapes' && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-3.5">Nhấp để thêm hình vào trang</p>
+                  <div className="space-y-4">
+                    {SHAPE_GROUPS.map((group) => (
+                      <div key={group.title}>
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{group.title}</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {group.tools.map(({ id, label, icon }) => (
+                            <button key={id} onClick={() => onAddShape(id)} title={label}
+                              className="group flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-[0_6px_18px_rgba(99,102,241,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300">
+                              <span className="flex h-9 w-10 items-center justify-center rounded-md border border-indigo-100 bg-indigo-50 text-indigo-500 transition-colors group-hover:border-indigo-200 group-hover:bg-white group-hover:text-indigo-600">
+                                {icon}
+                              </span>
+                              <span className="w-full text-center text-[10px] font-medium leading-tight">{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -190,6 +216,10 @@ export default function LeftSidebar({
 
               {activeTab === 'ai' && (
                 <AIImageGenerator onAddImage={onAddImage} accent="indigo" />
+              )}
+
+              {activeTab === 'pexels' && (
+                <PexelsImageSearch onAddImage={onAddImage} onSaved={loadLibraryImages} accent="indigo" />
               )}
 
               {activeTab === 'pages' && (
