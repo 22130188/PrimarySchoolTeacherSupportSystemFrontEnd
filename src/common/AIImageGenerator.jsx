@@ -15,6 +15,7 @@ import {
   saveImageToLibrary,
   extractErrorMessage,
 } from '../helpers/aiImageHelpers';
+import { loadPuter } from '../helpers/puterLoader';
 import SaveImageModal from './SaveImageModal';
 
 export default function AIImageGenerator({ onAddImage, accent = 'indigo' }) {
@@ -37,17 +38,28 @@ export default function AIImageGenerator({ onAddImage, accent = 'indigo' }) {
 
   useEffect(() => {
     if (puterReady) return;
-    let tries = 0;
+    let cancelled = false;
+    loadPuter()
+      .then(() => {
+        if (!cancelled) {
+          setPuterReady(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPuterReady(false);
+        }
+      });
     pollRef.current = setInterval(() => {
-      tries += 1;
       if (typeof window !== 'undefined' && window.puter) {
         setPuterReady(true);
         clearInterval(pollRef.current);
-      } else if (tries > 60) {
-        clearInterval(pollRef.current);
       }
     }, 300);
-    return () => pollRef.current && clearInterval(pollRef.current);
+    return () => {
+      cancelled = true;
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [puterReady]);
 
   const theme = ACCENT_THEMES[accent] || ACCENT_THEMES.indigo;
@@ -192,13 +204,13 @@ export default function AIImageGenerator({ onAddImage, accent = 'indigo' }) {
               onClick={handleInsert}
               className={`flex-1 py-1.5 ${theme.btnPrimary} text-white border-none rounded-md text-[11.5px] font-semibold cursor-pointer transition`}
             >
-              Chèn vào trang
+              Chèn ảnh
             </button>
             <button
               onClick={openSaveModal}
               className="flex-1 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white border-none rounded-md text-[11.5px] font-semibold cursor-pointer transition"
             >
-              Lưu vào thư viện
+              Lưu
             </button>
             <button
               onClick={handleGenerate}

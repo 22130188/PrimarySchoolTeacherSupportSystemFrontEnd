@@ -69,6 +69,12 @@ export default function ImagePage() {
       document.body.appendChild(container);
 
       const root = createRoot(container);
+      const cleanup = () => {
+        root.unmount();
+        setTimeout(() => {
+          container.parentNode?.removeChild(container);
+        }, 0);
+      };
       const coloredIcon = React.cloneElement(iconElement, {
         color,
         stroke: color,
@@ -80,8 +86,7 @@ export default function ImagePage() {
         try {
           const svg = container.querySelector('svg');
           if (!svg) {
-            root.unmount();
-            document.body.removeChild(container);
+            cleanup();
             resolve(null);
             return;
           }
@@ -103,12 +108,10 @@ export default function ImagePage() {
           let svgStr = new XMLSerializer().serializeToString(clonedSvg);
           svgStr = svgStr.replace(/currentColor/gi, color);
 
-          root.unmount();
-          document.body.removeChild(container);
+          cleanup();
           resolve(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgStr)}`);
         } catch (error) {
-          root.unmount();
-          if (document.body.contains(container)) document.body.removeChild(container);
+          cleanup();
           resolve(null);
         }
       }, 30);
@@ -157,7 +160,7 @@ export default function ImagePage() {
       if (response.data.success) {
         const iconsData = response.data.data;
         setIcons(iconsData);
-        
+
         iconsData.forEach((icon) => {
           preloadImage(icon.url);
         });
@@ -222,10 +225,10 @@ export default function ImagePage() {
     ctx.strokeStyle = '#fb7185';
     ctx.lineWidth = 3;
     ctx.strokeRect(x, y, width, height);
-    
+
     ctx.fillStyle = 'rgba(251, 113, 133, 0.1)';
     ctx.fillRect(x, y, width, height);
-    
+
     const handleSize = 12;
     ctx.fillStyle = '#fb7185';
     ctx.fillRect(x + width - handleSize, y + height - handleSize, handleSize, handleSize);
@@ -239,7 +242,7 @@ export default function ImagePage() {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    
+
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#cccccc';
@@ -251,7 +254,7 @@ export default function ImagePage() {
       const y = item.y - item.height / 2;
 
       const imgUrl = item.isLibraryImage
-        ? item.imageUrl 
+        ? item.imageUrl
         : `${CANVAS_API_URL}/api/canvas/icon/${item.icon_name}`;
 
       ctx.fillStyle = '#f9f3f0';
@@ -716,7 +719,7 @@ export default function ImagePage() {
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-700 mb-3">Thư viện ảnh</div>
-                        
+
                         <div className="mb-3">
                           <select
                             value={selectedSubject}
@@ -732,10 +735,10 @@ export default function ImagePage() {
 
                         <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
                           {(() => {
-                            const filteredImages = selectedSubject === 'all' 
-                              ? savedImages 
+                            const filteredImages = selectedSubject === 'all'
+                              ? savedImages
                               : savedImages.filter(img => img.subject === selectedSubject);
-                            
+
                             return filteredImages.length === 0 ? (
                               <div className="text-sm text-gray-500">
                                 {selectedSubject === 'all' ? 'Chưa có ảnh nào' : `Chưa có ảnh môn ${selectedSubject}`}
@@ -797,7 +800,7 @@ export default function ImagePage() {
                       Thành phần đã đặt
                     </h3>
                     <p className="text-xs text-gray-500 mb-3">💡 Chọn ảnh rồi nhấn Delete hoặc Backspace để xóa</p>
-                    <div 
+                    <div
                       className="space-y-3 overflow-y-auto pr-2"
                       style={{
                         maxHeight: '170px',
