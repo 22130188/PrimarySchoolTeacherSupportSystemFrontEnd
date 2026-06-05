@@ -1,8 +1,18 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
 import * as fabric from 'fabric';
-import { SLIDE_WIDTH, SLIDE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups } from './pptxConstants';
+import { SLIDE_WIDTH, SLIDE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups, registerFabricCustomProperties } from './pptxConstants';
+import { setupAlignmentGuides } from '../../utils/alignmentGuides';
+import { loadAllFonts } from '../../utils/fontLoader';
+import { createFabricShape } from '../../utils/fabricShapes';
+import {
+  createTableData,
+  tableDataToFabricImage,
+  ensureTableDataForImage,
+  isLikelyLegacyTableImage,
+  restoreEditableTableImages,
+} from '../../utils/tableModel';
 
-const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange, readOnly = false }, ref) => {
+const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange, onTableContextMenu, onTableDoubleClick, readOnly = false }, ref) => {
   const canvasElRef = useRef(null);
   const fabricRef = useRef(null);
   const historyRef = useRef({ undoStack: [], redoStack: [], isRestoring: false });
@@ -21,37 +31,47 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
   }, [onHistoryChange]);
 
   useEffect(() => {
-    const canvas = new fabric.Canvas(canvasElRef.current, {
-      width: SLIDE_WIDTH,
-      height: SLIDE_HEIGHT,
-      backgroundColor: '#ffffff',
-      selection: true,
-      preserveObjectStacking: true,
-      controlsAboveOverlay: true,
-    });
-    fabricRef.current = canvas;
-    canvas.selectionColor = 'rgba(99, 102, 241, 0.06)';
-    canvas.selectionBorderColor = '#6366f1';
-    canvas.selectionLineWidth = 1;
+    let disposed = false;
+    const initCanvas = async () => {
+      registerFabricCustomProperties(fabric);
+      await loadAllFonts();
+      if (disposed) return;
 
-    if (readOnly) {
-      canvas.selection = false;
-      canvas.defaultCursor = 'default';
-      canvas.hoverCursor = 'default';
-      canvas.on('object:added', (e) => {
-        const obj = e.target;
-        if (obj) {
-          obj.selectable = false;
-          obj.evented = false;
-          obj.hasControls = false;
-          obj.hasBorders = false;
-          obj.lockMovementX = true;
-          obj.lockMovementY = true;
-        }
+      const canvas = new fabric.Canvas(canvasElRef.current, {
+        width: SLIDE_WIDTH,
+        height: SLIDE_HEIGHT,
+        backgroundColor: '#ffffff',
+        selection: true,
+        preserveObjectStacking: true,
+        controlsAboveOverlay: true,
       });
-    }
+      fabricRef.current = canvas;
+      canvas.selectionColor = 'rgba(99, 102, 241, 0.06)';
+      canvas.selectionBorderColor = '#6366f1';
+      canvas.selectionLineWidth = 1;
 
-    setTimeout(() => saveToHistory(), 50);
+      if (!readOnly) {
+        setupAlignmentGuides(canvas, SLIDE_WIDTH, SLIDE_HEIGHT);
+      }
+
+      if (readOnly) {
+        canvas.selection = false;
+        canvas.defaultCursor = 'default';
+        canvas.hoverCursor = 'default';
+        canvas.on('object:added', (e) => {
+          const obj = e.target;
+          if (obj) {
+            obj.selectable = false;
+            obj.evented = false;
+            obj.hasControls = false;
+            obj.hasBorders = false;
+            obj.lockMovementX = true;
+            obj.lockMovementY = true;
+          }
+        });
+      }
+
+      setTimeout(() => saveToHistory(), 50);
 
     const handleSelection = () => {
       const active = canvas.getActiveObject();
@@ -65,8 +85,34 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
     };
 
     const handleMouseDown = (opt) => {
-      const group = opt.target;
+      const target = opt.target;
+      if (!target) return;
+
+      if (isLikelyLegacyTableImage(target)) {
+        ensureTableDataForImage(target);
+        if (opt.button === 3) {
+          opt.e.preventDefault();
+          onTableContextMenu?.({
+            x: opt.e.clientX,
+            y: opt.e.clientY,
+            table: target,
+          });
+          return;
+        }
+        return;
+      }
+
+      const group = target;
       if (!group || !group.isTable) return;
+      if (opt.button === 3) {
+        opt.e.preventDefault();
+        onTableContextMenu?.({
+          x: opt.e.clientX,
+          y: opt.e.clientY,
+          table: group,
+        });
+        return;
+      }
       const subTarget = opt.subTargets?.[0];
       if (subTarget && subTarget.type === 'textbox' && subTarget.editable) {
         setTimeout(() => {
@@ -78,22 +124,47 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       }
     };
 
+    const handleDblClick = (opt) => {
+      const target = opt.target;
+      if (target && isLikelyLegacyTableImage(target) && !readOnly) {
+        ensureTableDataForImage(target);
+        onTableDoubleClick?.(target);
+      }
+    };
+
     canvas.on('selection:created', handleSelection);
     canvas.on('selection:updated', handleSelection);
     canvas.on('selection:cleared', () => onSelectionChange?.(null));
     canvas.on('object:modified', handleModified);
     canvas.on('text:changed', handleModified);
+    canvas.on('text:selection:changed', () => {
+      const active = canvas.getActiveObject();
+      if (active && active.isEditing) {
+        onSelectionChange?.(active);
+      }
+    });
     canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:dblclick', handleDblClick);
+    };
 
-    return () => { canvas.dispose(); };
-  }, []); // eslint-disable-line
+    initCanvas();
+
+    return () => {
+      disposed = true;
+      if (fabricRef.current) {
+        fabricRef.current.dispose();
+        fabricRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.setZoom(zoom);
-    canvas.setDimensions({ width: SLIDE_WIDTH * zoom, height: SLIDE_HEIGHT * zoom });
-    canvas.renderAll();
+    canvas.__visualZoom = zoom;
+    canvas.setZoom(1);
+    canvas.setDimensions({ width: SLIDE_WIDTH, height: SLIDE_HEIGHT });
+    canvas.requestRenderAll();
   }, [zoom]);
 
   useEffect(() => {
@@ -152,6 +223,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
 
   useImperativeHandle(ref, () => ({
     getCanvas: () => fabricRef.current,
+    saveToHistory: () => saveToHistory(),
 
     addText: (preset = 'body') => {
       const canvas = fabricRef.current;
@@ -165,91 +237,51 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       };
       const cfg = presets[preset] || presets.body;
       const yOffset = canvas.getObjects().length * 50;
-      const itext = new fabric.IText(cfg.text, {
+      const textbox = new fabric.Textbox(cfg.text, {
         left: SLIDE_WIDTH / 2, top: Math.min(80 + yOffset, SLIDE_HEIGHT - 60),
         originX: 'center',
+        width: SLIDE_WIDTH - 100,
         fontFamily: cfg.fontFamily, fontSize: cfg.fontSize, fontWeight: cfg.fontWeight,
-        fill: cfg.fill || '#1e1e2d', editable: true, ...CONTROL_STYLE,
+        fill: cfg.fill || '#1e1e2d', editable: true, splitByGrapheme: false, ...CONTROL_STYLE,
       });
-      canvas.add(itext);
-      canvas.setActiveObject(itext);
+      canvas.add(textbox);
+      canvas.setActiveObject(textbox);
       canvas.renderAll();
       saveToHistory();
     },
 
-    addTable: (rows, cols) => {
+    addTable: async (rows, cols) => {
       const canvas = fabricRef.current;
       if (!canvas) return;
       const totalW = Math.min(SLIDE_WIDTH - 100, cols * 140);
-      const cellW = totalW / cols;
-      const cellH = 36;
-      const objects = [];
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          objects.push(new fabric.Rect({
-            left: c * cellW, top: r * cellH, width: cellW, height: cellH,
-            fill: r === 0 ? '#f1f5f9' : '#ffffff', stroke: '#cbd5e1',
-            strokeWidth: 1, strokeUniform: true,
-            selectable: false, evented: false,
-            lockMovementX: true, lockMovementY: true,
-            lockScalingX: true, lockScalingY: true, lockRotation: true,
-          }));
-          objects.push(new fabric.Textbox(r === 0 ? `Cột ${c + 1}` : ' ', {
-            left: c * cellW + 4, top: r * cellH + 4,
-            width: cellW - 8, fontSize: 13, fontFamily: 'Inter',
-            fill: r === 0 ? '#1e293b' : '#374151',
-            fontWeight: r === 0 ? '600' : 'normal',
-            editable: true, selectable: true, evented: true,
-            lockMovementX: true, lockMovementY: true,
-            lockScalingX: true, lockScalingY: true, lockRotation: true,
-            hasControls: false, hasBorders: false,
-          }));
-        }
+      const colWidth = totalW / cols;
+      const tableData = createTableData(rows, cols, 'plain');
+      tableData.colWidths = Array(cols).fill(colWidth);
+
+      try {
+        const img = await tableDataToFabricImage(tableData, {
+          left: SLIDE_WIDTH / 2,
+          top: SLIDE_HEIGHT / 2,
+          originX: 'center',
+          originY: 'center',
+          controlStyle: CONTROL_STYLE,
+        });
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+        saveToHistory();
+      } catch (err) {
+        console.error('Failed to create table:', err);
       }
-      const group = new fabric.Group(objects, {
-        left: SLIDE_WIDTH / 2, top: SLIDE_HEIGHT / 2,
-        originX: 'center', originY: 'center',
-        subTargetCheck: true, interactive: true, ...CONTROL_STYLE,
-      });
-      group.isTable = true;
-      group.tableRows = rows;
-      group.tableCols = cols;
-      canvas.add(group);
-      canvas.setActiveObject(group);
-      canvas.renderAll();
-      saveToHistory();
     },
 
     addShape: (shapeType) => {
       const canvas = fabricRef.current;
       if (!canvas) return;
-      let shape;
       const cx = SLIDE_WIDTH / 2, cy = SLIDE_HEIGHT / 2;
-      const shapeStyle = { fill: '#e0e7ff', stroke: '#6366f1', strokeWidth: 2, ...CONTROL_STYLE };
-
-      switch (shapeType) {
-        case 'rect':
-          shape = new fabric.Rect({ left: cx, top: cy, originX: 'center', originY: 'center', width: 200, height: 120, rx: 0, ry: 0, ...shapeStyle });
-          break;
-        case 'roundRect':
-          shape = new fabric.Rect({ left: cx, top: cy, originX: 'center', originY: 'center', width: 200, height: 120, rx: 16, ry: 16, ...shapeStyle });
-          break;
-        case 'circle':
-          shape = new fabric.Circle({ left: cx, top: cy, originX: 'center', originY: 'center', radius: 70, ...shapeStyle });
-          break;
-        case 'triangle':
-          shape = new fabric.Triangle({ left: cx, top: cy, originX: 'center', originY: 'center', width: 160, height: 140, ...shapeStyle });
-          break;
-        case 'line':
-          shape = new fabric.Line([cx - 120, cy, cx + 120, cy], { stroke: '#6366f1', strokeWidth: 3, ...CONTROL_STYLE });
-          break;
-        case 'arrow': {
-          const pts = [{ x: cx - 120, y: cy }, { x: cx + 100, y: cy }, { x: cx + 80, y: cy - 15 }, { x: cx + 120, y: cy }, { x: cx + 80, y: cy + 15 }, { x: cx + 100, y: cy }];
-          shape = new fabric.Polyline(pts, { fill: '', stroke: '#6366f1', strokeWidth: 3, ...CONTROL_STYLE });
-          break;
-        }
-        default: return;
-      }
+      const shape = createFabricShape(fabric, shapeType, cx, cy, { controlStyle: CONTROL_STYLE });
+      if (!shape) return;
+      shape.shapeType = shapeType;
       canvas.add(shape);
       canvas.setActiveObject(shape);
       canvas.renderAll();
@@ -296,7 +328,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       const current = hist.undoStack.pop();
       hist.redoStack.push(current);
       canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(() => {
-        restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -310,13 +342,21 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       const state = hist.redoStack.pop();
       hist.undoStack.push(state);
       canvas.loadFromJSON(JSON.parse(state)).then(() => {
-        restoreTableGroups(canvas, fabric); canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
     },
 
-    toJSON: () => fabricRef.current?.toJSON(CUSTOM_SERIALIZATION_PROPS),
+    toJSON: () => {
+      const canvas = fabricRef.current;
+      if (!canvas) return null;
+      restoreEditableTableImages(canvas, true);
+      const guidelines = canvas.getObjects().filter(o => o._isGuideline);
+      guidelines.forEach(g => canvas.remove(g));
+      const json = canvas.toJSON(CUSTOM_SERIALIZATION_PROPS);
+      return json;
+    },
 
     loadFromJSON: async (json) => {
       const canvas = fabricRef.current;
@@ -325,6 +365,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       if (json) { await canvas.loadFromJSON(typeof json === 'string' ? JSON.parse(json) : json); }
       else { canvas.clear(); canvas.backgroundColor = '#ffffff'; }
       restoreTableGroups(canvas, fabric);
+      restoreEditableTableImages(canvas);
       canvas.renderAll();
       historyRef.current.isRestoring = false;
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];
@@ -335,10 +376,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
     toDataURL: () => {
       const canvas = fabricRef.current;
       if (!canvas) return null;
-      const prev = canvas.getZoom();
-      canvas.setZoom(1); canvas.setDimensions({ width: SLIDE_WIDTH, height: SLIDE_HEIGHT });
       const url = canvas.toDataURL({ format: 'png', quality: 0.5, multiplier: 0.3 });
-      canvas.setZoom(prev); canvas.setDimensions({ width: SLIDE_WIDTH * prev, height: SLIDE_HEIGHT * prev });
       canvas.renderAll(); return url;
     },
 
@@ -373,8 +411,16 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
 
   return (
     <div className="flex-1 overflow-auto flex justify-center items-center px-5 py-8 pptx-canvas-bg">
-      <div className="relative shadow-[0_2px_8px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.12)] rounded-sm shrink-0 transition-shadow duration-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.1),0_12px_32px_rgba(0,0,0,0.16)]">
-        <canvas ref={canvasElRef} id="pptx-fabric-canvas" className="block rounded-sm" />
+      <div
+        className="relative shrink-0"
+        style={{ width: SLIDE_WIDTH * zoom, height: SLIDE_HEIGHT * zoom }}
+      >
+        <div
+          className="relative origin-top-left shadow-[0_2px_8px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.12)] rounded-sm transition-shadow duration-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.1),0_12px_32px_rgba(0,0,0,0.16)]"
+          style={{ width: SLIDE_WIDTH, height: SLIDE_HEIGHT, transform: `scale(${zoom})` }}
+        >
+          <canvas ref={canvasElRef} id="pptx-fabric-canvas" className="block rounded-sm" />
+        </div>
       </div>
     </div>
   );
