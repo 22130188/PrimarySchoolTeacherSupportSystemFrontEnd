@@ -22,6 +22,7 @@ export default function UserManagement() {
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuDirection, setMenuDirection] = useState('down');
 
   const { users, loading, error, refetch } = useUsers(activeTab, globalFilter);
 
@@ -121,7 +122,7 @@ export default function UserManagement() {
       cell: ({ getValue }) => {
         const role = USER_ROLE_BADGE[getValue()];
         return (
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${role.className}`}>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${role.className}`}>
             {role.label}
           </span>
         );
@@ -152,8 +153,8 @@ export default function UserManagement() {
       header: 'Trạng thái',
       cell: ({ getValue }) => (
         getValue()
-          ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Hoạt động</span>
-          : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" />Ngừng HĐ</span>
+          ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Hoạt động</span>
+          : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" />Ngừng HĐ</span>
       ),
     },
     {
@@ -163,13 +164,22 @@ export default function UserManagement() {
       cell: ({ row }) => (
         <div className="relative">
           <button
-            onClick={() => setOpenMenuId(openMenuId === row.original.id ? null : row.original.id)}
+            onClick={(e) => {
+              if (openMenuId === row.original.id) {
+                setOpenMenuId(null);
+                return;
+              }
+              const rect = e.currentTarget.getBoundingClientRect();
+              const spaceBelow = window.innerHeight - rect.bottom;
+              setMenuDirection(spaceBelow < 210 ? 'up' : 'down');
+              setOpenMenuId(row.original.id);
+            }}
             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
           {openMenuId === row.original.id && (
-            <div className="absolute right-0 top-8 w-40 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-10">
+            <div className={`absolute right-0 w-40 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20 ${menuDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
               <button
                 onClick={() => openDetail(row.original)}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
@@ -203,7 +213,7 @@ export default function UserManagement() {
         </div>
       ),
     },
-  ], [openMenuId]);
+  ], [openMenuId, menuDirection]);
 
   const table = useReactTable({
     data,
@@ -283,7 +293,7 @@ export default function UserManagement() {
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                      className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
                     >
                       {header.isPlaceholder ? null : (
                         <button

@@ -21,7 +21,7 @@ const formatDate = (value) => {
 };
 
 const LESSON_STATUS_OPTIONS = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
-const LESSON_TYPE_OPTIONS = ['DOCX', 'PPTX'];
+const LESSON_TYPE_OPTIONS = ['DOCX', 'PPTX', 'COLLABORA_DOCX', 'COLLABORA_PPTX'];
 const PERMISSION_LABELS = { VIEW: 'Chỉ xem', COPY: 'Tạo bản sao' };
 const PERMISSION_STYLE = { VIEW: 'bg-blue-50 text-blue-600', COPY: 'bg-emerald-50 text-emerald-600' };
 
@@ -114,12 +114,16 @@ export default function LessonsPage() {
 
   const lessonCards = useMemo(() => drafts.map((draft, index) => {
     const type = draft.type || 'DOCX';
+    const isCollabora = type === 'COLLABORA_DOCX' || type === 'COLLABORA_PPTX';
+    const isPptx = type === 'PPTX' || type === 'COLLABORA_PPTX';
     return {
       id: draft.id,
       title: draft.title || 'Bài giảng không tên',
       subject: draft.subject || 'Chưa chọn môn',
       grade: draft.grade || 'Chưa chọn lớp',
       type,
+      isCollabora,
+      isPptx,
       status: normalizeStatus(draft.status),
       date: formatDate(draft.updatedAt || draft.createdAt),
       color: type === 'PPTX' ? 'from-amber-400 to-orange-500' : DRAFT_COLORS[index % DRAFT_COLORS.length],
@@ -322,7 +326,7 @@ export default function LessonsPage() {
                                     onClick={() => setFilterType(filterType === type ? '' : type)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${filterType === type ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-violet-50 hover:text-violet-600'}`}
                                   >
-                                    {type === 'PPTX' ? 'PPTX' : 'DOCX'}
+                                    {type === 'COLLABORA_PPTX' ? 'PPTX Collabora' : type === 'COLLABORA_DOCX' ? 'DOCX Collabora' : type === 'PPTX' ? 'PPTX' : 'DOCX'}
                                   </button>
                                 ))}
                               </div>
@@ -430,15 +434,21 @@ export default function LessonsPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            const editorPath = lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
+                            const editorPath = lesson.isCollabora
+                              ? '/lessons/collabora-editor'
+                              : lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
                             navigate(`${editorPath}?draftId=${lesson.id}`);
                           }}
                           className="w-full text-left cursor-pointer"
                         >
                           <div className="h-22 bg-white border-b border-gray-100 flex items-center justify-center relative">
-                            {lesson.type === 'PPTX' ? (
+                            {lesson.isPptx ? (
                               <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center shadow-sm">
                                 <Presentation className="w-6 h-6 text-white" />
+                              </div>
+                            ) : lesson.isCollabora ? (
+                              <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
+                                <FileText className="w-6 h-6 text-white" />
                               </div>
                             ) : (
                               <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
@@ -451,7 +461,7 @@ export default function LessonsPage() {
                               </span>
                             ) : null}
                             <span className="absolute bottom-2 left-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                              {lesson.type === 'PPTX' ? '.pptx' : '.docx'}
+                              {lesson.isCollabora ? 'Collabora' : lesson.type === 'PPTX' ? '.pptx' : '.docx'}
                             </span>
                           </div>
                           <div className="p-3">
@@ -578,14 +588,17 @@ export default function LessonsPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const editorPath = lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
+                          const isCollaboraLesson = lesson.type === 'COLLABORA_DOCX' || lesson.type === 'COLLABORA_PPTX';
+                          const editorPath = isCollaboraLesson
+                            ? '/lessons/collabora-editor'
+                            : lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
                           const mode = lesson.permission === 'COPY' ? 'copy' : 'view';
-                          navigate(`${editorPath}?draftId=${lesson.id}&mode=${mode}`);
+                          navigate(isCollaboraLesson ? `${editorPath}?draftId=${lesson.id}` : `${editorPath}?draftId=${lesson.id}&mode=${mode}`);
                         }}
                         className="w-full text-left cursor-pointer"
                       >
                         <div className="h-22 bg-white border-b border-gray-100 flex items-center justify-center relative">
-                          {lesson.type === 'PPTX' ? (
+                          {lesson.type === 'PPTX' || lesson.type === 'COLLABORA_PPTX' ? (
                             <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center shadow-sm">
                               <Presentation className="w-6 h-6 text-white" />
                             </div>
@@ -599,7 +612,7 @@ export default function LessonsPage() {
                             {PERMISSION_LABELS[lesson.permission]}
                           </span>
                           <span className="absolute bottom-2 left-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                            {lesson.type === 'PPTX' ? '.pptx' : '.docx'}
+                            {lesson.type === 'COLLABORA_DOCX' || lesson.type === 'COLLABORA_PPTX' ? 'Collabora' : lesson.type === 'PPTX' ? '.pptx' : '.docx'}
                           </span>
                         </div>
                         <div className="p-3">

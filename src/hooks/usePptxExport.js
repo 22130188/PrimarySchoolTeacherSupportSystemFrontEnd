@@ -413,7 +413,7 @@ export function usePptxExport() {
     pptx.layout = 'A4_169';
     pptx.title = fileName || 'Bài giảng';
     pptx.subject = subject || '';
-    pptx.company = 'TeachAI';
+    pptx.company = 'TeachPrimary';
 
     registerFabricCustomProperties(fabric);
     const offscreenEl = document.createElement('canvas');

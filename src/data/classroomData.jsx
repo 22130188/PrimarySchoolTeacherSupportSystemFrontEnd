@@ -1,7 +1,7 @@
 import { Mail, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 export const BANNER_COLORS = [
-  'from-violet-600/90 to-violet-400/90'
+  'from-violet-500 to-teal-400'
 ];
 
 export const STATUS_BADGE = {

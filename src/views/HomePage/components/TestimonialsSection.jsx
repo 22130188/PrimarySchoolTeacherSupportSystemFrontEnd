@@ -53,15 +53,6 @@ export default function TestimonialsSection() {
         </div>
 
 
-        <div className="mt-16 flex flex-wrap justify-center gap-12 text-center">
-          {SOCIAL_PROOF.map((item) => (
-            <div key={item.label} className="group">
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">{item.icon}</div>
-              <div className="text-2xl font-extrabold text-gray-900">{item.num}</div>
-              <div className="text-sm text-gray-500 mt-1">{item.label}</div>
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );

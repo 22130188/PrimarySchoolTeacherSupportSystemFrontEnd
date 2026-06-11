@@ -110,14 +110,16 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher }) {
               <button
                 type="button"
                 onClick={() => {
-                  const editorPath = lesson.type === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
-                  const mode = isTeacher ? 'edit' : (lesson.permission === 'COPY' ? 'copy' : 'view');
+                  const isCollabora = lesson.type === 'COLLABORA_DOCX' || lesson.type === 'COLLABORA_PPTX';
+                  const isPptx = lesson.type === 'PPTX' || lesson.type === 'COLLABORA_PPTX';
+                  const editorPath = isCollabora ? '/lessons/collabora-editor' : (isPptx ? '/lessons/pptx-editor' : '/lessons/docx-editor');
+                  const mode = isCollabora ? (isTeacher ? 'edit' : 'view') : (isTeacher ? 'edit' : (lesson.permission === 'COPY' ? 'copy' : 'view'));
                   navigate(`${editorPath}?draftId=${lesson.id}&mode=${mode}&classroomId=${classroomId}`);
                 }}
                 className="w-full text-left cursor-pointer"
               >
                 <div className="h-22 bg-white border-b border-gray-100 flex items-center justify-center relative py-6">
-                  {lesson.type === 'PPTX' ? (
+                  {lesson.type === 'PPTX' || lesson.type === 'COLLABORA_PPTX' ? (
                     <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center shadow-sm">
                       <Presentation className="w-6 h-6 text-white" />
                     </div>
@@ -138,7 +140,7 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher }) {
                     </span>
                   )}
                   <span className="absolute bottom-2 left-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                    {lesson.type === 'PPTX' ? '.pptx' : '.docx'}
+                    {lesson.type === 'COLLABORA_PPTX' ? 'PPTX Collabora' : lesson.type === 'COLLABORA_DOCX' ? 'DOCX Collabora' : lesson.type === 'PPTX' ? '.pptx' : '.docx'}
                   </span>
                 </div>
                 <div className="p-3">

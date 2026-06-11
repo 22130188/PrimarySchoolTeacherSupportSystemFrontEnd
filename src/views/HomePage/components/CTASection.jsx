@@ -22,7 +22,7 @@ export default function CTASection() {
         </h2>
 
         <p className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Tham gia cùng hàng nghìn giáo viên tiểu học đang sử dụng TeachAI để tạo bài giảng song ngữ thông minh, tiết kiệm thời gian và nâng cao chất lượng học tập.
+          Tham gia cùng hàng nghìn giáo viên tiểu học đang sử dụng TeachPrimary để tạo bài giảng song ngữ thông minh, tiết kiệm thời gian và nâng cao chất lượng học tập.
         </p>
 
 

@@ -38,18 +38,14 @@ export default function HeroSection() {
       </div>
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-violet-100/60 backdrop-blur-sm border border-violet-200 text-violet-700 text-sm font-medium">
-          Tích hợp AI hỗ trợ giáo viên
-        </div>
-
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-violet-500 leading-tight mb-6 tracking-tight">
-          Hệ thống hỗ trợ
+          Hệ Thống Hỗ Trợ
           <span className="block mt-3">Giáo Viên Tiểu Học</span>
         </h1>
 
         <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
           Soạn bài giảng song ngữ, tạo bài kiểm tra tương tác và kiểm tra phát âm với{' '}
-          <strong className="text-gray-800">TeachAI</strong> — trợ lý thông minh dành riêng cho giáo viên tiểu học.
+          <strong className="text-gray-800">TeachPrimary</strong> — tích hợp AI dành riêng cho giáo viên tiểu học.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -61,14 +57,7 @@ export default function HeroSection() {
           </a>
         </div>
 
-        <div className="mt-8 mb-5 flex flex-wrap justify-center gap-8 text-gray-700">
-          {HERO_STATS.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="text-3xl font-extrabold">{stat.num}</div>
-              <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
-            </div>
-          ))}
-        </div>
+
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 z-20">

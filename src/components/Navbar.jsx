@@ -75,21 +75,27 @@ export default function Navbar() {
               <BookOpen className="w-4 h-4 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-teal-500 bg-clip-text text-transparent">
-              TeachAI
+              TeachPrimary
             </span>
           </a>
 
 
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-violet-600 rounded-lg hover:bg-violet-50 transition-all duration-200"
-              >
-                {link.label}
-              </a>
-            ))}
+            {isAuthenticatedUser ? (
+              navLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-violet-600 rounded-lg hover:bg-violet-50 transition-all duration-200"
+                >
+                  {link.label}
+                </a>
+              ))
+            ) : (
+              <p className="text-sm font-semibold text-gray-600 italic tracking-wide">
+                🌸 Chúc mừng Ngày Nhà giáo Việt Nam 20/11 — Tri ân thầy cô!
+              </p>
+            )}
           </div>
 
 
@@ -164,16 +170,22 @@ export default function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
           <div className="px-4 py-3 space-y-1">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="block px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all duration-200"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {link.label}
-              </a>
-            ))}
+            {isAuthenticatedUser ? (
+              NAV_LINKS.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="block px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all duration-200"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </a>
+              ))
+            ) : (
+              <p className="px-4 py-2.5 text-sm font-medium text-gray-500 italic">
+                🌸 Chúc mừng Ngày Nhà giáo Việt Nam 20/11 — Tri ân thầy cô!
+              </p>
+            )}
             <div className="pt-2 border-t border-gray-100 flex flex-col gap-2">
               {isAuthenticatedUser ? (
                 <>
