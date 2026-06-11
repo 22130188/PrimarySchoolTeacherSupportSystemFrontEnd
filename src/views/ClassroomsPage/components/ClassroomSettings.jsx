@@ -99,7 +99,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
 
   return (
     <div className="max-w-xl space-y-6">
-      <form onSubmit={handleSaveInfo} className="bg-white rounded-xl border border-gray-100 p-5 space-y-4 mt-5">
+      <form onSubmit={handleSaveInfo} className="bg-white rounded-xl border border-black/15 p-5 space-y-4 mt-5">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-gray-700">Thông tin lớp học</h3>
           <button
@@ -127,7 +127,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="VD: Toán lớp 3A"
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all"
+            className="w-full px-3 py-2 rounded-lg border border-black/15 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all"
           />
         </div>
 
@@ -138,7 +138,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Mô tả ngắn về lớp học..."
             rows={3}
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm resize-none transition-all"
+            className="w-full px-3 py-2 rounded-lg border border-black/15 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm resize-none transition-all"
           />
         </div>
 
@@ -150,7 +150,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
             <select
               value={gradeLevel}
               onChange={(e) => setGradeLevel(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white"
+              className="w-full px-3 py-2 rounded-lg border border-black/15 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white"
             >
               <option value="">Chọn khối lớp</option>
               {GRADE_LEVELS.map(g => (
@@ -166,7 +166,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
             <select
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white"
+              className="w-full px-3 py-2 rounded-lg border border-black/15 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white"
             >
               <option value="">Chọn môn học</option>
               {SUBJECTS.map(s => (
@@ -177,7 +177,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
         </div>
       </form>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3 mt-15">
+      <div className="bg-white rounded-xl border border-black/15 p-5 space-y-3 mt-15">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Link2 className="w-4 h-4 text-teal-500" />
           Link mời tham gia
@@ -206,7 +206,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
+      <div className="bg-white rounded-xl border border-black/15 p-5 space-y-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Keyboard className="w-4 h-4 text-violet-500" />
           Mã lớp học

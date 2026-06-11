@@ -110,7 +110,7 @@ export const TESTIMONIALS = [
     role: 'Giáo viên Tiếng Anh – Trường Tiểu học Nguyễn Du',
     avatar: '👩‍🏫',
     avatarBg: 'from-violet-400 to-purple-500',
-    quote: 'TeachAI giúp tôi soạn bài song ngữ nhanh gấp đôi. Tính năng TTS đọc chuẩn cả tiếng Anh lẫn tiếng Việt — học sinh rất hứng thú!',
+    quote: 'TeachPrimary giúp tôi soạn bài song ngữ nhanh gấp đôi. Tính năng TTS đọc chuẩn cả tiếng Anh lẫn tiếng Việt — học sinh rất hứng thú!',
     rating: 5,
     tag: 'Tiếng Anh Tiểu Học',
   },

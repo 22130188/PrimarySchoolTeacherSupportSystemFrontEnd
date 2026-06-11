@@ -18,6 +18,7 @@ import ImagePage          from '../views/ImagePage';
 import AIImagePage        from '../views/AIImagePage';
 import DocxEditorPage     from '../views/DocxEditorPage';
 import PptxEditorPage     from '../views/PptxEditorPage';
+import CollaboraEditorPage from '../views/CollaboraEditorPage';
 import PronunciationPage  from '../views/PronunciationPage';
 import ClassroomDetail    from '../views/ClassroomsPage/ClassroomDetail';
 import JoinByLinkPage     from '../views/JoinClassroom/JoinByLinkPage';
@@ -64,6 +65,7 @@ export default function AppRouter() {
                 <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [2])} />
                 <Route path="/lessons/docx-editor" element={renderPrivateRoute(<DocxEditorPage />, [1, 2])} />
                 <Route path="/lessons/pptx-editor" element={renderPrivateRoute(<PptxEditorPage />, [1, 2])} />
+                <Route path="/lessons/collabora-editor" element={renderPrivateRoute(<CollaboraEditorPage />, [1, 2])} />
                 <Route path="/tests"           element={renderPrivateRoute(<TestsPage />, [2])} />
                 <Route path="/tests/create"    element={renderPrivateRoute(<CreateTestPage />, [2])} />
                 <Route path="/tests/:id/edit"  element={renderPrivateRoute(<CreateTestPage />, [2])} />

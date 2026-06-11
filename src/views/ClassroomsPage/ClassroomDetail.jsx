@@ -10,7 +10,6 @@ import StreamTab from './components/StreamTab';
 import ClassroomListSidebar from './components/ClassroomListSidebar';
 import ClassroomLessonsTab from './components/ClassroomLessonsTab';
 import { useAuthStore } from '../../stores/authStore';
-import { BANNER_COLORS } from '../../data/classroomData';
 import {
   getClassroom,
   getRoster,
@@ -46,8 +45,6 @@ export default function ClassroomDetail() {
   const [postSubmitting, setPostSubmitting] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState(null);
 
-  const bannerColor = BANNER_COLORS[(parseInt(id) || 0) % BANNER_COLORS.length];
-
   const fetchClassroom = useCallback(async () => {
     try {
       const data = isTeacher ? await getClassroom(id) : await getStudentClassroom(id);
@@ -79,9 +76,13 @@ export default function ClassroomDetail() {
   }, [id]);
 
   useEffect(() => {
-    setLoading(true);
+    // Only show full loading spinner on first load, not when switching classrooms
+    if (!classroom) setLoading(true);
     Promise.all([fetchClassroom(), fetchRoster(), fetchPosts()])
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setActiveTab('stream');
+      });
   }, [fetchClassroom, fetchRoster, fetchPosts]);
 
   const handleRefreshRoster = () => {
@@ -211,46 +212,55 @@ export default function ClassroomDetail() {
           <div className="flex-1 flex flex-col">
           <main className="flex-1">
             <div className="sticky top-16 z-30">
-              <div className={`bg-gradient-to-r ${BANNER_COLORS[(classroom.id || 0) % BANNER_COLORS.length]} px-6 py-5 relative`}>
-                <div className="max-w-5xl mx-auto">
+              <div className="bg-white border-b border-gray-100 px-6 py-5 relative overflow-hidden">
+                <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-gradient-to-br from-violet-500 to-teal-400 opacity-20" />
+                <div className="absolute -bottom-20 -left-16 w-40 h-40 rounded-full bg-gradient-to-tr from-teal-400 to-violet-500 opacity-20" />
+                <div className="max-w-5xl mx-auto relative">
                   <button
                     onClick={() => navigate('/classrooms')}
-                    className="flex items-center gap-1 text-white/70 hover:text-white text-sm mb-2 transition-colors"
+                    className="flex items-center gap-1 text-gray-400 hover:text-gray-700 text-sm mb-3 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" /> Quay lại
                   </button>
-                  <h1 className="text-2xl font-bold text-white mb-0.5">{classroom.name}</h1>
-                  {classroom.description && (
-                    <p className="text-white/80 text-sm mb-1">{classroom.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 mt-2 flex-wrap">
-                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5">
-                      <Keyboard className="w-3.5 h-3.5 text-white/80" />
-                      <span className="text-white font-mono font-bold text-sm tracking-wider">{classroom.classCode}</span>
-                      <button onClick={() => copyToClipboard(classroom.classCode, 'code')}
-                        className="text-white/60 hover:text-white transition-colors">
-                        {copied === 'code' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      </button>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-teal-400 flex items-center justify-center shadow-lg shrink-0">
+                      <GraduationCap className="w-6 h-6 text-white" />
                     </div>
-                    <div className="flex items-center gap-2 text-white/90 text-sm">
-                      <Users className="w-4 h-4" />
-                      {classroom.studentCount} học sinh
+                    <div className="min-w-0">
+                      <h1 className="text-2xl font-bold text-gray-900 mb-0.5">{classroom.name}</h1>
+                      {classroom.description && (
+                        <p className="text-gray-500 text-sm mb-1">{classroom.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+                          <Keyboard className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-gray-800 font-mono font-bold text-sm tracking-wider">{classroom.classCode}</span>
+                          <button onClick={() => copyToClipboard(classroom.classCode, 'code')}
+                            className="text-gray-400 hover:text-violet-600 transition-colors">
+                            {copied === 'code' ? <CheckCircle2 className="w-3.5 h-3.5 text-teal-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
+                          <Users className="w-4 h-4 text-violet-500" />
+                          {classroom.studentCount} học sinh
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
+                          {classroom.teacherName}
+                        </div>
+                        {classroom.gradeLevel && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 text-sm font-semibold">
+                            <GraduationCap className="w-3.5 h-3.5" />
+                            Lớp {classroom.gradeLevel}
+                          </span>
+                        )}
+                        {classroom.subject && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 text-sm font-semibold">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            {classroom.subject}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-white/90 text-sm">
-                      {classroom.teacherName}
-                    </div>
-                    {classroom.gradeLevel && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-sm text-white text-sm font-semibold">
-                        <GraduationCap className="w-3.5 h-3.5" />
-                        Lớp {classroom.gradeLevel}
-                      </span>
-                    )}
-                    {classroom.subject && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-sm text-white text-sm font-semibold">
-                        <BookOpen className="w-3.5 h-3.5" />
-                        {classroom.subject}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>

@@ -117,45 +117,87 @@ const TextbookCanvas = forwardRef(function TextbookCanvas({
 
     bookHost.appendChild(bookElement);
 
-    const pageFlip = new PageFlip(bookElement, {
-      width: 520,
-      height: 736,
-      size: 'stretch',
-      minWidth: 280,
-      maxWidth: 960,
-      minHeight: 380,
-      maxHeight: 1280,
-      maxShadowOpacity: 0.35,
-      showCover: viewMode === 'double',
-      mobileScrollSupport: false,
-      usePortrait: true,
-      flippingTime: 850,
-      swipeDistance: 24,
-      disableFlipByClick: true,
-      drawShadow: true,
-      autoSize: false,
+    // Preload first few pages for instant display
+    const PRELOAD_COUNT = Math.min(4, pages.length);
+    const imageUrls = pages.map((page) => page.imageUrl);
+
+    const preloadImages = (urls) => {
+      return Promise.all(
+        urls.map((url) => new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(url);
+          img.onerror = () => resolve(url); // Don't block on errors
+          img.src = url;
+        }))
+      );
+    };
+
+    let destroyed = false;
+
+    // Preload initial pages then init PageFlip
+    preloadImages(imageUrls.slice(0, PRELOAD_COUNT)).then(() => {
+      if (destroyed) return;
+
+      const pageFlip = new PageFlip(bookElement, {
+        width: 520,
+        height: 736,
+        size: 'stretch',
+        minWidth: 280,
+        maxWidth: 960,
+        minHeight: 380,
+        maxHeight: 1280,
+        maxShadowOpacity: 0.35,
+        showCover: viewMode === 'double',
+        mobileScrollSupport: false,
+        usePortrait: true,
+        flippingTime: 850,
+        swipeDistance: 24,
+        disableFlipByClick: true,
+        drawShadow: true,
+        autoSize: false,
+      });
+
+      pageFlip.loadFromImages(imageUrls);
+
+      pageFlip.on('flip', (event) => {
+        const pageIndex = Number(event.data) || 0;
+        setSyncedPage(pageIndex);
+      });
+
+      pageFlipRef.current = pageFlip;
+
+      window.setTimeout(() => {
+        if (destroyed) return;
+        const initialPage = viewMode === 'double'
+          ? normalizePage(currentPageRef.current)
+          : currentPageRef.current;
+        pageFlip.turnToPage(initialPage);
+        setSyncedPage(initialPage);
+      }, 0);
+
+      // Lazy preload remaining pages in background (batches of 6)
+      const remainingUrls = imageUrls.slice(PRELOAD_COUNT);
+      const BATCH_SIZE = 6;
+      let batchIndex = 0;
+      const preloadNextBatch = () => {
+        if (destroyed || batchIndex >= remainingUrls.length) return;
+        const batch = remainingUrls.slice(batchIndex, batchIndex + BATCH_SIZE);
+        batchIndex += BATCH_SIZE;
+        preloadImages(batch).then(() => {
+          window.requestIdleCallback
+            ? window.requestIdleCallback(preloadNextBatch)
+            : window.setTimeout(preloadNextBatch, 100);
+        });
+      };
+      preloadNextBatch();
     });
-
-    pageFlip.loadFromImages(pages.map((page) => page.imageUrl));
-
-    pageFlip.on('flip', (event) => {
-      const pageIndex = Number(event.data) || 0;
-      setSyncedPage(pageIndex);
-    });
-
-    pageFlipRef.current = pageFlip;
-
-    window.setTimeout(() => {
-      const initialPage = viewMode === 'double'
-        ? normalizePage(currentPageRef.current)
-        : currentPageRef.current;
-      pageFlip.turnToPage(initialPage);
-      setSyncedPage(initialPage);
-    }, 0);
 
     return () => {
-      pageFlipRef.current = null;
-      pageFlip.destroy();
+      destroyed = true;
+      if (pageFlipRef.current) {
+        pageFlipRef.current.destroy();
+        pageFlipRef.current = null;
+      }
       bookHost.innerHTML = '';
     };
   }, [pages, viewMode, onPageChange]);

@@ -22,7 +22,7 @@ export default function AdminSidebar() {
         </div>
         {!sidebarCollapsed && (
           <span className="text-lg font-bold bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent whitespace-nowrap">
-            TeachAI Admin
+            TeachPrimary Admin
           </span>
         )}
 

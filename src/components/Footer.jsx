@@ -13,7 +13,7 @@ export default function Footer() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-teal-400 flex items-center justify-center shadow-lg">
                 <BookOpen className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">TeachAI</span>
+              <span className="text-xl font-bold text-white">TeachPrimary</span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed mb-6">
               Hệ thống hỗ trợ giáo viên tiểu học soạn bài giảng và kiểm tra trực tuyến song ngữ tích hợp AI.
@@ -71,7 +71,7 @@ export default function Footer() {
       <div className="border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-gray-500 text-center sm:text-left">
-            © 2025 TeachAI — Hệ thống hỗ trợ giáo viên tiểu học. 🇻🇳
+            © 2025 TeachPrimary — Hệ thống hỗ trợ giáo viên tiểu học. 🇻🇳
           </p>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">Được xây dựng với</span>

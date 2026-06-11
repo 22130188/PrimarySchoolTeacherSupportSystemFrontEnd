@@ -9,7 +9,7 @@ import SettingRow from '../../../common/SettingRow';
 export default function SystemSettings() {
   const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState({
-    siteName: 'TeachAI',
+    siteName: 'TeachPrimary',
     siteUrl: 'https://teachai.edu.vn',
     language: 'vi',
     maxUpload: '10',

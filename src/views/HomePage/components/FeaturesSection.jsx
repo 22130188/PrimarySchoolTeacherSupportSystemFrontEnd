@@ -14,7 +14,7 @@ export default function FeaturesSection() {
             <span className="block mt-3 text-violet-600">trong một nền tảng</span>
           </h2>
           <p className="text-lg text-gray-500 max-w-xl mx-auto">
-            Không còn phải dùng nhiều phần mềm rời rạc. TeachAI hợp nhất soạn bài, kiểm tra và quản lý lớp học.
+            Không còn phải dùng nhiều phần mềm rời rạc. TeachPrimary hợp nhất soạn bài, kiểm tra và quản lý lớp học.
           </p>
         </div>
 

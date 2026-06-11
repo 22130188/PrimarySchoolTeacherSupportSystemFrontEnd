@@ -31,6 +31,7 @@ export default function ClassroomManagement() {
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuDirection, setMenuDirection] = useState('down');
 
   const menuRef = useRef(null);
 
@@ -161,7 +162,7 @@ export default function ClassroomManagement() {
       accessorKey: 'studentCount',
       header: 'Học sinh',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 whitespace-nowrap">
           <div className="flex items-center gap-1.5 text-sm">
             <Users className="w-3.5 h-3.5 text-teal-500" />
             <span className="font-semibold text-gray-800">{row.original.studentCount}</span>
@@ -180,7 +181,7 @@ export default function ClassroomManagement() {
       cell: ({ getValue }) => {
         const val = getValue();
         return val ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 whitespace-nowrap">
             <GraduationCap className="w-3 h-3" />
             Lớp {val}
           </span>
@@ -193,7 +194,7 @@ export default function ClassroomManagement() {
       cell: ({ getValue }) => {
         const val = getValue();
         return val ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700 whitespace-nowrap">
             <BookOpen className="w-3 h-3" />
             {val}
           </span>
@@ -210,8 +211,8 @@ export default function ClassroomManagement() {
       header: 'Trạng thái',
       cell: ({ getValue }) => (
         getValue()
-          ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"><XCircle className="w-3 h-3" />Đã xóa</span>
-          : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"><CheckCircle2 className="w-3 h-3" />Hoạt động</span>
+          ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 whitespace-nowrap"><XCircle className="w-3 h-3" />Đã xóa</span>
+          : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 whitespace-nowrap"><CheckCircle2 className="w-3 h-3" />Hoạt động</span>
       ),
     },
     {
@@ -223,13 +224,22 @@ export default function ClassroomManagement() {
         return (
           <div className="relative" ref={openMenuId === cls.id ? menuRef : null}>
             <button
-              onClick={() => setOpenMenuId(openMenuId === cls.id ? null : cls.id)}
+              onClick={(e) => {
+                if (openMenuId === cls.id) {
+                  setOpenMenuId(null);
+                  return;
+                }
+                const rect = e.currentTarget.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - rect.bottom;
+                setMenuDirection(spaceBelow < 210 ? 'up' : 'down');
+                setOpenMenuId(cls.id);
+              }}
               className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
             {openMenuId === cls.id && (
-              <div className="absolute right-0 bottom-0 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-10 max-h-[84px] overflow-y-auto">
+              <div className={`absolute right-0 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20 ${menuDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                 <button
                   onClick={() => openDetail(cls)}
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
@@ -278,7 +288,7 @@ export default function ClassroomManagement() {
         );
       },
     },
-  ], [openMenuId]);
+  ], [openMenuId, menuDirection]);
 
   const table = useReactTable({
     data,
@@ -367,7 +377,7 @@ export default function ClassroomManagement() {
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                      className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
                     >
                       {header.isPlaceholder ? null : (
                         <button

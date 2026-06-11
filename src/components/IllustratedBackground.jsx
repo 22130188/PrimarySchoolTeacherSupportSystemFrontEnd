@@ -1,5 +1,5 @@
-import heroTeacherLeft from '../assets/images/hero-teacher-left.png';
-import heroStudentsRight from '../assets/images/hero-students-right.png';
+import heroTeacherLeft from '../assets/images/hero-teacher-left.jpg';
+import heroStudentsRight from '../assets/images/hero-students-right.jpg';
 
 export default function IllustratedBackground({
     children,
