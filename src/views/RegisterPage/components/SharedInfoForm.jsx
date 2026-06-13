@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { sendOtpAPI } from '../../../services/authApi';
-
-const GRADES = ['1A','1B','1C','2A','2B','2C','3A','3B','3C','4A','4B','4C','5A','5B','5C','Khác'];
+import { useCategories } from '../../../hooks/useCategories';
 
 const GoogleIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
@@ -27,7 +26,8 @@ export default function SharedInfoForm({
     const [countdown,    setCountdown]    = useState(0); // đếm ngược giây
     const timerRef = useRef(null);
 
-    //  timer khi unmount
+    const { grades } = useCategories();
+
     useEffect(() => () => clearInterval(timerRef.current), []);
 
     const startCountdown = () => {
@@ -164,7 +164,11 @@ export default function SharedInfoForm({
                             <select value={formData.grade} onChange={(e) => onChange({ grade: e.target.value })}
                                     className={`${inputCls} appearance-none cursor-pointer text-gray-600 pr-10`}>
                                 <option value="">-- Vui lòng chọn lớp --</option>
-                                {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+                                {grades.length > 0 ? (
+                                    grades.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)
+                                ) : (
+                                    <option value="" disabled>Không có dữ liệu lớp</option>
+                                )}
                             </select>
                             <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">▾</div>
                         </div>

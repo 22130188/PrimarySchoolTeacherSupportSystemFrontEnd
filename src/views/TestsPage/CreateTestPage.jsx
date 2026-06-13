@@ -8,7 +8,6 @@ import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { Plus, X, Trash2, Mic } from 'lucide-react';
 import testApi from '../../services/testApi';
-import lessonContents from '../../data/lessonContents';
 
 export default function CreateTestPage() {
   const navigate = useNavigate();
@@ -32,17 +31,13 @@ export default function CreateTestPage() {
     { value: 'EXERCISE', label: 'Bài tập' },
   ];
 
-  const [contentOptions, setContentOptions] = useState(lessonContents);
+  const [contentOptions, setContentOptions] = useState([]);
 
   useEffect(() => {
     const loadContents = async () => {
       try {
         const data = await testApi.getLessonContents();
-        const apiList = data || [];
-        const merged = apiList.concat(
-            lessonContents.filter((lc) => !apiList.some(d => d.subject === lc.subject && d.grade === lc.grade && d.name === lc.name))
-        );
-        setContentOptions(merged.length ? merged : lessonContents);
+        setContentOptions(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error('Failed to load lesson contents', e);
       }

@@ -7,7 +7,7 @@ import { Image, Upload, Download, Trash2, Palette, X, Plus, ChevronDown, Sun } f
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api.config.js';
 import { useAuthStore } from '../../stores/authStore';
-import { SUBJECT_OPTIONS } from '../../data/aiImageConstants';
+import { useCategories } from '../../hooks/useCategories';
 import { AI_IMAGE_ICON_LIBRARY } from '../../data/mockDashboardData.jsx';
 
 const COLOR_OPTIONS = [
@@ -16,6 +16,7 @@ const COLOR_OPTIONS = [
 ];
 
 export default function ImagePage() {
+  const { subjects } = useCategories();
   const [icons, setIcons] = useState([]);
   const [selectedIconId, setSelectedIconId] = useState(null);
   const [placedItems, setPlacedItems] = useState([]);
@@ -997,7 +998,7 @@ export default function ImagePage() {
                       className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition cursor-pointer focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
                     >
                       <option value="">-- Chọn môn học --</option>
-                      {SUBJECT_OPTIONS.map((opt) => (
+                      {subjects.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>

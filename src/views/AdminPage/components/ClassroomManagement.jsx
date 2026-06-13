@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useCategories } from '../../../hooks/useCategories';
 import {
   useReactTable,
   getCoreRowModel,
@@ -27,6 +28,7 @@ const CLASSROOM_TABS = [
 ];
 
 export default function ClassroomManagement() {
+  const { subjects, grades } = useCategories();
   const [activeTab, setActiveTab] = useState('active');
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
@@ -468,6 +470,8 @@ export default function ClassroomManagement() {
         onClose={() => { setEditOpen(false); setEditClassroom(null); }}
         onSubmit={handleEdit}
         classroom={editClassroom}
+        subjects={subjects}
+        grades={grades}
       />
 
       <ClassroomDetailModal

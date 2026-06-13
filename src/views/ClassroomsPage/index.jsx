@@ -8,7 +8,7 @@ import ClassroomCard from './components/ClassroomCard';
 import CreateClassroomDialog from './components/CreateClassroomDialog';
 import JoinClassroomDialog from './components/JoinClassroomDialog';
 import { useAuthStore } from '../../stores/authStore';
-import { GRADE_LEVELS, SUBJECTS } from '../../data/classroomData';
+import { useCategories } from '../../hooks/useCategories';
 import {
   getMyClassrooms, createClassroom,
   getMyJoinedClassrooms, joinByClassCode,
@@ -20,6 +20,7 @@ export default function ClassroomsPage() {
   const roleId = useAuthStore(s => s.roleId);
   const user = useAuthStore(s => s.user);
   const isTeacher = roleId === 2;
+  const { subjects, grades } = useCategories();
 
   const [classrooms, setClassrooms] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -213,7 +214,7 @@ export default function ClassroomsPage() {
                     className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all cursor-pointer"
                   >
                     <option value="">Tất cả môn</option>
-                    {SUBJECTS.map(s => (
+                    {subjects.map(s => (
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
@@ -223,7 +224,7 @@ export default function ClassroomsPage() {
                     className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all cursor-pointer"
                   >
                     <option value="">Tất cả lớp</option>
-                    {GRADE_LEVELS.map(g => (
+                    {grades.map(g => (
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
                   </select>
@@ -318,6 +319,8 @@ export default function ClassroomsPage() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
+        subjects={subjects}
+        grades={grades}
       />
       <JoinClassroomDialog
         open={showJoin}

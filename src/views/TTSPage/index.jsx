@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Volume2, Download, Loader, AlertCircle, CheckCircle, X, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+import { useCategories } from '../../hooks/useCategories';
 import TTSService from '../../services/TTSService';
 import AIToolPageLayout from '../../components/AIToolPageLayout';
 
 export default function TTSPage() {
   const { user } = useAuthStore();
+  const { subjects } = useCategories();
   const [text, setText] = useState('');
   const [convertedText, setConvertedText] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
@@ -274,12 +276,16 @@ export default function TTSPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Môn học</label>
-                        <input
+                        <select
                           value={audioSaveForm.subject}
                           onChange={(e) => setAudioSaveForm((prev) => ({ ...prev, subject: e.target.value }))}
-                          placeholder="Ví dụ: Toán, Tiếng Anh"
-                          className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
-                        />
+                          className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 appearance-none cursor-pointer"
+                        >
+                          <option value="">-- Chọn môn học --</option>
+                          {subjects.map((s) => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
                       </div>
 
                       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
