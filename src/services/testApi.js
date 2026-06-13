@@ -240,6 +240,54 @@ const testApi = {
     console.error('submitTestAnswers failed:', lastError);
     throw lastError || new Error('Failed to submit test answers');
   },
+
+  getAllLessonContents: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/tests/admin/lesson-contents`, {
+        headers: getAuthHeaders(),
+      });
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error fetching all lesson contents:', error);
+      return [];
+    }
+  },
+
+  createLessonContent: async (data) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/tests/admin/lesson-contents`, data, {
+        headers: getAuthHeaders(),
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating lesson content:', error);
+      throw error;
+    }
+  },
+
+  updateLessonContent: async (id, data) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/api/tests/admin/lesson-contents/${id}`, data, {
+        headers: getAuthHeaders(),
+      });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating lesson content:', error);
+      throw error;
+    }
+  },
+
+  deleteLessonContent: async (id) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/api/tests/admin/lesson-contents/${id}`, {
+        headers: getAuthHeaders(),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting lesson content:', error);
+      throw error;
+    }
+  },
 };
 
 export default testApi;

@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { updateClassesAPI } from '../../../services/userApi';
-
-const GRADES   = ['Lớp 1','Lớp 2','Lớp 3','Lớp 4','Lớp 5'];
-const SUBJECTS = ['Toán','Tiếng Việt','Tiếng Anh','Khoa học','Lịch sử','Địa lý','Âm nhạc','Mỹ thuật','Thể dục'];
+import { useCategories } from '../../../hooks/useCategories';
 
 const selectCls = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-white text-gray-600 transition appearance-none cursor-pointer';
 
-function ClassRow({ entry, index, total, onChange, onRemove }) {
+function ClassRow({ entry, index, total, onChange, onRemove, grades = [], subjects = [] }) {
     const toggleSubject = (sub) => {
         const current = entry.subjects || [];
         const updated  = current.includes(sub) ? current.filter((s) => s !== sub) : [...current, sub];
@@ -23,7 +21,7 @@ function ClassRow({ entry, index, total, onChange, onRemove }) {
                     <div className="relative">
                         <select value={entry.grade} onChange={(e) => onChange(index, 'grade', e.target.value)} className={selectCls}>
                             <option value="">Chọn lớp</option>
-                            {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+                            {grades.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
                         </select>
                         <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">▾</div>
                     </div>
@@ -46,8 +44,8 @@ function ClassRow({ entry, index, total, onChange, onRemove }) {
                             onChange={(e) => { if (e.target.value) toggleSubject(e.target.value); }}
                             className="flex-1 min-w-[120px] text-sm text-gray-400 outline-none bg-transparent cursor-pointer">
                             <option value="">Chọn môn học ▾</option>
-                            {SUBJECTS.filter((s) => !(entry.subjects || []).includes(s)).map((s) => (
-                                <option key={s} value={s}>{s}</option>
+                            {subjects.filter((s) => !(entry.subjects || []).includes(s.value)).map((s) => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
                             ))}
                         </select>
                     </div>
@@ -65,6 +63,7 @@ function ClassRow({ entry, index, total, onChange, onRemove }) {
 }
 
 export default function ClassInfo({ user, onUpdate }) {
+    const { subjects, grades } = useCategories();
     const initialClasses = user?.teacherClasses?.length
         ? user.teacherClasses.map((tc) => ({ grade: tc.grade, subjects: [tc.subject] }))
         : [{ grade: '', subjects: [] }];
@@ -106,7 +105,7 @@ export default function ClassInfo({ user, onUpdate }) {
             <div className="flex flex-col gap-6">
                 {classes.map((entry, i) => (
                     <ClassRow key={i} entry={entry} index={i} total={classes.length}
-                              onChange={handleChange} onRemove={handleRemove} />
+                              onChange={handleChange} onRemove={handleRemove} grades={grades} subjects={subjects} />
                 ))}
             </div>
 

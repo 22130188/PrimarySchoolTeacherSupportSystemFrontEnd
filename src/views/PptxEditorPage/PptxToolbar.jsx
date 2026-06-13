@@ -5,7 +5,7 @@ import {
   ZoomIn, ZoomOut, Maximize, Type, Trash2, Copy, Minus, Plus, ChevronDown, Presentation, Palette,
 } from 'lucide-react';
 import { FONT_LIST, FONT_SIZES, EDITOR_BTN, EDITOR_BTN_ACTIVE } from './pptxConstants';
-import { SUBJECTS, GRADES } from '../../data/editorSharedConstants';
+import { useCategories } from '../../hooks/useCategories';
 import ColorPicker from '../../common/ColorPicker';
 
 
@@ -15,6 +15,7 @@ export default function PptxToolbar({
   canUndo, canRedo, onUndo, onRedo, zoom, onZoomChange,
   onExport, onExportPdf, saveStatus, onBack, hasSelection, selectionType, onDeleteSelected, onDuplicateSelected,
 }) {
+  const { subjects, grades } = useCategories();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFillPicker, setShowFillPicker] = useState(false);
   const [showStrokePicker, setShowStrokePicker] = useState(false);
@@ -67,7 +68,7 @@ export default function PptxToolbar({
             className="h-8 px-2.5 border border-gray-200 rounded-lg text-[13px] text-gray-600 bg-white outline-none cursor-pointer transition-all hover:border-orange-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
           >
             <option value="">Chọn môn</option>
-            {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+            {subjects.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <select
             id="pptx-grade-select"
@@ -76,7 +77,7 @@ export default function PptxToolbar({
             className="h-8 px-2.5 border border-gray-200 rounded-lg text-[13px] text-gray-600 bg-white outline-none cursor-pointer transition-all hover:border-orange-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
           >
             <option value="">Chọn lớp</option>
-            {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+            {grades.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
           </select>
         </div>
 

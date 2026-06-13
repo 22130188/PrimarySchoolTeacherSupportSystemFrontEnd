@@ -13,6 +13,8 @@ export const ADMIN_MENU = [
   { key: 'users', label: 'Người dùng', icon: Users },
   { key: 'classrooms', label: 'Lớp học', icon: School },
   { key: 'subjects', label: 'Danh mục môn học', icon: BookOpen },
+  { key: 'categories', label: 'Quản lý Danh Mục', icon: GraduationCap },
+  { key: 'lesson_content', label: 'Nội dung Bài Học', icon: FileText },
   { key: 'tests', label: 'Bài kiểm tra', icon: ClipboardCheck },
   { key: 'lessons', label: 'Bài giảng', icon: FileText },
   { key: 'resources', label: 'Tài nguyên', icon: FolderOpen },

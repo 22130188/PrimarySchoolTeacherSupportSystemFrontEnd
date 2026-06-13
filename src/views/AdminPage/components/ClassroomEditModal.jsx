@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, School, GraduationCap, BookOpen } from 'lucide-react';
-import { GRADE_LEVELS, SUBJECTS } from '../../../data/classroomData';
 
-export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroom }) {
+export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroom, subjects = [], grades = [] }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
@@ -100,7 +99,7 @@ export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroo
                 className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 focus:bg-white transition-all duration-200 cursor-pointer"
               >
                 <option value="">Chọn khối lớp</option>
-                {GRADE_LEVELS.map(g => (
+                {grades.map(g => (
                   <option key={g.value} value={g.value}>{g.label}</option>
                 ))}
               </select>
@@ -116,7 +115,7 @@ export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroo
                 className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 focus:bg-white transition-all duration-200 cursor-pointer"
               >
                 <option value="">Chọn môn học</option>
-                {SUBJECTS.map(s => (
+                {subjects.map(s => (
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>

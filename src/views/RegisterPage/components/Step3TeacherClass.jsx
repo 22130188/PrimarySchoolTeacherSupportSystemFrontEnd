@@ -1,9 +1,8 @@
-const GRADES   = ['1A','1B','1C','2A','2B','2C','3A','3B','3C','4A','4B','4C','5A','5B','5C'];
-const SUBJECTS = ['Toán','Tiếng Việt','Tiếng Anh','Khoa học','Lịch sử','Địa lý','Âm nhạc','Mỹ thuật','Thể dục','Khác'];
+import { useCategories } from '../../../hooks/useCategories';
 
 const selectCls = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-white text-gray-600 transition appearance-none cursor-pointer';
 
-function ClassRow({ entry, index, total, onChange, onRemove }) {
+function ClassRow({ entry, index, total, onChange, onRemove, classrooms = [], subjects = [] }) {
     return (
         <div>
             {index > 0 && <hr className="border-violet-200 mb-5" />}
@@ -15,7 +14,11 @@ function ClassRow({ entry, index, total, onChange, onRemove }) {
                     <div className="relative">
                         <select value={entry.grade} onChange={(e) => onChange(index, 'grade', e.target.value)} className={selectCls}>
                             <option value="">Vui lòng chọn lớp</option>
-                            {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+                            {classrooms.length > 0 ? (
+                                classrooms.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)
+                            ) : (
+                                <option value="" disabled>Không có dữ liệu lớp</option>
+                            )}
                         </select>
                         <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">▾</div>
                     </div>
@@ -27,7 +30,11 @@ function ClassRow({ entry, index, total, onChange, onRemove }) {
                     <div className="relative">
                         <select value={entry.subject} onChange={(e) => onChange(index, 'subject', e.target.value)} className={selectCls}>
                             <option value="">Vui lòng chọn môn học</option>
-                            {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                            {subjects.length > 0 ? (
+                                subjects.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)
+                            ) : (
+                                <option value="" disabled>Không có dữ liệu môn học</option>
+                            )}
                         </select>
                         <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">▾</div>
                     </div>
@@ -46,6 +53,7 @@ function ClassRow({ entry, index, total, onChange, onRemove }) {
 }
 
 export default function Step3TeacherClass({ classes, setClasses, onFinish, onBack, loading }) {
+    const { classrooms, subjects } = useCategories();
     const handleChange = (index, field, value) =>
         setClasses((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
     const handleAdd    = () => setClasses((prev) => [...prev, { grade: '', subject: '' }]);
@@ -59,7 +67,8 @@ export default function Step3TeacherClass({ classes, setClasses, onFinish, onBac
             <div className="flex flex-col gap-6">
                 {classes.map((entry, i) => (
                     <ClassRow key={i} entry={entry} index={i} total={classes.length}
-                              onChange={handleChange} onRemove={handleRemove} />
+                              onChange={handleChange} onRemove={handleRemove}
+                              classrooms={classrooms} subjects={subjects} />
                 ))}
             </div>
 

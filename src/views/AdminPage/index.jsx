@@ -11,21 +11,25 @@ import ClassroomManagement from './components/ClassroomManagement';
 import SubjectManagement from './components/SubjectManagement';
 import TestManagement from './components/TestManagement';
 import LessonManagement from './components/LessonManagement';
+import LessonContentManagement from './components/LessonContentManagement';
 import ResourceManagement from './components/ResourceManagement';
 import AccessManagement from './components/AccessManagement';
 import SystemSettings from './components/SystemSettings';
+import CategoryManagement from './components/CategoryManagement';
 
 const PAGE_MAP = {
-  dashboard:  DashboardOverview,
-  profile:    AdminProfile,
-  users:      UserManagement,
-  classrooms: ClassroomManagement,
-  subjects:   SubjectManagement,
-  tests:      TestManagement,
-  lessons:    LessonManagement,
-  resources:  ResourceManagement,
-  access:     AccessManagement,
-  settings:   SystemSettings,
+  dashboard:      DashboardOverview,
+  profile:        AdminProfile,
+  users:          UserManagement,
+  classrooms:     ClassroomManagement,
+  subjects:       SubjectManagement,
+  tests:          TestManagement,
+  lessons:        LessonManagement,
+  lesson_content: LessonContentManagement,
+  resources:      ResourceManagement,
+  categories:     CategoryManagement,
+  access:         AccessManagement,
+  settings:       SystemSettings,
 };
 
 export default function AdminPage() {
