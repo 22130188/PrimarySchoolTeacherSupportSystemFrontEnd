@@ -1,4 +1,4 @@
-import { Menu, Search, Bell, ChevronRight } from 'lucide-react';
+import { Menu, Search, Bell, ChevronRight, LogOut } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminStore } from '../../../stores/adminStore';
@@ -86,6 +86,19 @@ export default function AdminHeader() {
             <span className="text-sm font-medium text-gray-700 hidden md:inline">
               {user?.fullName || user?.name || user?.username || roleName || 'Admin'}
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+            title="Đăng xuất"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden lg:inline">Đăng xuất</span>
           </button>
         </div>
       </div>

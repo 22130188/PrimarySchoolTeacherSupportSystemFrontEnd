@@ -1,12 +1,8 @@
-import { BookOpen, ChevronLeft, ChevronRight, LogOut, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { BookOpen, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { ADMIN_MENU } from '../../../data/adminDashboardData';
 import { useAdminStore } from '../../../stores/adminStore';
-import { useAuthStore } from '../../../stores/authStore';
 
 export default function AdminSidebar() {
-  const navigate = useNavigate();
-  const logout = useAuthStore((s) => s.logout);
   const {
     activePage, setActivePage,
     sidebarCollapsed, toggleSidebar,
@@ -16,12 +12,12 @@ export default function AdminSidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-full">
 
-      <div className={`flex items-center gap-3 px-5 pt-6 pb-8 ${sidebarCollapsed ? 'justify-center px-3' : ''}`}>
+      <div className={`flex items-center gap-2.5 px-5 pt-6 pb-8 ${sidebarCollapsed ? 'justify-center px-3' : ''}`}>
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/25 flex-shrink-0">
           <BookOpen className="w-[18px] h-[18px] text-white" />
         </div>
         {!sidebarCollapsed && (
-          <span className="text-lg font-bold bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent whitespace-nowrap">
+          <span className="text-base font-bold bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent whitespace-nowrap">
             TeachPrimary Admin
           </span>
         )}
@@ -64,7 +60,7 @@ export default function AdminSidebar() {
       </nav>
 
 
-      <div className="px-3 pb-4 space-y-2">
+      <div className="px-3 space-y-2 shrink-0" style={{ paddingBottom: 24 }}>
 
         <button
           onClick={toggleSidebar}
@@ -78,17 +74,6 @@ export default function AdminSidebar() {
         </button>
 
 
-        <button
-          onClick={() => {
-            logout();
-            navigate('/login');
-          }}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all duration-200 ${sidebarCollapsed ? 'justify-center px-2' : ''}`}
-          title={sidebarCollapsed ? 'Đăng xuất' : undefined}
-        >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {!sidebarCollapsed && <span>Đăng xuất</span>}
-        </button>
       </div>
     </div>
   );

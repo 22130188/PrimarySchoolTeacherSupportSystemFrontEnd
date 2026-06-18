@@ -34,6 +34,26 @@ const collaboraApi = {
     return response.data;
   },
 
+  getTemplateEditorSession: async (templateId) => {
+    const response = await axios.get(`${GATEWAY_URL}/api/lessons/templates/${templateId}/editor`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  },
+
+  uploadDraft: async ({ file, title, subject, grade }) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    formData.append('subject', subject);
+    formData.append('grade', grade);
+
+    const response = await axios.post(`${BASE_URL}/drafts/upload`, formData, {
+      headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
   createImageAsset: async ({ file, sourceUrl }) => {
     const formData = new FormData();
     if (file) formData.append('file', file);

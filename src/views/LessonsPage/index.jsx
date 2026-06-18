@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { BookOpen, Plus, Search, FolderOpen, Star, FileText, Presentation, Trash2, Loader2, Archive, RefreshCw, AlertTriangle, Share2, Eye, Copy, Users, SlidersHorizontal, X, School } from 'lucide-react';
-import { LESSON_STATUS_LABEL, LESSON_STATUS_STYLE as STATUS_STYLE } from '../../data/mockDashboardData';
+import { BookOpen, Plus, Search, FileText, Presentation, Trash2, Loader2, RefreshCw, AlertTriangle, Share2, Eye, Copy, Users, School, Edit3, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SUBJECTS, GRADES } from '../../data/editorSharedConstants';
 import { DRAFT_COLORS, DRAFT_EMOJIS, SUBJECT_EMOJI } from '../../data/lessonData';
 import CreateLessonModal from './CreateLessonModal';
 import ShareLessonModal from './ShareLessonModal';
 import ShareToClassroomModal from './ShareToClassroomModal';
+import LessonTemplatesTab from './LessonTemplatesTab';
 import lessonDraftApi from '../../services/lessonDraftApi';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -20,14 +20,15 @@ const formatDate = (value) => {
   return date.toLocaleDateString('vi-VN');
 };
 
-const LESSON_STATUS_OPTIONS = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
-const LESSON_TYPE_OPTIONS = ['DOCX', 'PPTX', 'COLLABORA_DOCX', 'COLLABORA_PPTX'];
+const TYPE_FILTER_OPTIONS = [
+  { value: '', label: 'Tất cả' },
+  { value: 'DOCX', label: 'DOCX' },
+  { value: 'PPTX', label: 'PPTX' },
+  { value: 'COLLABORA_DOCX', label: 'DOCX Collabora' },
+  { value: 'COLLABORA_PPTX', label: 'PPTX Collabora' },
+];
 const PERMISSION_LABELS = { VIEW: 'Chỉ xem', COPY: 'Tạo bản sao' };
 const PERMISSION_STYLE = { VIEW: 'bg-blue-50 text-blue-600', COPY: 'bg-emerald-50 text-emerald-600' };
-
-const normalizeStatus = (status) => (
-  LESSON_STATUS_OPTIONS.includes(status) ? status : 'DRAFT'
-);
 
 export default function LessonsPage() {
   const navigate = useNavigate();
@@ -39,16 +40,21 @@ export default function LessonsPage() {
   const [loadingDrafts, setLoadingDrafts] = useState(true);
   const [draftError, setDraftError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
-  const [updatingStatusId, setUpdatingStatusId] = useState(null);
+  const [editingLesson, setEditingLesson] = useState(null);
+  const [updatingLesson, setUpdatingLesson] = useState(false);
+  const [editLessonForm, setEditLessonForm] = useState({
+    title: '',
+    subject: '',
+    grade: '',
+  });
 
   const [searchTitle, setSearchTitle] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
   const [filterGrade, setFilterGrade] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
   const debounceRef = useRef(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const activeFilterCount = [filterSubject, filterGrade, filterType, filterStatus].filter(Boolean).length;
+  const skipInitialDraftSearchRef = useRef(true);
+  const hasActiveFilters = Boolean(filterSubject || filterGrade || filterType);
 
   // Sharing state
   const [activeTab, setActiveTab] = useState('my');
@@ -90,26 +96,34 @@ export default function LessonsPage() {
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    fetchDrafts('', '', '');
-  }, [fetchDrafts]);
-
-  // Fetch shared lessons when tab changes
   useEffect(() => {
     if (activeTab === 'shared' && isTeacher) {
       fetchSharedLessons();
     }
   }, [activeTab, isTeacher, fetchSharedLessons]);
 
-  // Debounced search on title change
   useEffect(() => {
     if (activeTab !== 'my') return;
+
+    const isFirstRun = skipInitialDraftSearchRef.current;
+    skipInitialDraftSearchRef.current = false;
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
+
+    if (isFirstRun) {
       fetchDrafts(searchTitle, filterSubject, filterGrade);
-    }, 400);
-    return () => clearTimeout(debounceRef.current);
+    } else {
+      debounceRef.current = setTimeout(() => {
+        fetchDrafts(searchTitle, filterSubject, filterGrade);
+      }, 400);
+    }
+
+    return () => {
+      clearTimeout(debounceRef.current);
+      if (isFirstRun) {
+        skipInitialDraftSearchRef.current = true;
+      }
+    };
   }, [searchTitle, filterSubject, filterGrade, fetchDrafts, activeTab]);
 
   const lessonCards = useMemo(() => drafts.map((draft, index) => {
@@ -124,43 +138,87 @@ export default function LessonsPage() {
       type,
       isCollabora,
       isPptx,
-      status: normalizeStatus(draft.status),
       date: formatDate(draft.updatedAt || draft.createdAt),
       color: type === 'PPTX' ? 'from-amber-400 to-orange-500' : DRAFT_COLORS[index % DRAFT_COLORS.length],
       emoji: type === 'PPTX' ? '📊' : (SUBJECT_EMOJI[draft.subject] || DRAFT_EMOJIS[index % DRAFT_EMOJIS.length]),
     };
   }), [drafts]);
 
-  const statusCounts = useMemo(() => lessonCards.reduce((counts, lesson) => ({
+  const typeCounts = useMemo(() => lessonCards.reduce((counts, lesson) => ({
     ...counts,
-    [lesson.status]: (counts[lesson.status] || 0) + 1,
-  }), { DRAFT: 0, PUBLISHED: 0, ARCHIVED: 0 }), [lessonCards]);
+    docx: counts.docx + (lesson.type === 'DOCX' || lesson.type === 'COLLABORA_DOCX' ? 1 : 0),
+    pptx: counts.pptx + (lesson.type === 'PPTX' || lesson.type === 'COLLABORA_PPTX' ? 1 : 0),
+  }), { docx: 0, pptx: 0 }), [lessonCards]);
 
   const visibleLessonCards = useMemo(() => (
     lessonCards.filter((lesson) => (
       (!filterType || lesson.type === filterType)
-      && (!filterStatus || lesson.status === filterStatus)
     ))
-  ), [filterStatus, filterType, lessonCards]);
+  ), [filterType, lessonCards]);
 
-  const handleStatusChange = async (lessonId, status) => {
+  const ITEMS_PER_PAGE = 6;
+  const [myPage, setMyPage] = useState(1);
+  const myTotalPages = Math.max(1, Math.ceil(visibleLessonCards.length / ITEMS_PER_PAGE));
+  const paginatedLessonCards = useMemo(() => {
+    const start = (myPage - 1) * ITEMS_PER_PAGE;
+    return visibleLessonCards.slice(start, start + ITEMS_PER_PAGE);
+  }, [visibleLessonCards, myPage]);
+
+  useEffect(() => {
+    setMyPage(1);
+  }, [searchTitle, filterSubject, filterGrade, filterType]);
+
+  const openEditLessonModal = (lesson) => {
+    setEditingLesson(lesson);
+    setEditLessonForm({
+      title: lesson.title || '',
+      subject: SUBJECTS.includes(lesson.subject) ? lesson.subject : '',
+      grade: GRADES.includes(lesson.grade) ? lesson.grade : '',
+    });
+  };
+
+  const closeEditLessonModal = () => {
+    if (updatingLesson) return;
+    setEditingLesson(null);
+  };
+
+  const updateEditLessonForm = (field, value) => {
+    setEditLessonForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleUpdateLesson = async (event) => {
+    event.preventDefault();
+    if (!editingLesson) return;
+    if (!editLessonForm.title.trim() || !editLessonForm.subject || !editLessonForm.grade) {
+      alert('Vui lòng nhập đầy đủ tên bài giảng, môn học và lớp.');
+      return;
+    }
+
+    const payload = {
+      title: editLessonForm.title.trim(),
+      subject: editLessonForm.subject,
+      grade: editLessonForm.grade,
+    };
+
     try {
-      setUpdatingStatusId(lessonId);
-      const updatedDraft = await lessonDraftApi.updateStatus(lessonId, status);
-      setDrafts(prev => prev.map(draft => (
-        draft.id === lessonId ? { ...draft, status: updatedDraft.status || status, updatedAt: updatedDraft.updatedAt || draft.updatedAt } : draft
+      setUpdatingLesson(true);
+      const updated = await lessonDraftApi.updateMetadata(editingLesson.id, payload);
+      setDrafts((prev) => prev.map((draft) => (
+        draft.id === editingLesson.id ? { ...draft, ...payload, ...(updated || {}) } : draft
       )));
+      setEditingLesson(null);
     } catch (err) {
-      alert('Không thể cập nhật trạng thái: ' + (err.response?.data?.message || err.message));
+      console.error('Failed to update lesson metadata:', err);
+      alert('Không thể cập nhật bài giảng: ' + (err.response?.data?.message || err.message));
     } finally {
-      setUpdatingStatusId(null);
+      setUpdatingLesson(false);
     }
   };
 
   const handleDuplicate = async (draftId) => {
     try {
       setDuplicatingId(draftId);
-      const result = await lessonDraftApi.duplicateSharedDraft(draftId);
+      await lessonDraftApi.duplicateSharedDraft(draftId);
       alert('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
       // Switch to "my" tab and refresh
       setActiveTab('my');
@@ -179,7 +237,7 @@ export default function LessonsPage() {
         <DashboardSidebar />
         <div className="flex-1 flex flex-col min-h-[calc(100vh-64px)]" style={{ marginLeft: '72px' }}>
 
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-6 pb-24">
             <div className="max-w-6xl mx-auto">
 
               <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
@@ -212,6 +270,12 @@ export default function LessonsPage() {
                           <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-violet-100 text-violet-600 font-bold">{sharedLessons.length}</span>
                         )}
                       </button>
+                      <button
+                        onClick={() => setActiveTab('templates')}
+                        className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${activeTab === 'templates' ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        Mẫu bài giảng
+                      </button>
                     </div>
                   )}
                   {!isStudent && (
@@ -239,9 +303,9 @@ export default function LessonsPage() {
               {/* ==================== MY LESSONS TAB ==================== */}
               {activeTab === 'my' && (
                 <>
-                  {!loadingDrafts && !draftError && (
-                    <div className="mb-6 space-y-3">
-                      <div className="flex items-center gap-2">
+                  {!draftError && (
+                    <div className="mb-5 bg-white rounded-xl border border-gray-100 p-3 shadow-sm space-y-3">
+                      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
                         <div className="flex-1 relative">
                           <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                           <input
@@ -250,122 +314,69 @@ export default function LessonsPage() {
                             placeholder="Tìm kiếm bài giảng..."
                             value={searchTitle}
                             onChange={(e) => setSearchTitle(e.target.value)}
-                            className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all"
+                            className="h-10 w-full pl-11 pr-4 rounded-xl bg-gray-50 border border-gray-200 text-sm outline-none focus:bg-white focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
                           />
                         </div>
-                        <button
-                          id="lessons-filter-toggle"
-                          type="button"
-                          onClick={() => setShowFilters(f => !f)}
-                          className={`relative inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ${showFilters || activeFilterCount > 0
-                              ? 'bg-violet-50 border-violet-200 text-violet-700'
-                              : 'bg-white border-gray-200 text-gray-600 hover:border-violet-200 hover:text-violet-600'
-                            }`}
-                        >
-                          <SlidersHorizontal className="w-4 h-4" />
-                          Bộ lọc
-                          {activeFilterCount > 0 && (
-                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-violet-500 text-white text-[10px] font-bold">{activeFilterCount}</span>
-                          )}
-                        </button>
-                        {activeFilterCount > 0 && (
+                        {hasActiveFilters && (
                           <button
                             type="button"
-                            onClick={() => { setFilterSubject(''); setFilterGrade(''); setFilterType(''); setFilterStatus(''); }}
-                            className="inline-flex items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-medium text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                            onClick={() => { setFilterSubject(''); setFilterGrade(''); setFilterType(''); }}
+                            className="inline-flex h-10 items-center justify-center px-4 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
                           >
-                            <X className="w-3.5 h-3.5" />
-                            Xóa lọc
+                            Xóa bộ lọc
                           </button>
                         )}
                       </div>
 
-                      {showFilters && (
-                        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm space-y-4 animate-in slide-in-from-top-2 duration-200">
-                          {/* Subject filter */}
-                          <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Môn học</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {SUBJECTS.map((s) => (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  onClick={() => setFilterSubject(filterSubject === s ? '' : s)}
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${filterSubject === s ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-violet-50 hover:text-violet-600'}`}
-                                >
-                                  {s}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          {/* Grade filter */}
-                          <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Khối lớp</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {GRADES.map((g) => (
-                                <button
-                                  key={g}
-                                  type="button"
-                                  onClick={() => setFilterGrade(filterGrade === g ? '' : g)}
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${filterGrade === g ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-violet-50 hover:text-violet-600'}`}
-                                >
-                                  {g}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          {/* Type + Status filters on same row */}
-                          <div className="flex gap-8">
-                            <div>
-                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Định dạng</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {LESSON_TYPE_OPTIONS.map((type) => (
-                                  <button
-                                    key={type}
-                                    type="button"
-                                    onClick={() => setFilterType(filterType === type ? '' : type)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${filterType === type ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-violet-50 hover:text-violet-600'}`}
-                                  >
-                                    {type === 'COLLABORA_PPTX' ? 'PPTX Collabora' : type === 'COLLABORA_DOCX' ? 'DOCX Collabora' : type === 'PPTX' ? 'PPTX' : 'DOCX'}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Trạng thái</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {LESSON_STATUS_OPTIONS.map((status) => (
-                                  <button
-                                    key={status}
-                                    type="button"
-                                    onClick={() => setFilterStatus(filterStatus === status ? '' : status)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${filterStatus === status ? 'bg-violet-500 text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-violet-50 hover:text-violet-600'}`}
-                                  >
-                                    {LESSON_STATUS_LABEL[status]}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
+                      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_2fr]">
+                        <select
+                          value={filterSubject}
+                          onChange={(event) => setFilterSubject(event.target.value)}
+                          className="h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:bg-white focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                        >
+                          <option value="">Tất cả môn học</option>
+                          {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                        </select>
+                        <select
+                          value={filterGrade}
+                          onChange={(event) => setFilterGrade(event.target.value)}
+                          className="h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 text-sm outline-none focus:bg-white focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                        >
+                          <option value="">Tất cả lớp</option>
+                          {GRADES.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
+                        </select>
+                        <div className="flex h-9 items-center gap-1.5 rounded-lg bg-gray-50 border border-gray-200 p-1 overflow-x-auto">
+                          {TYPE_FILTER_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setFilterType(option.value)}
+                              className={`h-7 shrink-0 rounded-md px-3 text-xs font-semibold transition-all ${filterType === option.value
+                                  ? 'bg-violet-600 text-white shadow-sm'
+                                  : 'text-gray-500 hover:bg-white hover:text-violet-600'
+                                }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
 
                   {!loadingDrafts && !draftError && (
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
                       {[
-                        { icon: <FileText className="w-5 h-5" />, label: 'Tổng bài giảng', value: String(lessonCards.length), color: 'from-violet-500 to-indigo-500' },
-                        { icon: <FolderOpen className="w-5 h-5" />, label: 'Bản nháp', value: String(statusCounts.DRAFT), color: 'from-amber-500 to-orange-500' },
-                        { icon: <Star className="w-5 h-5" />, label: 'Đã xuất bản', value: String(statusCounts.PUBLISHED), color: 'from-emerald-500 to-teal-500' },
-                        { icon: <Archive className="w-5 h-5" />, label: 'Đã lưu trữ', value: String(statusCounts.ARCHIVED), color: 'from-gray-500 to-slate-500' },
+                        { icon: <FileText className="w-4 h-4" />, label: 'Tổng bài giảng', value: String(lessonCards.length), color: 'from-violet-500 to-indigo-500' },
+                        { icon: <FileText className="w-4 h-4" />, label: 'DOCX', value: String(typeCounts.docx), color: 'from-blue-500 to-sky-500' },
+                        { icon: <Presentation className="w-4 h-4" />, label: 'PPTX', value: String(typeCounts.pptx), color: 'from-amber-500 to-orange-500' },
                       ].map((stat, i) => (
-                        <div key={i} className="bg-white rounded-xl p-4 border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow duration-200">
-                          <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-white shadow-sm`}>
+                        <div key={i} className="bg-white rounded-xl px-4 py-3 border border-gray-100 flex items-center gap-3 hover:shadow-md transition-shadow duration-200">
+                          <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center text-white shadow-sm`}>
                             {stat.icon}
                           </div>
                           <div>
-                            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                            <div className="text-xl font-bold leading-6 text-gray-900">{stat.value}</div>
                             <div className="text-xs text-gray-500">{stat.label}</div>
                           </div>
                         </div>
@@ -414,19 +425,19 @@ export default function LessonsPage() {
                           <BookOpen className="w-9 h-9 text-violet-300" />
                         </div>
                         <h3 className="text-base font-bold text-gray-700 mb-1">
-                          {(searchTitle || filterSubject || filterGrade || filterType || filterStatus)
+                          {(searchTitle || filterSubject || filterGrade || filterType)
                             ? 'Không tìm thấy bài giảng phù hợp'
                             : 'Chưa có bài giảng nào'}
                         </h3>
                         <p className="text-sm text-gray-400 mb-4">
-                          {(searchTitle || filterSubject || filterGrade || filterType || filterStatus)
+                          {(searchTitle || filterSubject || filterGrade || filterType)
                             ? 'Thử thay đổi bộ lọc để tìm kiếm lại'
                             : 'Hãy bấm "Tạo bài giảng" để bắt đầu'}
                         </p>
                       </div>
                     )}
 
-                    {!loadingDrafts && !draftError && visibleLessonCards.map((lesson) => (
+                    {!loadingDrafts && !draftError && paginatedLessonCards.map((lesson) => (
                       <div
                         key={lesson.id}
                         className="relative text-left group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
@@ -455,11 +466,6 @@ export default function LessonsPage() {
                                 <FileText className="w-6 h-6 text-white" />
                               </div>
                             )}
-                            {isStudent ? (
-                              <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[lesson.status]}`}>
-                                {LESSON_STATUS_LABEL[lesson.status]}
-                              </span>
-                            ) : null}
                             <span className="absolute bottom-2 left-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                               {lesson.isCollabora ? 'Collabora' : lesson.type === 'PPTX' ? '.pptx' : '.docx'}
                             </span>
@@ -470,18 +476,17 @@ export default function LessonsPage() {
                           </div>
                         </button>
                         {!isStudent && (
-                          <select
-                            value={lesson.status}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => handleStatusChange(lesson.id, e.target.value)}
-                            disabled={updatingStatusId === lesson.id}
-                            className={`absolute top-3 right-3 max-w-[132px] rounded-md border-0 px-2 py-1 text-[10px] font-bold outline-none disabled:opacity-60 ${STATUS_STYLE[lesson.status]}`}
-                            title="Đổi trạng thái bài giảng"
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditLessonModal(lesson);
+                            }}
+                            className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all opacity-0 group-hover:opacity-100"
+                            title="Chỉnh sửa bài giảng"
                           >
-                            {LESSON_STATUS_OPTIONS.map((status) => (
-                              <option key={status} value={status}>{LESSON_STATUS_LABEL[status]}</option>
-                            ))}
-                          </select>
+                            <Edit3 className="w-4 h-4" />
+                          </button>
                         )}
                         {/* Share button */}
                         {!isStudent && (
@@ -491,7 +496,7 @@ export default function LessonsPage() {
                               e.stopPropagation();
                               setShareModalLesson({ id: lesson.id, title: lesson.title });
                             }}
-                            className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-violet-500 hover:bg-violet-50 transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute bottom-2 right-10 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-violet-500 hover:bg-violet-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Chia sẻ cho giáo viên"
                           >
                             <Share2 className="w-4 h-4" />
@@ -505,7 +510,7 @@ export default function LessonsPage() {
                               e.stopPropagation();
                               setShareToClassroomLesson({ id: lesson.id, title: lesson.title });
                             }}
-                            className="absolute bottom-2 right-10 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-teal-500 hover:bg-teal-50 transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute bottom-2 right-[4.5rem] p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-teal-500 hover:bg-teal-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Chia sẻ vào lớp học"
                           >
                             <School className="w-4 h-4" />
@@ -537,6 +542,41 @@ export default function LessonsPage() {
                       </div>
                     ))}
                   </div>
+
+                  {!loadingDrafts && !draftError && visibleLessonCards.length > ITEMS_PER_PAGE && (
+                    <div className="fixed bottom-4 right-4 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 p-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setMyPage((p) => Math.max(1, p - 1))}
+                        disabled={myPage <= 1}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 disabled:hover:border-gray-100 transition-all"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      {Array.from({ length: myTotalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setMyPage(page)}
+                          className={`h-7 min-w-[28px] rounded-lg text-xs font-semibold transition-all ${
+                            page === myPage
+                              ? 'bg-violet-600 text-white shadow-sm'
+                              : 'border border-gray-100 bg-white text-gray-600 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setMyPage((p) => Math.min(myTotalPages, p + 1))}
+                        disabled={myPage >= myTotalPages}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 disabled:hover:border-gray-100 transition-all"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -641,10 +681,89 @@ export default function LessonsPage() {
                 </div>
               )}
 
+              {activeTab === 'templates' && isTeacher && (
+                <LessonTemplatesTab />
+              )}
+
             </div>
           </main>
         </div>
       </div>
+
+      {editingLesson && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 px-4">
+          <form onSubmit={handleUpdateLesson} className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Chỉnh sửa bài giảng</h3>
+                <p className="mt-0.5 text-xs text-gray-500">{editingLesson.type}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditLessonModal}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                title="Đóng"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 px-5 py-4">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-semibold text-gray-600">Tên bài giảng</span>
+                <input
+                  value={editLessonForm.title}
+                  onChange={(event) => updateEditLessonForm('title', event.target.value)}
+                  className="h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                />
+              </label>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold text-gray-600">Môn học</span>
+                  <select
+                    value={editLessonForm.subject}
+                    onChange={(event) => updateEditLessonForm('subject', event.target.value)}
+                    className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                  >
+                    <option value="">Chọn môn học</option>
+                    {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs font-semibold text-gray-600">Lớp</span>
+                  <select
+                    value={editLessonForm.grade}
+                    onChange={(event) => updateEditLessonForm('grade', event.target.value)}
+                    className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                  >
+                    <option value="">Chọn lớp</option>
+                    {GRADES.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-4">
+              <button
+                type="button"
+                onClick={closeEditLessonModal}
+                className="h-10 rounded-lg border border-gray-200 px-4 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={updatingLesson}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-violet-600 px-5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+              >
+                {updatingLesson && <Loader2 className="h-4 w-4 animate-spin" />}
+                Cập nhật
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Share to teacher modal */}
       {shareModalLesson && (

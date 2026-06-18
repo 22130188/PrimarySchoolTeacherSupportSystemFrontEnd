@@ -8,6 +8,19 @@ const getAuthHeader = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+let draftsRequest = null;
+let draftsCache = null;
+const searchRequests = new Map();
+const searchCache = new Map();
+const REQUEST_CACHE_TTL = 2000;
+
+const isFresh = (cached) => cached && Date.now() - cached.timestamp < REQUEST_CACHE_TTL;
+
+const clearDraftListCache = () => {
+  draftsCache = null;
+  searchCache.clear();
+};
+
 const lessonDraftApi = {
   saveDraft: async ({ draftId, title, subject, grade, type, canvasJson }) => {
     const response = await axios.post(BASE_URL, {
@@ -18,12 +31,23 @@ const lessonDraftApi = {
       type,
       canvasJson,
     }, { headers: getAuthHeader() });
+    clearDraftListCache();
     return response.data;
   },
 
   getDrafts: async () => {
-    const response = await axios.get(BASE_URL, { headers: getAuthHeader() });
-    return response.data;
+    if (isFresh(draftsCache)) return draftsCache.data;
+    if (!draftsRequest) {
+      draftsRequest = axios.get(BASE_URL, { headers: getAuthHeader() })
+        .then((response) => {
+          draftsCache = { data: response.data, timestamp: Date.now() };
+          return response.data;
+        })
+        .finally(() => {
+          draftsRequest = null;
+        });
+    }
+    return draftsRequest;
   },
 
   searchDrafts: async ({ title, subject, grade } = {}) => {
@@ -31,11 +55,23 @@ const lessonDraftApi = {
     if (title) params.title = title;
     if (subject) params.subject = subject;
     if (grade) params.grade = grade;
-    const response = await axios.get(`${BASE_URL}/search`, {
-      headers: getAuthHeader(),
-      params,
-    });
-    return response.data;
+    const requestKey = JSON.stringify(params);
+    const cached = searchCache.get(requestKey);
+    if (isFresh(cached)) return cached.data;
+    if (!searchRequests.has(requestKey)) {
+      const request = axios.get(`${BASE_URL}/search`, {
+        headers: getAuthHeader(),
+        params,
+      }).then((response) => {
+        searchCache.set(requestKey, { data: response.data, timestamp: Date.now() });
+        return response.data;
+      })
+        .finally(() => {
+          searchRequests.delete(requestKey);
+        });
+      searchRequests.set(requestKey, request);
+    }
+    return searchRequests.get(requestKey);
   },
 
   getDraft: async (id) => {
@@ -45,11 +81,19 @@ const lessonDraftApi = {
 
   deleteDraft: async (id) => {
     const response = await axios.delete(`${BASE_URL}/${id}`, { headers: getAuthHeader() });
+    clearDraftListCache();
     return response.data;
   },
 
   updateStatus: async (id, status) => {
     const response = await axios.patch(`${BASE_URL}/${id}/status`, { status }, { headers: getAuthHeader() });
+    clearDraftListCache();
+    return response.data;
+  },
+
+  updateMetadata: async (id, { title, subject, grade }) => {
+    const response = await axios.patch(`${BASE_URL}/${id}`, { title, subject, grade }, { headers: getAuthHeader() });
+    clearDraftListCache();
     return response.data;
   },
 
@@ -85,6 +129,7 @@ const lessonDraftApi = {
 
   duplicateSharedDraft: async (id) => {
     const response = await axios.post(`${GATEWAY_URL}/api/lessons/shared-with-me/${id}/duplicate`, {}, { headers: getAuthHeader() });
+    clearDraftListCache();
     return response.data;
   },
 
