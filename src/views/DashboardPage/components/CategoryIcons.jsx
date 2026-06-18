@@ -4,11 +4,17 @@ import { DASHBOARD_CATEGORIES } from '../../../data/homePageData';
 
 const categoryPathMap = {
   'lesson-create': '/lessons',
-  'test-create': '/tests',
+  'test-create': '/tests/create',
   'tts': '/tts',
   'translate': '/ai-tools',
-  'pronunciation': '/ai-tools',
+  'pronunciation': '/pronunciation',
   'classroom': '/classrooms',
+  'export': '/lessons',
+  'library': '/lessons',
+  'assign': '/classrooms',
+  'scores': '/classrooms',
+  'record': '/pronunciation',
+  'more': '/ai-tools',
 };
 
 export default function CategoryIcons() {

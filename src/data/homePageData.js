@@ -1,10 +1,10 @@
 export const NAV_LINKS = [
-  { label: 'Bài giảng', href: '#lessons' },
-  { label: 'Bài kiểm tra', href: '#exercises' },
-  { label: 'Công cụ AI', href: '#ai-tools' },
-  { label: 'Lớp học', href: '#classrooms' },
-  { label: 'Giáo dục', href: '#education' },
-  { label: 'Trợ giúp', href: '#help' },
+  { label: 'Bài giảng', href: '/lessons', roles: [2] },
+  { label: 'Bài kiểm tra', href: '/tests', roles: [2] },
+  { label: 'Công cụ AI', href: '/ai-tools', roles: [2] },
+  { label: 'Lớp học', href: '/classrooms', roles: [1, 2] },
+  { label: 'Giáo dục', href: '/textbooks', roles: [1, 2] },
+  { label: 'Trợ giúp', href: '/dashboard', roles: [1, 2] },
 ];
 
 export const HERO_STATS = [

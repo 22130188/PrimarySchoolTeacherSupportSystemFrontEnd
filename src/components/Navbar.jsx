@@ -54,7 +54,7 @@ export default function Navbar() {
           ? '/dashboard'
           : '/profile';
 
-  const navLinks = NAV_LINKS.filter(link => roleId === 1 ? link.label !== 'Công cụ AI' : true);
+  const navLinks = NAV_LINKS.filter(link => !link.roles || link.roles.includes(roleId));
 
   const handleLogout = () => {
     logout();
@@ -140,7 +140,7 @@ export default function Navbar() {
               <>
                 <a
                   href="/login"
-                  className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-violet-600 transition-colors duration-200"
+                  className="px-4 py-2 text-sm font-bold text-violet-700 border-2 border-violet-300 rounded-full bg-violet-50/60 hover:border-violet-500 hover:text-violet-800 hover:bg-violet-100 transition-colors duration-200"
                 >
                   Đăng nhập
                 </a>
@@ -171,7 +171,7 @@ export default function Navbar() {
         <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
           <div className="px-4 py-3 space-y-1">
             {isAuthenticatedUser ? (
-              NAV_LINKS.map((link) => (
+              navLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
