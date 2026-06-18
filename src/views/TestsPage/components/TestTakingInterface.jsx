@@ -770,9 +770,9 @@ export default function TestTakingInterface({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
+    <div className="fixed inset-0 z-[9999] flex h-dvh min-h-dvh w-screen flex-col overflow-hidden bg-white">
       {/* Header */}
-      <div className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-4 border-b-4 border-blue-700 shadow-lg sticky top-0">
+      <div className="shrink-0 bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-4 border-b-4 border-blue-700 shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button className="bg-white/10 px-3 py-1 rounded-full text-sm font-medium">{classroom?.name || test?.grade ? `Lớp ${test?.grade}` : ''}</button>
@@ -797,7 +797,7 @@ export default function TestTakingInterface({
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-hidden flex">
+      <div className="min-h-0 flex-1 overflow-hidden flex">
         {/* Left: Questions */}
         <div className="flex-1 overflow-y-auto px-8 py-6">
           {currentQuestion && (
@@ -835,7 +835,7 @@ export default function TestTakingInterface({
         </div>
 
         {/* Right: Progress */}
-        <div className="w-56 bg-gradient-to-b from-slate-50 to-slate-100 border-l border-slate-200 flex flex-col">
+        <div className="min-h-0 w-56 bg-gradient-to-b from-slate-50 to-slate-100 border-l border-slate-200 flex flex-col">
           {/* Timer (also shown in header) */}
           <div className="p-4 border-b border-slate-200 text-center">
             <div className="inline-block bg-orange-400 text-white px-3 py-2 rounded-lg font-bold text-lg">{formatTime(secondsLeft)}</div>
@@ -923,7 +923,7 @@ export default function TestTakingInterface({
       </div>
 
       {/* Footer */}
-      <div className="bg-white border-t-2 border-slate-200 px-8 py-4 flex items-center justify-between shadow-lg sticky bottom-0">
+      <div className="shrink-0 bg-white border-t-2 border-slate-200 px-8 py-4 flex items-center justify-between shadow-lg">
         <button
           type="button"
           onClick={handlePrevious}

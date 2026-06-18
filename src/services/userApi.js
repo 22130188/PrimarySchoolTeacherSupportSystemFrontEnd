@@ -104,6 +104,7 @@ export async function getUsers(keyword, role) {
   if (role) params.set('role', role);
   const query = params.toString();
   const res = await fetch(`${ADMIN_BASE_URL}${query ? `?${query}` : ''}`, {
+    headers: authHeaders(),
     credentials: 'include',
   });
   return handleResponse(res);
@@ -111,6 +112,7 @@ export async function getUsers(keyword, role) {
 
 export async function getUserById(id) {
   const res = await fetch(`${ADMIN_BASE_URL}/${id}`, {
+    headers: authHeaders(),
     credentials: 'include',
   });
   return handleResponse(res);
@@ -119,7 +121,7 @@ export async function getUserById(id) {
 export async function createUser(data) {
   const res = await fetch(ADMIN_BASE_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -129,7 +131,7 @@ export async function createUser(data) {
 export async function updateUser(id, data) {
   const res = await fetch(`${ADMIN_BASE_URL}/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -139,6 +141,7 @@ export async function updateUser(id, data) {
 export async function toggleUserStatus(id) {
   const res = await fetch(`${ADMIN_BASE_URL}/${id}/toggle-status`, {
     method: 'PATCH',
+    headers: authHeaders(),
     credentials: 'include',
   });
   return handleResponse(res);
@@ -147,6 +150,7 @@ export async function toggleUserStatus(id) {
 export async function deleteUser(id) {
   const res = await fetch(`${ADMIN_BASE_URL}/${id}`, {
     method: 'DELETE',
+    headers: authHeaders(),
     credentials: 'include',
   });
   return handleResponse(res);
