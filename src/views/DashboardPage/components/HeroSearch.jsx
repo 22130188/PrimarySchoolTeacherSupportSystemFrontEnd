@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, ChevronDown, Star } from 'lucide-react';
 import { SEARCH_FILTERS as FILTERS } from '../../../data/mockDashboardData';
 
-export default function HeroSearch() {
+export default function HeroSearch({ compact = false }) {
   const [query, setQuery] = useState('');
 
   return (
@@ -14,7 +14,7 @@ export default function HeroSearch() {
         }}
       />
 
-      <div className="relative z-10 px-6 pt-20 pb-12 max-w-4xl mx-auto text-center">
+      <div className={`relative z-10 px-6 pt-20 ${compact ? 'pb-4' : 'pb-12'} max-w-4xl mx-auto text-center`}>
 
 
 

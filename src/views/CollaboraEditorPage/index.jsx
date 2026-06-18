@@ -11,9 +11,11 @@ export default function CollaboraEditorPage() {
   const roleId = useAuthStore((state) => state.roleId);
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get('draftId');
+  const templateId = searchParams.get('templateId');
   const classroomId = searchParams.get('classroomId');
+  const isTemplatePreview = !!templateId;
   const isStudentClassroomView = classroomId && roleId === 1;
-  const mode = isStudentClassroomView ? 'view' : (searchParams.get('mode') || 'edit');
+  const mode = isTemplatePreview ? 'view' : (isStudentClassroomView ? 'view' : (searchParams.get('mode') || 'edit'));
   const formRef = useRef(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,8 +25,8 @@ export default function CollaboraEditorPage() {
 
   useEffect(() => {
     const loadSession = async () => {
-      if (!draftId) {
-        setError('Khong tim thay bai giang Collabora.');
+      if (!draftId && !templateId) {
+        setError('Không tìm thấy bài giảng Collabora.');
         setLoading(false);
         return;
       }
@@ -32,6 +34,11 @@ export default function CollaboraEditorPage() {
       try {
         setLoading(true);
         setError('');
+        if (templateId) {
+          const data = await collaboraApi.getTemplateEditorSession(templateId);
+          setSession(data);
+          return;
+        }
         if (classroomId) {
           await lessonDraftApi.getClassroomSharedDraft(classroomId, draftId);
         }
@@ -41,14 +48,14 @@ export default function CollaboraEditorPage() {
         setSession(data);
       } catch (err) {
         console.error('Failed to load Collabora session:', err);
-        setError(err.response?.data?.message || err.message || 'Khong the mo Collabora Online.');
+        setError(err.response?.data?.message || err.message || 'Không thể mở Collabora Online.');
       } finally {
         setLoading(false);
       }
     };
 
     loadSession();
-  }, [classroomId, draftId]);
+  }, [classroomId, draftId, templateId]);
 
   useEffect(() => {
     if (session && formRef.current) {
@@ -142,25 +149,25 @@ export default function CollaboraEditorPage() {
   const handleInsertImage = async (source) => {
     if (!source) return;
     if (isStudentClassroomView) {
-      setInsertStatus('Hoc sinh khong duoc dung thu vien anh trong bai giang lop.');
+      setInsertStatus('Học sinh không được dùng thư viện ảnh trong bài giảng lớp.');
       return;
     }
     if (session?.canWrite === false) {
-      setInsertStatus('Ban khong co quyen sua bai giang nay.');
+      setInsertStatus('Bạn không có quyền sửa bài giảng này.');
       return;
     }
     const frame = document.getElementById('collabora-editor-frame');
     if (!frame?.contentWindow) {
-      setInsertStatus('Collabora chua san sang.');
+      setInsertStatus('Collabora chưa sẵn sàng.');
       return;
     }
 
     try {
-      setInsertStatus('Dang chuan bi anh...');
+      setInsertStatus('Đang chuẩn bị ảnh...');
       const normalizedSource = normalizeSourceUrl(source);
       const file = await sourceToFile(source);
       if (!file && !/^https?:\/\//i.test(normalizedSource || '')) {
-        throw new Error('Nguon anh nay chi ton tai tren trinh duyet, vui long thu anh khac.');
+        throw new Error('Nguồn ảnh này chỉ tồn tại trên trình duyệt, vui lòng thử ảnh khác.');
       }
       const asset = await collaboraApi.createImageAsset(file ? { file } : { sourceUrl: normalizedSource });
       frame.contentWindow.postMessage(JSON.stringify({
@@ -171,11 +178,11 @@ export default function CollaboraEditorPage() {
           url: asset.url,
         },
       }), '*');
-      setInsertStatus(editorReady ? 'Da gui anh vao Collabora.' : 'Da gui anh, Collabora co the can vai giay de san sang.');
+      setInsertStatus(editorReady ? 'Đã gửi ảnh vào Collabora.' : 'Đã gửi ảnh, Collabora có thể cần vài giây để sẵn sàng.');
       setTimeout(() => setInsertStatus(''), 3000);
     } catch (err) {
       console.error('Failed to insert image into Collabora:', err);
-      setInsertStatus(err.response?.data?.message || err.message || 'Khong the chen anh vao Collabora.');
+      setInsertStatus(err.response?.data?.message || err.message || 'Không thể chèn ảnh vào Collabora.');
     }
   };
 
@@ -187,7 +194,7 @@ export default function CollaboraEditorPage() {
             type="button"
             onClick={() => navigate(classroomId ? `/classrooms/${classroomId}?tab=lessons` : '/lessons')}
             className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            title="Quay lai"
+            title="Quay lại"
           >
             <ArrowLeft size={18} />
           </button>
@@ -197,7 +204,7 @@ export default function CollaboraEditorPage() {
           <div className="min-w-0">
             <h1 className="text-sm font-semibold text-gray-900 truncate">{session?.fileName || 'Collabora Online'}</h1>
             <p className="text-xs text-gray-500">
-              {session?.canWrite === false ? 'Xem bang Collabora Online' : 'Soạn thảo bằng Collabora Online'}
+              {isTemplatePreview ? 'Xem mẫu bài giảng' : (session?.canWrite === false ? 'Xem bằng Collabora Online' : 'Soạn thảo bằng Collabora Online')}
             </p>
           </div>
         </div>
@@ -207,7 +214,7 @@ export default function CollaboraEditorPage() {
       </div>
 
       <div className="flex-1 flex min-h-0 bg-gray-50">
-        {session && session.canWrite !== false && !isStudentClassroomView && (
+        {session && session.canWrite !== false && !isStudentClassroomView && !isTemplatePreview && (
           <CollaboraImageSidebar onInsertImage={handleInsertImage} />
         )}
 
@@ -221,7 +228,7 @@ export default function CollaboraEditorPage() {
           {loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-600">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-              <span className="text-sm font-medium">Dang ket noi Collabora Online...</span>
+              <span className="text-sm font-medium">Đang kết nối Collabora Online...</span>
             </div>
           )}
 
@@ -250,7 +257,7 @@ export default function CollaboraEditorPage() {
                   readOnly
                   type="hidden"
                 />
-                <input name="permission" value={isStudentClassroomView || mode === 'view' ? 'readonly' : 'edit'} readOnly type="hidden" />
+                <input name="permission" value={isTemplatePreview || isStudentClassroomView || mode === 'view' ? 'readonly' : 'edit'} readOnly type="hidden" />
               </form>
               <iframe
                 id="collabora-editor-frame"

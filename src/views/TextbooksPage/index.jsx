@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { BookOpen, Search, Loader2, AlertTriangle, RefreshCw, SlidersHorizontal, X, ArrowUpRight } from 'lucide-react';
+import { BookOpen, Search, Loader2, AlertTriangle, RefreshCw, ArrowUpRight } from 'lucide-react';
 import { getTextbooks } from '../../services/textbookApi';
 
 const GRADES = [1, 2, 3, 4, 5];
@@ -17,9 +17,8 @@ export default function TextbooksPage() {
   const [selectedGrade, setSelectedGrade] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedBookType, setSelectedBookType] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
 
-  const activeFilterCount = [selectedGrade, selectedSubject, selectedBookType].filter(Boolean).length;
+  const hasActiveFilters = Boolean(selectedGrade || selectedSubject || selectedBookType);
 
   useEffect(() => {
     fetchBooks();
@@ -84,9 +83,9 @@ export default function TextbooksPage() {
               </div>
 
               {/* Search & Filters */}
-              {!loading && !error && (
-                <div className="mb-6 space-y-3">
-                  <div className="flex items-center gap-2">
+              {!error && (
+                <div className="mb-5 rounded-xl border border-gray-100 bg-white p-3 shadow-sm space-y-3">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                     <div className="flex-1 relative">
                       <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                       <input
@@ -95,102 +94,46 @@ export default function TextbooksPage() {
                         placeholder="Tìm kiếm sách tiểu học theo tên..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
+                        className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-11 pr-4 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                       />
                     </div>
-                    <button
-                      id="textbooks-filter-toggle"
-                      type="button"
-                      onClick={() => setShowFilters(f => !f)}
-                      className={`relative inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ${
-                        showFilters || activeFilterCount > 0
-                          ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                          : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-600'
-                      }`}
-                    >
-                      <SlidersHorizontal className="w-4 h-4" />
-                      Bộ lọc
-                      {activeFilterCount > 0 && (
-                        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] font-bold">
-                          {activeFilterCount}
-                        </span>
-                      )}
-                    </button>
-                    {activeFilterCount > 0 && (
+                    {hasActiveFilters && (
                       <button
                         type="button"
                         onClick={clearFilters}
-                        className="inline-flex items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-medium text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                        className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
                       >
-                        <X className="w-3.5 h-3.5" />
-                        Xóa lọc
+                        Xóa bộ lọc
                       </button>
                     )}
                   </div>
 
-                  {showFilters && (
-                    <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm space-y-4 animate-in slide-in-from-top-2 duration-200">
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Khối lớp</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {GRADES.map((g) => (
-                            <button
-                              key={g}
-                              type="button"
-                              onClick={() => setSelectedGrade(selectedGrade === g ? '' : g)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                                Number(selectedGrade) === Number(g)
-                                  ? 'bg-indigo-500 text-white shadow-sm'
-                                  : 'bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
-                              }`}
-                            >
-                              Lớp {g}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Môn học</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {SUBJECTS.map((s) => (
-                            <button
-                              key={s}
-                              type="button"
-                              onClick={() => setSelectedSubject(selectedSubject === s ? '' : s)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                                selectedSubject.toLowerCase() === s.toLowerCase()
-                                  ? 'bg-indigo-500 text-white shadow-sm'
-                                  : 'bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
-                              }`}
-                            >
-                              {s}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {bookTypes.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Loại sách</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {bookTypes.map((type) => (
-                              <button
-                                key={type}
-                                type="button"
-                                onClick={() => setSelectedBookType(selectedBookType === type ? '' : type)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                                  selectedBookType.toLowerCase() === type.toLowerCase()
-                                    ? 'bg-indigo-500 text-white shadow-sm'
-                                    : 'bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
-                                }`}
-                              >
-                                {type}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <select
+                      value={selectedGrade}
+                      onChange={(event) => setSelectedGrade(event.target.value)}
+                      className="h-9 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                    >
+                      <option value="">Tất cả lớp</option>
+                      {GRADES.map((grade) => <option key={grade} value={grade}>Lớp {grade}</option>)}
+                    </select>
+                    <select
+                      value={selectedSubject}
+                      onChange={(event) => setSelectedSubject(event.target.value)}
+                      className="h-9 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                    >
+                      <option value="">Tất cả môn học</option>
+                      {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                    </select>
+                    <select
+                      value={selectedBookType}
+                      onChange={(event) => setSelectedBookType(event.target.value)}
+                      className="h-9 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                    >
+                      <option value="">Tất cả loại sách</option>
+                      {bookTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                    </select>
+                  </div>
                 </div>
               )}
 

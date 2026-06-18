@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { ChevronDown, ArrowUpDown, LayoutGrid, List, MoreHorizontal, Clock } from 'lucide-react';
 import { RECENT_ITEMS } from '../../../data/homePageData';
 
-export default function RecentItems() {
-  const [viewMode, setViewMode] = useState('grid');
+export default function RecentItems({ compact = false, hideCreate = false, defaultViewMode = 'grid' }) {
+  const [viewMode, setViewMode] = useState(defaultViewMode);
 
   return (
-    <div className="px-6 py-6 pb-12">
+    <div className={`px-6 ${compact ? 'pt-2 pb-32' : 'pt-6 pb-12'}`}>
       <div className="max-w-5xl mx-auto">
 
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
@@ -70,6 +70,7 @@ export default function RecentItems() {
 
         {viewMode === 'grid' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
+            {!hideCreate && (
             <button
               id="recent-create-new"
               className="group relative aspect-[4/3] rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 flex flex-col items-center justify-center gap-2 hover:border-violet-300 hover:bg-violet-50/50 transition-all duration-200"
@@ -81,6 +82,7 @@ export default function RecentItems() {
               </div>
               <span className="text-xs font-medium text-gray-400 group-hover:text-violet-500 transition-colors">Tạo mới</span>
             </button>
+            )}
 
             {RECENT_ITEMS.map((item) => (
               <div

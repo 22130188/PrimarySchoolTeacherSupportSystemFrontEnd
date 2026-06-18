@@ -11,6 +11,7 @@ import ClassroomManagement from './components/ClassroomManagement';
 import SubjectManagement from './components/SubjectManagement';
 import TestManagement from './components/TestManagement';
 import LessonManagement from './components/LessonManagement';
+import LessonTemplateManagement from './components/LessonTemplateManagement';
 import LessonContentManagement from './components/LessonContentManagement';
 import ResourceManagement from './components/ResourceManagement';
 import AccessManagement from './components/AccessManagement';
@@ -25,6 +26,7 @@ const PAGE_MAP = {
   subjects:       SubjectManagement,
   tests:          TestManagement,
   lessons:        LessonManagement,
+  lesson_templates: LessonTemplateManagement,
   lesson_content: LessonContentManagement,
   resources:      ResourceManagement,
   categories:     CategoryManagement,
