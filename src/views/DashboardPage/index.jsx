@@ -2,7 +2,6 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import HeroSearch from './components/HeroSearch';
-import CategoryIcons from './components/CategoryIcons';
 import RecentItems from './components/RecentItems';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -19,14 +18,9 @@ export default function DashboardPage() {
 
         <div className="flex-1 flex flex-col min-h-[calc(100vh-64px)]" style={{ marginLeft: '72px' }}>
           <main className="flex-1">
-            <HeroSearch compact={isStudent} />
-            {!isStudent && (
-              <>
-                <CategoryIcons />
-                <div className="border-t border-gray-100" />
-              </>
-            )}
-            <RecentItems compact={isStudent} hideCreate={isStudent} defaultViewMode={isStudent ? 'list' : 'grid'} />
+            <HeroSearch compact />
+
+            <RecentItems compact={isStudent} hideCreate={isStudent} defaultViewMode="grid" />
           </main>
 
           <Footer />

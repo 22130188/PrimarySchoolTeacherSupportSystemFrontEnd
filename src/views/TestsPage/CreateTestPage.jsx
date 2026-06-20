@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import useImageLibrary from '../../hooks/useImageLibrary';
 import resourceService from '../../services/resourceService';
@@ -11,6 +11,7 @@ import testApi from '../../services/testApi';
 
 export default function CreateTestPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { id } = useParams();
   const isEditing = !!id;
   const { user } = useAuthStore();
@@ -51,7 +52,7 @@ export default function CreateTestPage() {
     grade: '',
     lessonContentName: '',
     duration: '',
-    testType: 'EXAM',
+    testType: searchParams.get('type') === 'EXERCISE' ? 'EXERCISE' : 'EXAM',
   });
 
   useEffect(() => {
