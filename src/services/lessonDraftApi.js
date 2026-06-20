@@ -157,6 +157,28 @@ const lessonDraftApi = {
   getClassroomSharedDraft: async (classroomId, draftId) => {
     const response = await axios.get(`${GATEWAY_URL}/api/lessons/classrooms/${classroomId}/shared-drafts/${draftId}`, { headers: getAuthHeader() });
     return response.data;
+  },
+
+  getClassroomLessonComments: async (classroomId, draftId) => {
+    const response = await axios.get(`${GATEWAY_URL}/api/lessons/classrooms/${classroomId}/shared-drafts/${draftId}/comments`, { headers: getAuthHeader() });
+    return response.data;
+  },
+
+  createClassroomLessonComment: async (classroomId, draftId, content) => {
+    const response = await axios.post(
+      `${GATEWAY_URL}/api/lessons/classrooms/${classroomId}/shared-drafts/${draftId}/comments`,
+      { content },
+      { headers: getAuthHeader() }
+    );
+    return response.data;
+  },
+
+  deleteClassroomLessonComment: async (classroomId, draftId, commentId) => {
+    const response = await axios.delete(
+      `${GATEWAY_URL}/api/lessons/classrooms/${classroomId}/shared-drafts/${draftId}/comments/${commentId}`,
+      { headers: getAuthHeader() }
+    );
+    return response.data;
   }
 };
 

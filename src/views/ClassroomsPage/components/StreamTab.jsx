@@ -12,6 +12,7 @@ import TakeTestModal from '../../../views/TestsPage/components/TakeTestModal';
 import TestTakingInterface from '../../../views/TestsPage/components/TestTakingInterface';
 import testApi from '../../../services/testApi';
 import resourceService from '../../../services/resourceService';
+import PostComments from './PostComments';
 
 const GOOGLE_PICKER_CONFIG = {
   apiKey: import.meta.env.VITE_GOOGLE_PICKER_API_KEY,
@@ -64,6 +65,7 @@ function getAudioSource(audio) {
         return getAudioSource(parsed);
       }
     } catch {
+      // Giá trị không phải JSON; tiếp tục dùng URL âm thanh gốc.
     }
     return audio;
   }
@@ -236,7 +238,8 @@ function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData }) {
     try {
       await onSubmit(payload, initialData?.id);
       onClose();
-    } catch {
+    } catch (error) {
+      console.error('Không thể lưu bài đăng:', error);
 
     }
   };
@@ -272,7 +275,7 @@ function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData }) {
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100"
                 >
                   <option value="">Không chọn</option>
-                  {existingTests.map((test) => (
+                  {filteredExistingTests.map((test) => (
                     <option key={test.id} value={test.id}>{test.name || `Bài ${test.id}`}</option>
                   ))}
                 </select>
@@ -673,6 +676,7 @@ export default function StreamTab({
   onCreatePost,
   onDeletePost,
   onUpdatePost,
+  onCommentCountChange,
   tabType = 'ANNOUNCEMENT',
 }) {
   const teacherName = classroom?.teacherName;
@@ -1087,6 +1091,14 @@ export default function StreamTab({
                   </button>
                 </div>
               )}
+
+              <PostComments
+                classroomId={classroom?.id}
+                postId={post.id}
+                initialCommentCount={post.commentCount || 0}
+                isTeacher={isTeacher}
+                onCommentCountChange={onCommentCountChange}
+              />
             </article>
           ))}
         </div>

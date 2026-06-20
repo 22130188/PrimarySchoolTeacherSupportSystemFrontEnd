@@ -243,3 +243,27 @@ export async function deleteClassroomPost(classroomId, postId) {
   });
   return handleRes(res);
 }
+
+export async function getPostComments(classroomId, postId) {
+  const res = await fetch(`${BASE}/api/classrooms/${classroomId}/posts/${postId}/comments`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+}
+
+export async function createPostComment(classroomId, postId, content) {
+  const res = await fetch(`${BASE}/api/classrooms/${classroomId}/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ content }),
+  });
+  return handleRes(res);
+}
+
+export async function deletePostComment(classroomId, postId, commentId) {
+  const res = await fetch(`${BASE}/api/classrooms/${classroomId}/posts/${postId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+}
