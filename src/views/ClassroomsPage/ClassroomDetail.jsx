@@ -25,7 +25,7 @@ import {
 export default function ClassroomDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const roleId = useAuthStore(s => s.roleId);
   const isTeacher = roleId === 2;
 
@@ -81,7 +81,6 @@ export default function ClassroomDetail() {
     Promise.all([fetchClassroom(), fetchRoster(), fetchPosts()])
       .finally(() => {
         setLoading(false);
-        setActiveTab('stream');
       });
   }, [fetchClassroom, fetchRoster, fetchPosts]);
 
