@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle, Bell, BookOpen, CheckCheck, ChevronRight, ClipboardCheck,
@@ -30,6 +31,12 @@ const TYPE_STYLE = {
   TEST_SUBMITTED: { icon: ClipboardCheck, color: 'bg-emerald-100 text-emerald-600' },
   ADMIN_ANNOUNCEMENT: { icon: Megaphone, color: 'bg-violet-100 text-violet-600' },
 };
+
+function htmlToPlainText(value) {
+  if (!value) return '';
+  const document = new DOMParser().parseFromString(String(value), 'text/html');
+  return document.body.textContent?.trim() || '';
+}
 
 function timeAgo(value) {
   const date = new Date(value);
@@ -167,10 +174,10 @@ export default function NotificationCenter({ placement = 'sidebar' }) {
         {unreadCount > 0 && <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-[100]">
-          <button type="button" aria-label="Đóng thông báo" onClick={() => setOpen(false)} className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
-          <aside className={`absolute flex flex-col overflow-hidden bg-white shadow-2xl ${sidebar ? 'bottom-0 left-[72px] top-16 w-[min(540px,calc(100vw-72px))] rounded-r-3xl' : 'bottom-4 right-4 top-16 w-[min(540px,calc(100vw-2rem))] rounded-3xl'}`}>
+      {open && createPortal(
+        <div className="fixed inset-0 z-[9999]">
+          <button type="button" aria-label="Đóng thông báo" onClick={() => setOpen(false)} className="absolute inset-0 z-0 bg-black/20 backdrop-blur-[1px]" />
+          <aside className={`absolute z-10 flex flex-col overflow-hidden bg-white shadow-2xl ${sidebar ? 'bottom-0 left-[72px] top-16 w-[min(540px,calc(100vw-72px))] rounded-r-3xl' : 'bottom-4 right-4 top-16 w-[min(540px,calc(100vw-2rem))] rounded-3xl'}`}>
             <header className="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-5">
               <div><h2 className="text-xl font-bold text-slate-950">Thông báo</h2>{unreadCount > 0 && <p className="text-xs text-slate-500">{unreadCount} thông báo chưa đọc</p>}</div>
               <div className="flex items-center gap-1">
@@ -205,7 +212,7 @@ export default function NotificationCenter({ placement = 'sidebar' }) {
                     return (
                       <button key={item.id} type="button" onClick={() => openItem(item)} className={`group flex w-full gap-3 px-5 py-4 text-left transition hover:bg-slate-50 ${item.read ? 'bg-white' : 'bg-violet-50/60'}`}>
                         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${style.color}`}><Icon className="h-5 w-5" /></span>
-                        <span className="min-w-0 flex-1"><span className="flex items-start gap-2"><strong className="line-clamp-2 flex-1 text-sm text-slate-900">{item.title}</strong>{!item.read && <i className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-violet-500" />}</span>{item.message && <span className="mt-1 line-clamp-2 block text-sm leading-relaxed text-slate-500">{item.message}</span>}<span className="mt-2 block text-xs font-medium text-slate-400">{timeAgo(item.createdAt)}</span></span>
+                        <span className="min-w-0 flex-1"><span className="flex items-start gap-2"><strong className="line-clamp-2 flex-1 text-sm text-slate-900">{item.title}</strong>{!item.read && <i className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-violet-500" />}</span>{item.message && <span className="mt-1 line-clamp-2 block text-sm leading-relaxed text-slate-500">{htmlToPlainText(item.message)}</span>}<span className="mt-2 block text-xs font-medium text-slate-400">{timeAgo(item.createdAt)}</span></span>
                         {item.actionUrl && <ChevronRight className="mt-3 h-4 w-4 shrink-0 text-slate-300 group-hover:text-violet-500" />}
                       </button>
                     );
@@ -215,7 +222,8 @@ export default function NotificationCenter({ placement = 'sidebar' }) {
             </div>
             {composing && <AdminComposer onClose={() => setComposing(false)} />}
           </aside>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
