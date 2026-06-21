@@ -3,11 +3,14 @@ import { createRoot } from 'react-dom/client';
 import {
   Crop, RotateCw, FlipHorizontal, FlipVertical, Sun, Contrast, Sliders, Type,
   Image as ImageIcon, Download, Save, Undo, Trash2, Grid, Plus, Check, X,
-  FileImage, Eye, Sparkles, Smile
+  FileImage, Eye, Smile, Bold, Italic, Underline
 } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config.js';
 import { AI_IMAGE_ICON_LIBRARY } from '../data/mockDashboardData.jsx';
+import PexelsImageSearch from '../common/PexelsImageSearch';
+
+const DEFAULT_TEXT_SIZE = 100;
 
 export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) {
   const CANVAS_API_URL = API_CONFIG.CANVAS_API_URL;
@@ -18,6 +21,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
   const [activeTab, setActiveTab] = useState('source');
 
   const [previewSrc, setPreviewSrc] = useState(null);
+  const [previewScale, setPreviewScale] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [operations, setOperations] = useState([]);
   const [history, setHistory] = useState([]);
@@ -47,9 +51,13 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
 
   const [textOverlays, setTextOverlays] = useState([]);
   const [activeTextId, setActiveTextId] = useState(null);
-  const [newText, setNewText] = useState('Nhấp đúp để sửa');
-  const [textSize, setTextSize] = useState(24);
+  const [editingTextId, setEditingTextId] = useState(null);
+  const [newText, setNewText] = useState('');
+  const [textSize, setTextSize] = useState(DEFAULT_TEXT_SIZE);
   const [textColor, setTextColor] = useState('#000000');
+  const [textBold, setTextBold] = useState(false);
+  const [textItalic, setTextItalic] = useState(false);
+  const [textUnderline, setTextUnderline] = useState(false);
   const [textDragState, setTextDragState] = useState(null);
 
   const [watermarkText, setWatermarkText] = useState('');
@@ -57,6 +65,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
   const [watermarkColor, setWatermarkColor] = useState('#ffffff');
 
   const [overlayImage, setOverlayImage] = useState(null);
+  const [isOverlaySelected, setIsOverlaySelected] = useState(false);
   const [overlayBox, setOverlayBox] = useState({ x: 25, y: 25, w: 50, h: 50 });
   const [overlayDragState, setOverlayDragState] = useState(null);
 
@@ -129,16 +138,42 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     setPresetFilter('none');
     setTintAmount(0);
     setTextOverlays([]);
+    setActiveTextId(null);
+    setEditingTextId(null);
+    setNewText('');
+    setTextSize(DEFAULT_TEXT_SIZE);
+    setTextColor('#000000');
+    setTextBold(false);
+    setTextItalic(false);
+    setTextUnderline(false);
     setOverlayImage(null);
+    setIsOverlaySelected(false);
     setIconLayers([]);
     setSelectedIconLayerId(null);
   };
 
   const handleImageLoad = (e) => {
-    setNaturalSize({ width: e.target.naturalWidth, height: e.target.naturalHeight });
-    setResizeWidth(e.target.naturalWidth);
-    setResizeHeight(e.target.naturalHeight);
+    const image = e.currentTarget;
+    setNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
+    setResizeWidth(image.naturalWidth);
+    setResizeHeight(image.naturalHeight);
+    setPreviewScale(image.getBoundingClientRect().width / image.naturalWidth);
   };
+
+  useEffect(() => {
+    const image = previewImageRef.current;
+    if (!image || typeof ResizeObserver === 'undefined') return undefined;
+
+    const updateScale = () => {
+      if (image.naturalWidth > 0) {
+        setPreviewScale(image.getBoundingClientRect().width / image.naturalWidth);
+      }
+    };
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(image);
+    updateScale();
+    return () => observer.disconnect();
+  }, [previewSrc]);
 
   const triggerImageProcessing = async (currentOps = operations, isFinal = false, includeLayers = false, updatePreview = true) => {
     if (!baseImage) return;
@@ -163,7 +198,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
             type: 'text', text: to.text,
             x: Math.round((to.x / 100) * naturalSize.width),
             y: Math.round((to.y / 100) * naturalSize.height),
-            font_size: to.size, color: to.color
+            font_size: to.size, color: to.color, bold: to.bold, italic: to.italic, underline: to.underline
           });
         });
         if (overlayImage) {
@@ -219,7 +254,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     if (baseImage) {
       debouncedProcessing();
     }
-  }, [operations, watermarkText, watermarkOpacity, watermarkColor, overlayImage, textOverlays]);
+  }, [operations, rotation, watermarkText, watermarkOpacity, watermarkColor, overlayImage]);
 
   useEffect(() => {
     return () => {
@@ -345,7 +380,8 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
         x = Math.max(0, Math.min(100 - w, x + dx));
         y = Math.max(0, Math.min(100 - h, y + dy));
       } else {
-        const R = cropAspectRatio === '1:1' ? 1.0 : cropAspectRatio === '16:9' ? 16 / 9 : cropAspectRatio === '4:3' ? 4 / 3 : null;
+        const effectiveAspectRatio = cropShape === 'circle' ? '1:1' : cropAspectRatio;
+        const R = effectiveAspectRatio === '1:1' ? 1.0 : effectiveAspectRatio === '16:9' ? 16 / 9 : effectiveAspectRatio === '4:3' ? 4 / 3 : null;
         const imgW = naturalSize.width || 800;
         const imgH = naturalSize.height || 600;
         const k = R ? R * (imgH / imgW) : null;
@@ -496,48 +532,40 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
   };
 
   const handleAddTextOverlay = () => {
+    const text = newText.trim();
+    if (!text) return;
+
     const id = Date.now();
     const newOverlay = {
       id,
-      text: newText,
-      x: 10,
-      y: 10,
+      text,
+      x: 50,
+      y: 50,
       size: textSize,
-      color: textColor
+      color: textColor,
+      bold: textBold,
+      italic: textItalic,
+      underline: textUnderline
     };
-    setTextOverlays([...textOverlays, newOverlay]);
+    setTextOverlays(prev => [...prev, newOverlay]);
     setActiveTextId(id);
-  };
-
-  const handleCommitText = (id) => {
-    const to = textOverlays.find(item => item.id === id);
-    if (!to) return;
-    const px = Math.round((to.x / 100) * naturalSize.width);
-    const py = Math.round((to.y / 100) * naturalSize.height);
-    const newOps = [
-      ...operations,
-      {
-        type: 'text',
-        text: to.text,
-        x: px,
-        y: py,
-        font_size: to.size,
-        color: to.color
-      }
-    ];
-    setHistory([...history, operations]);
-    setOperations(newOps);
-    setTextOverlays(prev => prev.filter(item => item.id !== id));
-    setActiveTextId(null);
+    setSelectedIconLayerId(null);
+    setIsOverlaySelected(false);
   };
 
   const handleTextMouseDown = (e, to) => {
     e.stopPropagation();
+    if (editingTextId === to.id) return;
     e.preventDefault();
     setActiveTextId(to.id);
+    setSelectedIconLayerId(null);
+    setIsOverlaySelected(false);
     setNewText(to.text);
     setTextSize(to.size);
     setTextColor(to.color);
+    setTextBold(Boolean(to.bold));
+    setTextItalic(Boolean(to.italic));
+    setTextUnderline(Boolean(to.underline));
 
     const containerRect = previewContainerRef.current.getBoundingClientRect();
     setTextDragState({
@@ -549,6 +577,38 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     });
   };
 
+  const handleTextDoubleClick = (e, to) => {
+    e.stopPropagation();
+    const element = e.currentTarget;
+    setActiveTextId(to.id);
+    setSelectedIconLayerId(null);
+    setIsOverlaySelected(false);
+    setNewText(to.text);
+    setTextSize(to.size);
+    setTextColor(to.color);
+    setTextBold(Boolean(to.bold));
+    setTextItalic(Boolean(to.italic));
+    setTextUnderline(Boolean(to.underline));
+    setEditingTextId(to.id);
+
+    requestAnimationFrame(() => {
+      element.focus();
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+  };
+
+  const handleInlineTextBlur = (id, value) => {
+    setEditingTextId(null);
+    setNewText(value);
+    setTextOverlays(prev => prev.map(to => (
+      to.id === id ? { ...to, text: value } : to
+    )));
+  };
   const handleTextMouseMove = (e) => {
     if (!textDragState) return;
     const dx = ((e.clientX - textDragState.startX) / textDragState.containerRect.width) * 100;
@@ -568,25 +628,32 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     setTextDragState(null);
   };
 
-  const handleUpdateActiveText = () => {
-    setTextOverlays(prev => prev.map(to => {
-      if (to.id !== activeTextId) return to;
-      return {
-        ...to,
-        text: newText,
-        size: textSize,
-        color: textColor
-      };
-    }));
+  const handleUpdateActiveText = (updates) => {
+    if (!activeTextId) return;
+    setTextOverlays(prev => prev.map(to => (
+      to.id === activeTextId ? { ...to, ...updates } : to
+    )));
   };
 
   const handleRemoveTextOverlay = (id) => {
     setTextOverlays(prev => prev.filter(to => to.id !== id));
-    if (activeTextId === id) setActiveTextId(null);
+    if (editingTextId === id) setEditingTextId(null);
+    if (activeTextId === id) {
+      setActiveTextId(null);
+      setNewText('');
+      setTextSize(DEFAULT_TEXT_SIZE);
+      setTextColor('#000000');
+      setTextBold(false);
+      setTextItalic(false);
+      setTextUnderline(false);
+    }
   };
 
   const handleAddOverlay = (url) => {
     setOverlayImage(url);
+    setIsOverlaySelected(true);
+    setActiveTextId(null);
+    setSelectedIconLayerId(null);
     setOverlayBox({ x: 25, y: 25, w: 30, h: 30 });
     setActiveTab('overlay');
   };
@@ -611,11 +678,15 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     setHistory([...history, operations]);
     setOperations(newOps);
     setOverlayImage(null);
+    setIsOverlaySelected(false);
   };
 
   const handleOverlayMouseDown = (e, handle) => {
     e.stopPropagation();
     e.preventDefault();
+    setIsOverlaySelected(true);
+    setActiveTextId(null);
+    setSelectedIconLayerId(null);
     const containerRect = previewContainerRef.current.getBoundingClientRect();
     setOverlayDragState({
       handle,
@@ -769,6 +840,8 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     };
     setIconLayers(prev => [...prev, newLayer]);
     setSelectedIconLayerId(newLayer.id);
+    setActiveTextId(null);
+    setIsOverlaySelected(false);
     setActiveTab('icons');
   };
 
@@ -783,6 +856,8 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     };
     setIconLayers(prev => [...prev, newLayer]);
     setSelectedIconLayerId(newLayer.id);
+    setActiveTextId(null);
+    setIsOverlaySelected(false);
     setActiveTab('icons');
   };
 
@@ -830,6 +905,46 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     if (selectedIconLayerId === id) setSelectedIconLayerId(null);
   };
 
+  useEffect(() => {
+    const handleLayerDelete = (event) => {
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+
+      const target = event.target;
+      const isTyping = target instanceof HTMLElement && (
+        target.isContentEditable ||
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+      );
+      if (isTyping || editingTextId) return;
+
+      if (selectedIconLayerId) {
+        event.preventDefault();
+        setIconLayers(prev => prev.filter(layer => layer.id !== selectedIconLayerId));
+        setSelectedIconLayerId(null);
+        return;
+      }
+      if (isOverlaySelected && overlayImage) {
+        event.preventDefault();
+        setOverlayImage(null);
+        setIsOverlaySelected(false);
+        return;
+      }
+      if (activeTextId) {
+        event.preventDefault();
+        setTextOverlays(prev => prev.filter(layer => layer.id !== activeTextId));
+        setActiveTextId(null);
+        setNewText('');
+        setTextSize(DEFAULT_TEXT_SIZE);
+        setTextColor('#000000');
+        setTextBold(false);
+        setTextItalic(false);
+        setTextUnderline(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleLayerDelete);
+    return () => window.removeEventListener('keydown', handleLayerDelete);
+  }, [activeTextId, editingTextId, isOverlaySelected, overlayImage, selectedIconLayerId]);
+
   const handleUpdateIconLayer = (id, updates) => {
     setIconLayers(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
   };
@@ -838,6 +953,8 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     e.stopPropagation();
     e.preventDefault();
     setSelectedIconLayerId(layerId);
+    setActiveTextId(null);
+    setIsOverlaySelected(false);
     const containerRect = previewContainerRef.current.getBoundingClientRect();
     const layer = iconLayers.find(l => l.id === layerId);
     if (!layer) return;
@@ -1078,6 +1195,14 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                     ))}
                 </div>
               </div>
+              <div className="border-t border-slate-100 pt-4">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Tìm ảnh trên Pexels</h4>
+                <PexelsImageSearch
+                  onAddImage={handleSelectBaseImage}
+                  onSaved={onSaveSuccess}
+                  accent="indigo"
+                />
+              </div>
             </div>
           )}
 
@@ -1103,6 +1228,9 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                       type="button"
                       onClick={() => {
                         setCropShape(shape.id);
+                        if (shape.id === 'circle') {
+                          handleAspectRatioChange('1:1');
+                        }
                         if (shape.id !== 'freeform') {
                           setFreeformPoints([]);
                         }
@@ -1133,7 +1261,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 </div>
               )}
 
-              {cropShape !== 'freeform' && (
+              {cropShape !== 'freeform' && cropShape !== 'circle' && (
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tỉ lệ khung hình</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -1185,18 +1313,18 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                   min="0"
                   max="360"
                   value={rotation}
-                  onChange={(e) => { setRotation(Number(e.target.value)); debouncedProcessing(); }}
+                  onChange={(e) => setRotation(Number(e.target.value))}
                   className="editor-range-slider mb-3"
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { setRotation((rotation - 90 + 360) % 360); debouncedProcessing(); }}
+                    onClick={() => setRotation((currentRotation) => (currentRotation - 90 + 360) % 360)}
                     className="flex-1 py-2 bg-slate-50 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold hover:bg-slate-100 transition"
                   >
                     Xoay Trái
                   </button>
                   <button
-                    onClick={() => { setRotation((rotation + 90) % 360); debouncedProcessing(); }}
+                    onClick={() => setRotation((currentRotation) => (currentRotation + 90) % 360)}
                     className="flex-1 py-2 bg-slate-50 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold hover:bg-slate-100 transition"
                   >
                     Xoay Phải
@@ -1228,6 +1356,19 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
 
           {activeTab === 'adjust' && (
             <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Công cụ AI
+                </label>
+                <button
+                  onClick={handleRemoveBackground}
+                  disabled={!baseImage || isProcessing}
+                  className="w-full py-2.5 px-3 bg-white hover:bg-purple-50 text-slate-900 border border-purple-400 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  Xóa hình nền (AI Rembg)
+                </button>
+              </div>
+
               <div>
                 <label className="flex justify-between text-xs font-bold text-slate-500 uppercase mb-1">
                   <span>Độ sáng (Brightness)</span>
@@ -1360,106 +1501,181 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 Áp dụng hiệu ứng hiện tại
               </button>
 
-              <hr className="border-slate-100 mt-4 mb-3" />
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                  Công cụ AI
-                </label>
-                <button
-                  onClick={handleRemoveBackground}
-                  disabled={!baseImage || isProcessing}
-                  className="w-full py-2.5 px-3 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-sm shadow-purple-500/10 hover:shadow-md"
-                >
-                  Xóa hình nền (AI Rembg)
-                </button>
-              </div>
             </div>
           )}
 
           {activeTab === 'overlay' && (
             <div className="space-y-4">
-              <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Thêm chữ vào ảnh</h4>
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    {activeTextId ? 'Chỉnh sửa lớp chữ' : 'Thêm chữ vào ảnh'}
+                  </h4>
+                  <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                    {activeTextId
+                      ? 'Thay đổi nội dung bên dưới hoặc kéo chữ trực tiếp trên ảnh để đổi vị trí.'
+                      : 'Nhập nội dung, chọn cỡ và màu rồi thêm chữ vào giữa ảnh.'}
+                  </p>
+                </div>
+
                 <input
                   type="text"
                   value={newText}
-                  onChange={(e) => { setNewText(e.target.value); if (activeTextId) handleUpdateActiveText(); }}
-                  className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 outline-none mb-2"
-                  placeholder="Nhập chữ..."
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setNewText(value);
+                    handleUpdateActiveText({ text: value });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !activeTextId) handleAddTextOverlay();
+                  }}
+                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  placeholder="Nhập nội dung chữ..."
                 />
 
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-[1fr_72px] gap-3 items-end">
                   <div>
-                    <label className="block text-[10px] text-slate-500 mb-1">Cỡ chữ: {textSize}</label>
+                    <label className="flex justify-between text-[10px] text-slate-500 mb-1">
+                      <span>Cỡ chữ</span>
+                      <span className="font-semibold text-slate-700">{textSize}px</span>
+                    </label>
                     <input
                       type="range"
                       min="12"
-                      max="120"
+                      max="500"
                       value={textSize}
-                      onChange={(e) => { setTextSize(Number(e.target.value)); if (activeTextId) handleUpdateActiveText(); }}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setTextSize(value);
+                        handleUpdateActiveText({ size: value });
+                      }}
                       className="editor-range-slider"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-500 mb-1">Màu chữ</label>
+                  <label className="block">
+                    <span className="block text-[10px] text-slate-500 mb-1">Màu chữ</span>
                     <input
                       type="color"
                       value={textColor}
-                      onChange={(e) => { setTextColor(e.target.value); if (activeTextId) handleUpdateActiveText(); }}
-                      className="w-full h-7 rounded border-0 cursor-pointer"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setTextColor(value);
+                        handleUpdateActiveText({ color: value });
+                      }}
+                      className="w-full h-9 rounded-lg border border-slate-200 bg-white cursor-pointer p-1"
                     />
+                  </label>
+                </div>
+
+                <div>
+                  <span className="block text-[10px] text-slate-500 mb-1.5">Kiểu chữ</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      aria-pressed={textBold}
+                      onClick={() => {
+                        const value = !textBold;
+                        setTextBold(value);
+                        handleUpdateActiveText({ bold: value });
+                      }}
+                      className={`py-2 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1 ${textBold ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'}`}
+                    >
+                      <Bold className="w-3.5 h-3.5" /> 
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={textItalic}
+                      onClick={() => {
+                        const value = !textItalic;
+                        setTextItalic(value);
+                        handleUpdateActiveText({ italic: value });
+                      }}
+                      className={`py-2 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1 ${textItalic ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'}`}
+                    >
+                      <Italic className="w-3.5 h-3.5" /> 
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={textUnderline}
+                      onClick={() => {
+                        const value = !textUnderline;
+                        setTextUnderline(value);
+                        handleUpdateActiveText({ underline: value });
+                      }}
+                      className={`py-2 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1 ${textUnderline ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'}`}
+                    >
+                      <Underline className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                <button
-                  onClick={handleAddTextOverlay}
-                  className="w-full py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1"
-                >
-                  <Plus className="w-4 h-4" /> Thêm văn bản
-                </button>
-
-                {activeTextId && (
-                  <div className="mt-3 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/60 space-y-2">
-                    <div className="text-[10px] font-bold text-indigo-600 uppercase">Đang chỉnh sửa chữ</div>
-                    <div className="flex gap-2">
+                {!activeTextId ? (
+                  <button
+                    type="button"
+                    onClick={handleAddTextOverlay}
+                    disabled={!newText.trim()}
+                    className="w-full py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-4 h-4" /> Thêm chữ vào ảnh
+                  </button>
+                ) : (
+                  <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 space-y-2">
+                    <p className="text-[10px] font-medium text-indigo-700">Thay đổi được tự động giữ khi tải hoặc lưu ảnh.</p>
+                    <div className="grid grid-cols-2 gap-2">
                       <button
-                        onClick={() => handleCommitText(activeTextId)}
-                        className="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-[11px] font-semibold transition"
+                        type="button"
+                        onClick={() => {
+                          setActiveTextId(null);
+                          setNewText('');
+                          setTextSize(DEFAULT_TEXT_SIZE);
+                          setTextColor('#000000');
+                          setTextBold(false);
+                          setTextItalic(false);
+                          setTextUnderline(false);
+                        }}
+                        className="py-1.5 bg-white text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-[11px] font-semibold transition"
                       >
-                        Ghim vào ảnh
+                        Thêm chữ khác
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleRemoveTextOverlay(activeTextId)}
-                        className="py-1.5 px-3 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 text-[11px] font-semibold transition"
+                        className="py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 text-[11px] font-semibold transition"
                       >
-                        Xóa
+                        Xóa lớp chữ
                       </button>
                     </div>
                   </div>
                 )}
 
-                {textOverlays.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {textOverlays.map((to, i) => (
-                      <div
-                        key={to.id}
-                        onClick={() => { setActiveTextId(to.id); setNewText(to.text); setTextSize(to.size); setTextColor(to.color); }}
-                        className={`flex justify-between items-center rounded-lg p-2 text-xs border cursor-pointer transition ${activeTextId === to.id ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-100 hover:bg-slate-100'}`}
-                      >
-                        <span className="truncate flex-1 font-medium">{to.text}</span>
+                {textOverlays.some(to => to.id !== activeTextId) && (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Các lớp chữ khác</p>
+                    {textOverlays
+                      .filter(to => to.id !== activeTextId)
+                      .map(to => (
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveTextOverlay(to.id);
+                          key={to.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveTextId(to.id);
+                            setSelectedIconLayerId(null);
+                            setIsOverlaySelected(false);
+                            setNewText(to.text);
+                            setTextSize(to.size);
+                            setTextColor(to.color);
+                            setTextBold(Boolean(to.bold));
+                            setTextItalic(Boolean(to.italic));
+                            setTextUnderline(Boolean(to.underline));
                           }}
-                          className="text-red-500 font-bold px-2 hover:bg-red-100 rounded"
+                          className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs border border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50 transition"
                         >
-                          ✕
+                          <span className="w-3 h-3 rounded-full border border-slate-200 shrink-0" style={{ backgroundColor: to.color }} />
+                          <span className="truncate flex-1 font-medium text-slate-700">{to.text}</span>
+                          <span className="text-[10px] text-slate-400">{to.size}px</span>
                         </button>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
@@ -1509,7 +1725,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                     <div className="flex gap-2 items-center">
                       <img src={overlayImage} alt="Overlay" className="w-10 h-10 object-cover rounded" />
                       <span className="flex-1 truncate">Đang chèn ảnh...</span>
-                      <button onClick={() => setOverlayImage(null)} className="text-red-500 font-bold px-2 hover:bg-red-50 rounded">
+                      <button onClick={() => { setOverlayImage(null); setIsOverlaySelected(false); }} className="text-red-500 font-bold px-2 hover:bg-red-50 rounded">
                         ✕
                       </button>
                     </div>
@@ -1521,7 +1737,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                         Ghim vào ảnh
                       </button>
                       <button
-                        onClick={() => setOverlayImage(null)}
+                        onClick={() => { setOverlayImage(null); setIsOverlaySelected(false); }}
                         className="flex-1 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-[11px] font-semibold transition"
                       >
                         Hủy
@@ -1635,7 +1851,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 </select>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 border border-slate-100 p-2 rounded-xl bg-slate-50/50">
+              <div className="grid grid-cols-3 gap-2 max-h-[272px] overflow-y-auto pr-1 border border-slate-100 p-2 rounded-xl bg-slate-50/50">
                 {displayIcons.map((icon) => (
                   <button
                     key={icon.id}
@@ -1675,7 +1891,11 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                     {iconLayers.map((layer, i) => (
                       <div
                         key={layer.id}
-                        onClick={() => setSelectedIconLayerId(layer.id)}
+                        onClick={() => {
+                          setSelectedIconLayerId(layer.id);
+                          setActiveTextId(null);
+                          setIsOverlaySelected(false);
+                        }}
                         className={`flex justify-between items-center rounded-lg p-2 text-xs border cursor-pointer transition ${selectedIconLayerId === layer.id ? 'bg-purple-50 border-purple-200' : 'bg-slate-50 border-slate-100 hover:bg-slate-100'}`}
                       >
                         <span className="truncate flex-1 font-medium text-slate-700 flex items-center gap-1.5">
@@ -1788,9 +2008,8 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
       <div className="lg:col-span-3 flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative">
         <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
           <div>
-            <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-500" />
-              Biên tập ảnh Pillow
+            <h3 className="font-semibold text-slate-800 text-sm">
+              Biên tập ảnh
             </h3>
             {naturalSize.width > 0 && (
               <p className="text-[10px] text-slate-400 mt-0.5">Kích thước gốc: {naturalSize.width} x {naturalSize.height} px</p>
@@ -1820,7 +2039,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           {isProcessing && (
             <div className="absolute inset-0 bg-white/75 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
-              <span className="text-xs text-purple-600 font-semibold">Đang xử lý ảnh bằng Pillow...</span>
+              <span className="text-xs text-purple-600 font-semibold">Đang xử lý ảnh</span>
             </div>
           )}
 
@@ -1852,7 +2071,12 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                       left: `${cropBox.x}%`,
                       top: `${cropBox.y}%`,
                       width: `${cropBox.w}%`,
-                      height: `${cropBox.h}%`
+                      height: `${cropBox.h}%`,
+                      borderRadius: cropShape === 'circle'
+                        ? '50%'
+                        : cropShape === 'rounded'
+                          ? `${cropRadius}px`
+                          : '0'
                     }}
                     onMouseDown={(e) => handleCropMouseDown(e, 'move')}
                   >
@@ -1908,14 +2132,36 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 <div
                   key={to.id}
                   onMouseDown={(e) => handleTextMouseDown(e, to)}
-                  className={`absolute cursor-move select-none px-2 py-1 rounded transition border ${activeTextId === to.id ? 'border-purple-500 bg-purple-50/70 text-purple-800' : 'border-transparent hover:border-slate-300 hover:bg-white/40'}`}
+                  onDoubleClick={(e) => handleTextDoubleClick(e, to)}
+                  onBlur={(e) => handleInlineTextBlur(to.id, e.currentTarget.textContent || '')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  contentEditable={editingTextId === to.id}
+                  suppressContentEditableWarning
+                  role="textbox"
+                  tabIndex={0}
+                  aria-label="Chữ trên ảnh"
+                  title={editingTextId === to.id ? 'Nhấn Enter để hoàn tất' : 'Kéo để di chuyển, nhấp đúp để sửa chữ'}
+                  className={`absolute rounded-sm transition outline-offset-2 ${editingTextId === to.id
+                    ? 'cursor-text select-text outline outline-2 outline-indigo-500 bg-white/70'
+                    : activeTextId === to.id
+                      ? 'cursor-move select-none outline outline-2 outline-purple-500 bg-purple-50/50'
+                      : 'cursor-move select-none outline outline-1 outline-transparent hover:outline-slate-300 hover:bg-white/30'
+                    }`}
                   style={{
                     left: `${to.x}%`,
                     top: `${to.y}%`,
-                    fontSize: `${to.size * 0.75}px`,
+                    fontSize: `${Math.max(1, to.size * previewScale)}px`,
                     color: to.color,
-                    fontWeight: 'bold',
-                    transform: 'translate(-50%, -50%)',
+                    fontFamily: 'Arial, sans-serif',
+                    fontWeight: to.bold ? 700 : 400,
+                    fontStyle: to.italic ? 'italic' : 'normal',
+                    textDecoration: to.underline ? 'underline' : 'none',
+                    lineHeight: 1,
                     whiteSpace: 'nowrap'
                   }}
                 >
@@ -1926,7 +2172,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
               {overlayImage && (
                 <div
                   onMouseDown={(e) => handleOverlayMouseDown(e, 'move')}
-                  className="absolute cursor-move border border-dashed border-indigo-400 group"
+                  className={`absolute cursor-move border border-dashed group ${isOverlaySelected ? 'border-indigo-500' : 'border-slate-300'}`}
                   style={{
                     left: `${overlayBox.x}%`,
                     top: `${overlayBox.y}%`,
@@ -1984,7 +2230,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
               </div>
               <h4 className="font-semibold text-slate-700 mb-1">Chọn ảnh hoặc tạo mới</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Tải ảnh từ máy tính lên, tạo canvas trong suốt hoặc nhấp chọn ảnh đã lưu trong thư viện để biên tập bằng Pillow.
+                Tải ảnh từ máy tính lên, tạo canvas trong suốt hoặc nhấp chọn ảnh đã lưu trong thư viện để biên tập.
               </p>
             </div>
           )}
