@@ -135,7 +135,7 @@ export default function PptxSidebar({
                 <div>
                   <input type="file" accept="image/*" ref={libraryUploadRef} onChange={handleUploadFileChange} className="hidden" id="pptx-library-upload" />
                   <button onClick={() => libraryUploadRef.current?.click()} disabled={uploadingToLibrary}
-                    className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-none rounded-xl text-[13px] font-semibold cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 hover:shadow-lg hover:shadow-orange-500/30 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-2.5 bg-white text-slate-900 border border-orange-400 rounded-xl text-[13px] font-semibold cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     id="pptx-library-upload-btn">
                     {uploadingToLibrary ? (
                       <><Loader2 size={15} className="animate-spin" /> Đang tải...</>
@@ -234,6 +234,8 @@ export default function PptxSidebar({
         open={showStudio}
         onClose={() => setShowStudio(false)}
         onSaved={() => loadLibraryImages()}
+        user={user}
+        savedImages={libraryImages}
       />
     </>
   );

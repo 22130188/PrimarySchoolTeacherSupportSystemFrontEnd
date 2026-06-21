@@ -49,7 +49,7 @@ export default function ImagePage() {
                     Tạo & Biên Tập Hình Ảnh
                   </h1>
                   <p className="text-sm text-gray-500 ml-[52px]">
-                    Sử dụng Pillow để thiết kế, ghép ảnh, thêm icon và chỉnh sửa ảnh chuyên nghiệp
+                    Thiết kế, ghép ảnh, thêm icon và chỉnh sửa ảnh chuyên nghiệp
                   </p>
                 </div>
               </div>
