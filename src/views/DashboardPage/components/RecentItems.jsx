@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertCircle, ArrowDownUp, BookOpen, Check, ChevronDown, ClipboardCheck,
+  AlertCircle, ArrowDownUp, BookOpen, ClipboardCheck,
   FileText, Grid3X3, List, Loader2, Pencil, Plus, Presentation,
-  RefreshCw, Search, School, UserRound, Users, X,
+  RefreshCw, School, SearchX, X,
 } from 'lucide-react';
 import lessonDraftApi from '../../../services/lessonDraftApi';
 import testApi from '../../../services/testApi';
@@ -31,6 +31,13 @@ const COLORS = {
 
 const getName = (user) => user?.username || user?.fullName || user?.name || user?.email || 'Bạn';
 const getOwnerKey = (item, fallback) => `owner:${item.ownerEmail || item.ownerName || item.authorId || fallback}`;
+const normalizeText = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/g, 'd')
+  .replace(/Đ/g, 'D')
+  .toLocaleLowerCase('vi')
+  .trim();
 
 function timeAgo(value) {
   const date = new Date(value);
@@ -148,7 +155,14 @@ function postFromClass(post, classroom) {
   return { ...post, key: `post-${classroom.id}-${post.id}`, kind, source: 'CLASSROOM_POST', title: post.title || post.referenceTestName || CONTENT_TYPE_NAME[kind], classroomId: classroom.id, classroomName: classroom.name, ownerKey: getOwnerKey(post, classroom.teacherId), ownerName: post.authorName || classroom.teacherName || 'Giáo viên' };
 }
 
-export default function RecentItems({ compact = false, hideCreate = false, defaultViewMode = 'grid' }) {
+export default function RecentItems({
+  compact = false,
+  hideCreate = false,
+  defaultViewMode = 'grid',
+  filters,
+  onFilterOptionsChange,
+  onResetFilters,
+}) {
   const navigate = useNavigate();
   const roleId = useAuthStore((state) => state.roleId);
   const user = useAuthStore((state) => state.user);
@@ -158,14 +172,9 @@ export default function RecentItems({ compact = false, hideCreate = false, defau
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [view, setView] = useState(defaultViewMode);
-  const [owner, setOwner] = useState('all');
-  const [type, setType] = useState('all');
   const [direction, setDirection] = useState('desc');
-  const [menu, setMenu] = useState(null);
-  const [search, setSearch] = useState('');
   const [showCreateChoices, setShowCreateChoices] = useState(false);
   const [showLessonCreator, setShowLessonCreator] = useState(false);
-  const menusRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -207,34 +216,58 @@ export default function RecentItems({ compact = false, hideCreate = false, defau
   }, [student, userName]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    const close = (event) => { if (menusRef.current && !menusRef.current.contains(event.target)) setMenu(null); };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, []);
-
   const owners = useMemo(() => {
     const unique = new Map();
     items.filter((item) => !item.source.startsWith('OWNED')).forEach((item) => unique.set(item.ownerKey, { value: item.ownerKey, label: item.ownerName }));
     return [
-      { value: 'all', label: 'Chủ sở hữu bất kỳ', icon: UserRound },
-      { value: 'shared', label: 'Đã chia sẻ với bạn', icon: Users },
-      ...(!student ? [{ value: 'me', label: `${userName} (Bạn)`, icon: UserRound }] : []),
+      { value: 'shared', label: 'Đã chia sẻ với bạn' },
+      ...(!student ? [{ value: 'me', label: `${userName} (Bạn)` }] : []),
       ...unique.values(),
     ];
   }, [items, student, userName]);
 
-  const visible = useMemo(() => items
-    .filter((item) => owner === 'all' || (owner === 'shared' ? !item.source.startsWith('OWNED') : item.ownerKey === owner))
-    .filter((item) => type === 'all' || item.kind === type)
-    .sort((a, b) => {
+  const subjects = useMemo(() => [...new Set(items.map((item) => item.subject).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'vi'))
+    .map((value) => ({ value, label: value })), [items]);
+  const grades = useMemo(() => [...new Set(items.map((item) => item.grade || item.className).filter(Boolean))]
+    .sort((a, b) => String(a).localeCompare(String(b), 'vi', { numeric: true }))
+    .map((value) => ({ value, label: String(value).startsWith('Lớp') ? value : `Lớp ${value}` })), [items]);
+
+  useEffect(() => {
+    onFilterOptionsChange({ owners, subjects, grades });
+  }, [grades, onFilterOptionsChange, owners, subjects]);
+
+  const visible = useMemo(() => {
+    const terms = normalizeText(filters.query).split(/\s+/).filter(Boolean);
+    const cutoff = filters.date === 'all' ? null : Date.now() - Number(filters.date) * 86400000;
+
+    return items
+      .filter((item) => filters.owner === 'all' || (filters.owner === 'shared' ? !item.source.startsWith('OWNED') : item.ownerKey === filters.owner))
+      .filter((item) => filters.type === 'all' || item.kind === filters.type)
+      .filter((item) => filters.subject === 'all' || item.subject === filters.subject)
+      .filter((item) => filters.grade === 'all' || (item.grade || item.className) === filters.grade)
+      .filter((item) => {
+        if (!cutoff) return true;
+        const modified = new Date(item.updatedAt || item.createdAt || 0).getTime();
+        return Number.isFinite(modified) && modified >= cutoff;
+      })
+      .filter((item) => {
+        if (!terms.length) return true;
+        const searchable = normalizeText([
+          item.title, item.name, item.description, item.subject, item.grade, item.className,
+          item.ownerName, item.ownerEmail, item.classroomName, item.referenceTestName,
+          CONTENT_TYPE_NAME[item.kind], LESSON_TYPE_NAME[item.type],
+        ].filter(Boolean).join(' '));
+        return terms.every((term) => searchable.includes(term));
+      })
+      .sort((a, b) => {
       const first = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const second = new Date(b.updatedAt || b.createdAt || 0).getTime();
       return direction === 'desc' ? second - first : first - second;
-    }), [direction, items, owner, type]);
+      });
+  }, [direction, filters, items]);
 
-  const filteredOwners = owners.filter((option) => option.label.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')));
-  const chooseOwner = (value) => { setOwner(value); setSearch(''); setMenu(null); };
+  const isFiltering = filters.query.trim() || Object.entries(filters).some(([key, value]) => key !== 'query' && value !== 'all');
   const itemTypeLabel = (item) => item.kind === 'LESSON' ? `Bài giảng · ${LESSON_TYPE_NAME[item.type] || 'Tài liệu'}` : CONTENT_TYPE_NAME[item.kind];
 
   const openItem = (item) => {
@@ -260,27 +293,21 @@ export default function RecentItems({ compact = false, hideCreate = false, defau
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Gần đây</h2>
-            <p className="mt-1 text-sm text-slate-500">{student ? 'Bài giảng, bài tập và bài kiểm tra mới nhất trong lớp' : 'Tiếp tục nội dung bạn đang xây dựng'}</p>
+            <h2 className="text-2xl font-bold text-slate-900">{isFiltering ? 'Kết quả tìm kiếm' : 'Gần đây'}</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {isFiltering
+                ? `${visible.length} nội dung phù hợp${filters.query.trim() ? ` với “${filters.query.trim()}”` : ''}`
+                : student ? 'Bài giảng, bài tập và bài kiểm tra mới nhất trong lớp' : 'Tiếp tục nội dung bạn đang xây dựng'}
+            </p>
           </div>
-          <div ref={menusRef} className="relative flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <button type="button" onClick={() => setMenu(menu === 'owner' ? null : 'owner')} className={`flex h-11 max-w-56 items-center gap-2 rounded-full border bg-white px-4 text-sm ${menu === 'owner' ? 'border-violet-500 ring-2 ring-violet-100' : 'border-slate-200'}`}>
-                <span className="truncate">{owners.find((option) => option.value === owner)?.label}</span><ChevronDown className="h-4 w-4" />
-              </button>
-              {menu === 'owner' && (
-                <div className="absolute right-0 z-30 mt-2 w-80 rounded-2xl border bg-white p-2 shadow-xl">
-                  <label className="mb-2 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2"><Search className="h-4 w-4" /><input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm kiếm chủ sở hữu" className="w-full bg-transparent text-sm outline-none" /></label>
-                  {filteredOwners.map((option) => { const Icon = option.icon || UserRound; return <button key={option.value} type="button" onClick={() => chooseOwner(option.value)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm ${owner === option.value ? 'bg-violet-50 text-violet-800' : 'hover:bg-slate-50'}`}><Icon className="h-5 w-5" /><span className="flex-1 truncate">{option.label}</span>{owner === option.value && <Check className="h-4 w-4" />}</button>; })}
-                </div>
-              )}
-            </div>
-            <div className="relative">
-              <button type="button" onClick={() => setMenu(menu === 'type' ? null : 'type')} className={`flex h-11 max-w-52 items-center gap-2 rounded-full border bg-white px-4 text-sm ${menu === 'type' ? 'border-violet-500 ring-2 ring-violet-100' : 'border-slate-200'}`}><span className="truncate">{CONTENT_TYPE_NAME[type]}</span><ChevronDown className="h-4 w-4" /></button>
-              {menu === 'type' && <div className="absolute right-0 z-30 mt-2 w-64 rounded-2xl border bg-white p-2 shadow-xl">{CONTENT_TYPES.map(([value, label]) => <button key={value} type="button" onClick={() => { setType(value); setMenu(null); }} className={`flex w-full justify-between rounded-xl px-3 py-2.5 text-left text-sm ${type === value ? 'bg-violet-50 text-violet-800' : 'hover:bg-slate-50'}`}>{label}{type === value && <Check className="h-4 w-4" />}</button>)}</div>}
-            </div>
+          <div className="relative flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => setDirection((value) => value === 'desc' ? 'asc' : 'desc')} title={direction === 'desc' ? 'Mới nhất trước' : 'Cũ nhất trước'} className="grid h-11 w-11 place-items-center rounded-full hover:bg-slate-100"><ArrowDownUp className={`h-5 w-5 ${direction === 'asc' ? 'rotate-180' : ''}`} /></button>
             <button type="button" onClick={() => setView((value) => value === 'grid' ? 'list' : 'grid')} title="Đổi kiểu hiển thị" className="grid h-11 w-11 place-items-center rounded-full hover:bg-slate-100">{view === 'grid' ? <List className="h-5 w-5" /> : <Grid3X3 className="h-5 w-5" />}</button>
+            {!hideCreate && (
+              <button type="button" onClick={() => setShowCreateChoices(true)} title="Tạo nội dung mới" className="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white hover:border-violet-400 hover:text-violet-700">
+                <Plus className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </header>
 
@@ -289,10 +316,19 @@ export default function RecentItems({ compact = false, hideCreate = false, defau
         {loading ? (
           <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-slate-500"><Loader2 className="h-8 w-8 animate-spin text-violet-500" />Đang tải nội dung gần đây...</div>
         ) : visible.length === 0 ? (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed bg-slate-50 text-center"><School className="mb-3 h-8 w-8 text-violet-500" /><b>{items.length ? 'Không có nội dung phù hợp bộ lọc' : 'Chưa có nội dung gần đây'}</b><p className="mt-1 text-sm text-slate-500">{student ? 'Nội dung giáo viên giao trong lớp sẽ xuất hiện tại đây.' : 'Bài giảng, bài tập và bài kiểm tra bạn tạo sẽ xuất hiện tại đây.'}</p></div>
+          <div className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-violet-200 bg-gradient-to-b from-violet-50/70 to-white px-6 text-center">
+            {isFiltering ? <SearchX className="mb-4 h-12 w-12 text-violet-500" /> : <School className="mb-4 h-12 w-12 text-violet-500" />}
+            <b className="text-lg text-slate-900">{isFiltering ? 'Không tìm thấy nội dung phù hợp' : 'Chưa có nội dung gần đây'}</b>
+            <p className="mt-2 max-w-lg text-sm text-slate-500">
+              {isFiltering
+                ? 'Hãy kiểm tra từ khóa, thử tìm không dấu hoặc xóa bớt bộ lọc.'
+                : student ? 'Nội dung giáo viên giao trong lớp sẽ xuất hiện tại đây.' : 'Bài giảng, bài tập và bài kiểm tra bạn tạo sẽ xuất hiện tại đây.'}
+            </p>
+            {isFiltering && <button type="button" onClick={onResetFilters} className="mt-5 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Xóa tìm kiếm và bộ lọc</button>}
+          </div>
         ) : view === 'grid' ? (
           <div className="grid grid-cols-1 gap-x-5 gap-y-7 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {!hideCreate && owner !== 'shared' && type === 'all' && <button type="button" onClick={() => setShowCreateChoices(true)} className="self-start text-left"><div className="flex aspect-[4/3] items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50 hover:border-violet-400"><span className="flex flex-col items-center gap-2 text-sm font-semibold text-slate-500"><Plus />Tạo mới</span></div></button>}
+            {!hideCreate && !isFiltering && <button type="button" onClick={() => setShowCreateChoices(true)} className="self-start text-left"><div className="flex aspect-[4/3] items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50 hover:border-violet-400"><span className="flex flex-col items-center gap-2 text-sm font-semibold text-slate-500"><Plus />Tạo mới</span></div></button>}
             {visible.map((item) => <button key={item.key} type="button" onClick={() => openItem(item)} className="group min-w-0 text-left"><div className="aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-slate-200 group-hover:shadow-lg group-hover:ring-violet-300"><Preview item={item} /></div><h3 className="mt-3 truncate text-sm font-semibold group-hover:text-violet-700">{item.title || 'Nội dung không tên'}</h3><p className="mt-1 flex gap-1.5 text-xs text-slate-500"><span className={`mt-1 h-2 w-2 rounded-full ${item.source.startsWith('OWNED') ? 'bg-violet-500' : 'bg-emerald-500'}`} /><span className="truncate">{itemTypeLabel(item)}</span> · <span className="shrink-0">{timeAgo(item.updatedAt || item.createdAt)}</span></p><p className="mt-1 truncate text-[11px] text-slate-400">{item.source.startsWith('OWNED') ? 'Của bạn' : `${item.ownerName}${item.classroomName ? ` · ${item.classroomName}` : ''}`}</p></button>)}
           </div>
         ) : (
