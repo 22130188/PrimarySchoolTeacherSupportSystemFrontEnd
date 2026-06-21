@@ -25,6 +25,11 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
   const [isCropActive, setIsCropActive] = useState(false);
   const [cropBox, setCropBox] = useState({ x: 10, y: 10, w: 80, h: 80 });
   const [cropDragState, setCropDragState] = useState(null);
+  const [cropShape, setCropShape] = useState('rectangle');
+  const [cropAspectRatio, setCropAspectRatio] = useState('free');
+  const [cropRadius, setCropRadius] = useState(20);
+  const [freeformPoints, setFreeformPoints] = useState([]);
+  const [isDrawingFreeform, setIsDrawingFreeform] = useState(false);
 
   const [brightness, setBrightness] = useState(1.0);
   const [contrast, setContrast] = useState(1.0);
@@ -340,17 +345,52 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
         x = Math.max(0, Math.min(100 - w, x + dx));
         y = Math.max(0, Math.min(100 - h, y + dy));
       } else {
-        if (handle.includes('e')) w = Math.max(5, Math.min(100 - x, w + dx));
-        if (handle.includes('s')) h = Math.max(5, Math.min(100 - y, h + dy));
-        if (handle.includes('w')) {
-          const oldX = x;
-          x = Math.max(0, Math.min(x + w - 5, x + dx));
-          w = w - (x - oldX);
-        }
-        if (handle.includes('n')) {
-          const oldY = y;
-          y = Math.max(0, Math.min(y + h - 5, y + dy));
-          h = h - (y - oldY);
+        const R = cropAspectRatio === '1:1' ? 1.0 : cropAspectRatio === '16:9' ? 16 / 9 : cropAspectRatio === '4:3' ? 4 / 3 : null;
+        const imgW = naturalSize.width || 800;
+        const imgH = naturalSize.height || 600;
+        const k = R ? R * (imgH / imgW) : null;
+
+        if (k) {
+          if (handle.includes('e') || handle.includes('w') || handle === 'se' || handle === 'ne' || handle === 'sw' || handle === 'nw') {
+            if (handle.includes('e') || handle.includes('se') || handle.includes('ne')) {
+              w = Math.max(2, Math.min(100 - x, w + dx));
+            } else {
+              const oldX = x;
+              x = Math.max(0, Math.min(x + w - 2, x + dx));
+              w = w - (x - oldX);
+            }
+            h = w / k;
+            if (y + h > 100) {
+              h = 100 - y;
+              w = h * k;
+            }
+          } else {
+            if (handle.includes('s')) {
+              h = Math.max(2, Math.min(100 - y, h + dy));
+            } else {
+              const oldY = y;
+              y = Math.max(0, Math.min(y + h - 2, y + dy));
+              h = h - (y - oldY);
+            }
+            w = h * k;
+            if (x + w > 100) {
+              w = 100 - x;
+              h = w / k;
+            }
+          }
+        } else {
+          if (handle.includes('e')) w = Math.max(2, Math.min(100 - x, w + dx));
+          if (handle.includes('s')) h = Math.max(2, Math.min(100 - y, h + dy));
+          if (handle.includes('w')) {
+            const oldX = x;
+            x = Math.max(0, Math.min(x + w - 2, x + dx));
+            w = w - (x - oldX);
+          }
+          if (handle.includes('n')) {
+            const oldY = y;
+            y = Math.max(0, Math.min(y + h - 2, y + dy));
+            h = h - (y - oldY);
+          }
         }
       }
       return { x, y, w, h };
@@ -361,12 +401,98 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     setCropDragState(null);
   };
 
+  const handleFreeformMouseDown = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = previewContainerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setFreeformPoints([{ x, y }]);
+    setIsDrawingFreeform(true);
+  };
+
+  const handleFreeformMouseMove = (e) => {
+    if (!isDrawingFreeform) return;
+    const rect = previewContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+
+    setFreeformPoints((prev) => {
+      if (prev.length === 0) return [{ x, y }];
+      const last = prev[prev.length - 1];
+      const dist = Math.hypot(x - last.x, y - last.y);
+      if (dist > 0.3) {
+        return [...prev, { x, y }];
+      }
+      return prev;
+    });
+  };
+
+  const handleFreeformMouseUp = () => {
+    setIsDrawingFreeform(false);
+    if (freeformPoints.length >= 3) {
+      const xs = freeformPoints.map(p => p.x);
+      const ys = freeformPoints.map(p => p.y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+
+      setCropBox({
+        x: minX,
+        y: minY,
+        w: maxX - minX,
+        h: maxY - minY
+      });
+    }
+  };
+
   const handleCommitCrop = () => {
+    if (cropShape === 'freeform' && freeformPoints.length < 3) {
+      alert("Vui lòng vẽ nét khép kín trên ảnh trước khi cắt!");
+      return;
+    }
+
     const box = [cropBox.x, cropBox.y, cropBox.x + cropBox.w, cropBox.y + cropBox.h];
-    const newOps = [...operations, { type: 'crop', box, is_percentage: true }];
+    const newOps = [
+      ...operations,
+      {
+        type: 'crop',
+        box,
+        is_percentage: true,
+        shape: cropShape,
+        radius: cropShape === 'rounded' ? cropRadius : undefined,
+        points: cropShape === 'freeform' ? freeformPoints.map(p => [p.x, p.y]) : undefined
+      }
+    ];
     setHistory([...history, operations]);
     setOperations(newOps);
     setIsCropActive(false);
+    setFreeformPoints([]);
+  };
+
+  const handleAspectRatioChange = (ratio) => {
+    setCropAspectRatio(ratio);
+    if (ratio === 'free') return;
+
+    const R = ratio === '1:1' ? 1.0 : ratio === '16:9' ? 16 / 9 : ratio === '4:3' ? 4 / 3 : 1.0;
+    const imgW = naturalSize.width || 800;
+    const imgH = naturalSize.height || 600;
+    const k = R * (imgH / imgW);
+
+    setCropBox((prev) => {
+      let newW = prev.w;
+      let newH = newW / k;
+      if (prev.y + newH > 100) {
+        newH = 100 - prev.y;
+        newW = newH * k;
+      }
+      if (prev.x + newW > 100) {
+        newW = 100 - prev.x;
+        newH = newW / k;
+      }
+      return { ...prev, w: newW, h: newH };
+    });
   };
 
   const handleAddTextOverlay = () => {
@@ -750,6 +876,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     if (textDragState) handleTextMouseMove(e);
     if (overlayDragState) handleOverlayMouseMove(e);
     if (iconDragState) handleIconMouseMove(e);
+    if (isDrawingFreeform) handleFreeformMouseMove(e);
   };
 
   const handleGlobalMouseUp = () => {
@@ -757,6 +884,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     if (textDragState) handleTextMouseUp();
     if (overlayDragState) setOverlayDragState(null);
     if (iconDragState) setIconDragState(null);
+    if (isDrawingFreeform) handleFreeformMouseUp();
   };
 
   const handleOpenSaveModal = () => {
@@ -822,6 +950,17 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
     }
   };
 
+  const handleTabClick = (tabName, isCrop = false) => {
+    if (tabName !== 'source' && !baseImage) {
+      alert("Vui lòng chọn ảnh hoặc tạo bản vẽ mới trước!");
+      return;
+    }
+    setActiveTab(tabName);
+    setIsCropActive(isCrop);
+  };
+
+  const handleClass = "absolute w-3.5 h-3.5 bg-pink-500 border-2 border-white rounded-full shadow-md z-30 transform";
+
   return (
     <div
       className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[500px]"
@@ -839,7 +978,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
             <span>Nguồn</span>
           </button>
           <button
-            onClick={() => { setActiveTab('crop'); setIsCropActive(true); }}
+            onClick={() => handleTabClick('crop', true)}
             className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'crop' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             title="Cắt xoay"
           >
@@ -847,7 +986,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
             <span>Cắt</span>
           </button>
           <button
-            onClick={() => { setActiveTab('adjust'); setIsCropActive(false); }}
+            onClick={() => handleTabClick('adjust', false)}
             className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'adjust' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             title="Điều chỉnh"
           >
@@ -855,7 +994,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
             <span>Chỉnh</span>
           </button>
           <button
-            onClick={() => { setActiveTab('overlay'); setIsCropActive(false); }}
+            onClick={() => handleTabClick('overlay', false)}
             className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'overlay' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             title="Ghép & Chữ"
           >
@@ -863,7 +1002,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
             <span>Ghép</span>
           </button>
           <button
-            onClick={() => { setActiveTab('icons'); setIsCropActive(false); }}
+            onClick={() => handleTabClick('icons', false)}
             className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'icons' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             title="Biểu tượng"
           >
@@ -945,20 +1084,91 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           {activeTab === 'crop' && (
             <div className="space-y-4">
               <div className="p-3 bg-pink-50 text-pink-700 text-xs rounded-xl border border-pink-100">
-                💡 Sử dụng chuột kéo các góc hình chữ nhật trên ảnh để điều chỉnh khung cắt.
+                {cropShape === 'freeform'
+                  ? "Nhấn giữ và vẽ một đường khép kín trên ảnh để thực hiện cắt tự do."
+                  : "Sử dụng chuột kéo các góc hình chữ nhật trên ảnh để điều chỉnh khung cắt."}
               </div>
 
-              <div className="flex gap-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Chế độ cắt (Hình dạng)</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: 'rectangle', name: 'Mặc định' },
+                    { id: 'circle', name: 'Hình tròn' },
+                    { id: 'rounded', name: 'Bo góc' },
+                    { id: 'freeform', name: 'Nét vẽ tay' }
+                  ].map(shape => (
+                    <button
+                      key={shape.id}
+                      type="button"
+                      onClick={() => {
+                        setCropShape(shape.id);
+                        if (shape.id !== 'freeform') {
+                          setFreeformPoints([]);
+                        }
+                      }}
+                      className={`py-1.5 px-1 rounded-lg border text-xs font-semibold transition cursor-pointer text-center ${cropShape === shape.id ? 'border-pink-500 bg-pink-50 text-pink-700 shadow-sm' : 'border-slate-200 hover:bg-slate-50 text-slate-600 bg-white'}`}
+                    >
+                      {shape.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {cropShape === 'rounded' && (
+                <div>
+                  <label className="flex justify-between text-xs font-bold text-slate-500 uppercase mb-1">
+                    <span>Độ bo góc</span>
+                    <span>{cropRadius}px</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="10"
+                    max="150"
+                    step="5"
+                    value={cropRadius}
+                    onChange={(e) => setCropRadius(Number(e.target.value))}
+                    className="editor-range-slider"
+                  />
+                </div>
+              )}
+
+              {cropShape !== 'freeform' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tỉ lệ khung hình</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'free', name: 'Tự do' },
+                      { id: '1:1', name: 'Vuông (1:1)' },
+                      { id: '16:9', name: 'Ngang (16:9)' },
+                      { id: '4:3', name: 'Ảnh (4:3)' }
+                    ].map(ratio => (
+                      <button
+                        key={ratio.id}
+                        type="button"
+                        onClick={() => handleAspectRatioChange(ratio.id)}
+                        className={`py-1.5 px-2 rounded-lg border text-xs font-semibold transition cursor-pointer text-center ${cropAspectRatio === ratio.id ? 'border-pink-500 bg-pink-50 text-pink-700 shadow-sm' : 'border-slate-200 hover:bg-slate-50 text-slate-600 bg-white'}`}
+                      >
+                        {ratio.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
                 <button
+                  type="button"
                   onClick={handleCommitCrop}
                   disabled={!baseImage}
-                  className="flex-1 py-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 text-sm font-semibold transition flex items-center justify-center gap-1 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 text-sm font-semibold transition flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-sm shadow-pink-500/10 hover:shadow-md"
                 >
                   <Check className="w-4 h-4" /> Cắt ảnh
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsCropActive(false)}
-                  className="py-2.5 px-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 text-sm font-semibold transition"
+                  className="py-2.5 px-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 text-sm font-semibold transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1626,14 +1836,15 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 src={previewSrc}
                 alt="Preview"
                 onLoad={handleImageLoad}
-                className="interactive-image-preview shadow-lg rounded-md"
+                className="interactive-image-preview shadow-lg rounded-md max-w-full max-h-[480px] block object-contain"
                 style={{
+                  aspectRatio: `${naturalSize.width} / ${naturalSize.height}`,
                   transform: `scale(${keepAspectRatio ? 1 : 'none'})`,
                   filter: `brightness(${brightness}) opacity(${opacity})`
                 }}
               />
 
-              {isCropActive && (
+              {isCropActive && cropShape !== 'freeform' && (
                 <div className="crop-overlay-container">
                   <div
                     className="crop-box shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] border-2 border-dashed border-pink-500 absolute"
@@ -1645,16 +1856,51 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                     }}
                     onMouseDown={(e) => handleCropMouseDown(e, 'move')}
                   >
-                    <div className="crop-handle crop-handle-nw" onMouseDown={(e) => handleCropMouseDown(e, 'nw')} />
-                    <div className="crop-handle crop-handle-ne" onMouseDown={(e) => handleCropMouseDown(e, 'ne')} />
-                    <div className="crop-handle crop-handle-sw" onMouseDown={(e) => handleCropMouseDown(e, 'sw')} />
-                    <div className="crop-handle crop-handle-se" onMouseDown={(e) => handleCropMouseDown(e, 'se')} />
+                    <div className={`${handleClass} top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize`} onMouseDown={(e) => handleCropMouseDown(e, 'nw')} />
+                    <div className={`${handleClass} top-0 right-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize`} onMouseDown={(e) => handleCropMouseDown(e, 'ne')} />
+                    <div className={`${handleClass} bottom-0 left-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize`} onMouseDown={(e) => handleCropMouseDown(e, 'sw')} />
+                    <div className={`${handleClass} bottom-0 right-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize`} onMouseDown={(e) => handleCropMouseDown(e, 'se')} />
 
-                    <div className="crop-handle crop-handle-n" onMouseDown={(e) => handleCropMouseDown(e, 'n')} />
-                    <div className="crop-handle crop-handle-s" onMouseDown={(e) => handleCropMouseDown(e, 's')} />
-                    <div className="crop-handle crop-handle-w" onMouseDown={(e) => handleCropMouseDown(e, 'w')} />
-                    <div className="crop-handle crop-handle-e" onMouseDown={(e) => handleCropMouseDown(e, 'e')} />
+                    <div className={`${handleClass} top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize`} onMouseDown={(e) => handleCropMouseDown(e, 'n')} />
+                    <div className={`${handleClass} bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 cursor-ns-resize`} onMouseDown={(e) => handleCropMouseDown(e, 's')} />
+                    <div className={`${handleClass} top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize`} onMouseDown={(e) => handleCropMouseDown(e, 'w')} />
+                    <div className={`${handleClass} top-1/2 right-0 translate-x-1/2 -translate-y-1/2 cursor-ew-resize`} onMouseDown={(e) => handleCropMouseDown(e, 'e')} />
                   </div>
+                </div>
+              )}
+
+              {isCropActive && cropShape === 'freeform' && (
+                <div className="absolute inset-0 z-20 cursor-crosshair">
+                  <svg
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    className="w-full h-full absolute inset-0"
+                    onMouseDown={handleFreeformMouseDown}
+                    onMouseMove={handleFreeformMouseMove}
+                    onMouseUp={handleFreeformMouseUp}
+                  >
+                    {/* Dark overlay for outside area */}
+                    {freeformPoints.length >= 3 ? (
+                      <path
+                        d={`M 0 0 H 100 V 100 H 0 Z M ${freeformPoints[0].x} ${freeformPoints[0].y} ${freeformPoints.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ')} Z`}
+                        fill="rgba(0, 0, 0, 0.5)"
+                        fillRule="evenodd"
+                      />
+                    ) : (
+                      <rect width="100" height="100" fill="rgba(0, 0, 0, 0.2)" />
+                    )}
+
+                    {/* Pink dotted outline for the lasso shape */}
+                    {freeformPoints.length > 0 && (
+                      <polygon
+                        points={freeformPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                        fill="rgba(236, 72, 153, 0.15)"
+                        stroke="#ec4899"
+                        strokeWidth="0.6"
+                        strokeDasharray="1.5,1.5"
+                      />
+                    )}
+                  </svg>
                 </div>
               )}
 
