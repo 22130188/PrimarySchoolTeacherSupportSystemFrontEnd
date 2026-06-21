@@ -1,7 +1,8 @@
 import { useLocation, Link } from 'react-router-dom';
-import { Home, BookOpen, ClipboardCheck, Sparkles, School, Plus, MoreHorizontal, Bell } from 'lucide-react';
+import { Plus, MoreHorizontal } from 'lucide-react';
 import { SIDEBAR_MENU } from '../data/mockDashboardData';
 import { useAuthStore } from '../stores/authStore';
+import NotificationCenter from './NotificationCenter';
 
 export default function DashboardSidebar() {
   const location = useLocation();
@@ -59,13 +60,7 @@ export default function DashboardSidebar() {
           <MoreHorizontal className="w-5 h-5" />
         </button>
 
-        <button
-          className="w-10 h-10 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-violet-500 flex items-center justify-center transition-all duration-200 relative"
-          title="Thông báo"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
-        </button>
+        <NotificationCenter placement="sidebar" />
 
         <Link
           to="/profile"

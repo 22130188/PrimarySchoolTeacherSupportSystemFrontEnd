@@ -1,10 +1,11 @@
-import { Menu, Search, Bell, ChevronRight, LogOut } from 'lucide-react';
+import { Menu, Search, ChevronRight, LogOut } from 'lucide-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminStore } from '../../../stores/adminStore';
 import { useAuthStore } from '../../../stores/authStore';
 import { getMeAPI } from '../../../services/userApi';
 import { ADMIN_MENU } from '../../../data/adminDashboardData';
+import NotificationCenter from '../../../components/NotificationCenter';
 
 export default function AdminHeader() {
   const navigate = useNavigate();
@@ -63,10 +64,7 @@ export default function AdminHeader() {
           </div>
 
 
-          <button className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
-          </button>
+          <NotificationCenter placement="header" />
 
 
           <button
