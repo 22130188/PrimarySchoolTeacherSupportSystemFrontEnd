@@ -6,12 +6,25 @@ const authHeaders = () => ({
 });
 
 async function handleRes(res) {
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Có lỗi xảy ra' }));
-    throw new Error(err.message || JSON.stringify(err));
+  const rawBody = await res.text();
+  let body = null;
+
+  if (rawBody) {
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      body = rawBody;
+    }
   }
-  if (res.status === 204) return null;
-  return res.json();
+
+  if (!res.ok) {
+    const message = typeof body === 'string'
+      ? body
+      : body?.message || body?.error || `Yêu cầu thất bại (${res.status})`;
+    throw new Error(message);
+  }
+
+  return body;
 }
 
 export async function createClassroom(name, description, gradeLevel, subject) {
