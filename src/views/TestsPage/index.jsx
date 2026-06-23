@@ -47,11 +47,18 @@ export default function TestsPage() {
   const [submittingTest, setSubmittingTest] = useState(false);
   const roleId = useAuthStore(s => s.roleId);
   const user = useAuthStore(s => s.user);
+  const token = useAuthStore(s => s.token);
   const isTeacher = roleId === 2;
 
   useEffect(() => {
+    const effectiveToken = token || localStorage.getItem('token');
+    if (!effectiveToken) {
+      console.debug('[TestsPage] No token yet, skipping fetchTests');
+      return;
+    }
+    console.debug('[TestsPage] Token present, fetching tests');
     fetchTests();
-  }, []);
+  }, [token]);
 
   const fetchTests = async () => {
     try {
@@ -216,14 +223,23 @@ export default function TestsPage() {
                     <p className="text-sm text-gray-500">Tạo và quản lý bài kiểm tra trực tuyến</p>
                   </div>
                 </div>
-                <button
-                  id="tests-create-btn"
-                  onClick={handleCreateTest}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
-                >
-                  <Plus className="w-4 h-4" />
-                  Tạo bài kiểm tra
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => navigate('/questions/manage')}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
+                    title="Quản lý các câu hỏi của bạn"
+                  >
+                    📋 Quản lý Câu hỏi
+                  </button>
+                  <button
+                    id="tests-create-btn"
+                    onClick={handleCreateTest}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Tạo bài kiểm tra
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">

@@ -12,14 +12,12 @@ export default function OAuth2CallbackPage() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const token  = params.get('token');
-        console.log('[OAuth2CallbackPage] token from callback:', token);
         
         if (token) {
             setToken(token);
             console.log('[OAuth2CallbackPage] stored token in auth store/localStorage');
 
-            // Chờ một chút để đảm bảo token được lưu vào localStorage
-            setTimeout(async () => {
+            (async () => {
                 try {
                     // Lấy dữ liệu người dùng để xác định vai trò và chuyển hướng tương ứng
                     const user = await getMeAPI();
@@ -45,7 +43,7 @@ export default function OAuth2CallbackPage() {
                     // Nếu getMeAPI thất bại, hãy chuyển hướng đến trang dashboard và để trang đó xử lý xác thực.
                     navigate('/dashboard', { replace: true });
                 }
-            }, 100); // Trì hoãn nhỏ để đảm bảo mã thông báo được lưu
+            })();
         } else {
             navigate('/login', { replace: true });
         }
