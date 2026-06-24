@@ -2,20 +2,45 @@ import axios from 'axios';
 import { API_CONFIG } from '../config/api.config';
 import { useAuthStore } from '../stores/authStore';
 
-const API_BASE_URL = API_CONFIG.GATEWAY_URL;
+const API_BASE_URL = API_CONFIG.GATEWAY_URL || 'http://localhost:8080/api';
 
-const getAuthHeaders = () => {
-  const token = useAuthStore.getState().token || localStorage.getItem('token');
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
+const normalizeToken = (token) => {
+  if (!token) return null;
+  const trimmed = token.toString().trim();
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return null;
+  if (trimmed.toLowerCase().startsWith('bearer ')) {
+    return trimmed.substring(7).trim();
+  }
+  return trimmed;
 };
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+api.interceptors.request.use((config) => {
+  try {
+    const storeToken = useAuthStore.getState()?.token;
+    const raw = storeToken || localStorage.getItem('token');
+    const token = normalizeToken(raw);
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+      const masked = token.length > 12 ? `${token.substring(0,6)}...${token.substring(token.length-6)}` : token;
+      console.debug('[testApi] Interceptor set Authorization header, token mask:', masked);
+    } else {
+      console.debug('[testApi] Interceptor: no token found');
+    }
+  } catch (e) {
+    console.warn('[testApi] Interceptor error:', e?.message || e);
+  }
+  return config;
+});
 
 const testApi = {
   getAllTests: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/tests`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.get('/api/tests');
       return response.data.data;
     } catch (error) {
       console.error('Error fetching tests:', error.response?.status, error.response?.data || error.message);
@@ -25,9 +50,7 @@ const testApi = {
 
   getAllQuestionsByUser: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/tests/questions/user`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.get('/api/tests/questions/user');
       return response.data.data;
     } catch (error) {
       console.error('Error fetching questions:', error.response?.status, error.response?.data || error.message);
@@ -43,12 +66,7 @@ const testApi = {
       if (lessonContent) params.append('lessonContent', lessonContent);
       if (testType) params.append('testType', testType);
       
-      const response = await axios.get(
-        `${API_BASE_URL}/api/tests/questions/filter?${params.toString()}`,
-        {
-          headers: getAuthHeaders(),
-        }
-      );
+      const response = await api.get(`/api/tests/questions/filter?${params.toString()}`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching filtered questions:', error.response?.status, error.response?.data || error.message);
@@ -58,9 +76,7 @@ const testApi = {
 
   getTestById: async (testId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/tests/${testId}`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.get(`/api/tests/${testId}`);
       return response.data.data;
     } catch (error) {
       console.error('Error fetching test:', error);
@@ -70,9 +86,7 @@ const testApi = {
 
   getTestAttempts: async (testId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/tests/${testId}/attempts`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.get(`/api/tests/${testId}/attempts`);
       return response.data.data;
     } catch (error) {
       if (error?.response?.status && error.response.status !== 404) {
@@ -84,9 +98,7 @@ const testApi = {
 
   getLessonContents: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/tests/lesson-contents`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.get('/api/tests/lesson-contents');
       return response.data.data;
     } catch (error) {
       console.error('Error fetching lesson contents:', error.response?.status, error.response?.data || error.message);
@@ -96,16 +108,7 @@ const testApi = {
 
   createAttempt: async (testId) => {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/tests/${testId}/attempts`,
-        {},
-        {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await api.post(`/api/tests/${testId}/attempts`, {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data.data;
     } catch (error) {
       console.error('Error creating test attempt:', error.response?.status, error.response?.data || error.message);
@@ -115,12 +118,7 @@ const testApi = {
 
   createTest: async (testData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/tests`, testData, {
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.post('/api/tests', testData, { headers: { 'Content-Type': 'application/json' } });
       return response.data.data;
     } catch (error) {
       console.error('Error creating test:', error);
@@ -130,16 +128,7 @@ const testApi = {
 
   updateTest: async (testId, testData) => {
     try {
-      const response = await axios.put(
-        `${API_BASE_URL}/api/tests/${testId}`,
-        testData,
-        {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await api.put(`/api/tests/${testId}`, testData, { headers: { 'Content-Type': 'application/json' } });
       return response.data.data;
     } catch (error) {
       console.error('Error updating test:', error);
@@ -149,9 +138,7 @@ const testApi = {
 
   deleteTest: async (testId) => {
     try {
-      const response = await axios.delete(`${API_BASE_URL}/api/tests/${testId}`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.delete(`/api/tests/${testId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting test:', error);
@@ -161,17 +148,7 @@ const testApi = {
 
   downloadTestAsDocx: async (testData) => {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/tests/download/docx`,
-        testData,
-        {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
-          responseType: 'blob',
-        }
-      );
+      const response = await api.post('/api/tests/download/docx', testData, { headers: { 'Content-Type': 'application/json' }, responseType: 'blob' });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -192,16 +169,7 @@ const testApi = {
       const formData = new FormData();
       formData.append('file', audioBlob, 'recording.wav');
 
-      const response = await axios.post(
-        `${API_BASE_URL}/api/tests/${testId}/questions/${questionId}/audio`,
-        formData,
-        {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
+      const response = await api.post(`/api/tests/${testId}/questions/${questionId}/audio`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       return response.data;
     } catch (error) {
       console.error('Error uploading audio:', error);
@@ -221,12 +189,7 @@ const testApi = {
     let lastError = null;
     for (const url of endpoints) {
       try {
-        const response = await axios.post(url, payload, {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await api.post(url.replace(API_BASE_URL, ''), payload, { headers: { 'Content-Type': 'application/json' } });
         return response.data;
       } catch (err) {
         lastError = err;
@@ -243,9 +206,7 @@ const testApi = {
 
   getAllLessonContents: async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/tests/admin/lesson-contents`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.get('/api/tests/admin/lesson-contents');
       return response.data.data || [];
     } catch (error) {
       console.error('Error fetching all lesson contents:', error);
@@ -255,9 +216,7 @@ const testApi = {
 
   createLessonContent: async (data) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/tests/admin/lesson-contents`, data, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.post('/api/tests/admin/lesson-contents', data);
       return response.data.data;
     } catch (error) {
       console.error('Error creating lesson content:', error);
@@ -267,9 +226,7 @@ const testApi = {
 
   updateLessonContent: async (id, data) => {
     try {
-      const response = await axios.put(`${API_BASE_URL}/api/tests/admin/lesson-contents/${id}`, data, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.put(`/api/tests/admin/lesson-contents/${id}`, data);
       return response.data.data;
     } catch (error) {
       console.error('Error updating lesson content:', error);
@@ -279,9 +236,7 @@ const testApi = {
 
   deleteLessonContent: async (id) => {
     try {
-      const response = await axios.delete(`${API_BASE_URL}/api/tests/admin/lesson-contents/${id}`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.delete(`/api/tests/admin/lesson-contents/${id}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting lesson content:', error);

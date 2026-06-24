@@ -1,7 +1,16 @@
 import { create } from 'zustand';
 
-// Lấy token từ localStorage khi khởi động
-const getInitialToken = () => localStorage.getItem('token') || null;
+const normalizeToken = (token) => {
+    if (!token) return null;
+    const trimmed = token.toString().trim();
+    if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return null;
+    if (trimmed.toLowerCase().startsWith('bearer ')) {
+        return trimmed.substring(7).trim();
+    }
+    return trimmed;
+};
+
+const getInitialToken = () => normalizeToken(localStorage.getItem('token'));
 const getInitialRoleId = () => {
     const roleId = localStorage.getItem('roleId');
     return roleId ? parseInt(roleId) : null;
@@ -19,24 +28,27 @@ const getInitialUser = () => {
 
 export const useAuthStore = create((set) => ({
     token: getInitialToken(),
-    roleId: getInitialRoleId(),  // 1 = STUDENT, 2 = TEACHER, 3 = ADMIN
+    roleId: getInitialRoleId(),  
     roleName: localStorage.getItem('roleName') || null,
     user: getInitialUser(),
 
-    // Lưu token và role sau khi đăng nhập thành công
     setToken: (token) => {
-        localStorage.setItem('token', token);
-        set({ token });
+        const normalized = normalizeToken(token);
+        if (normalized) {
+            localStorage.setItem('token', normalized);
+            set({ token: normalized });
+        } else {
+            localStorage.removeItem('token');
+            set({ token: null });
+        }
     },
 
-    // Lưu role thông tin
     setRole: (roleId, roleName) => {
         localStorage.setItem('roleId', roleId);
         localStorage.setItem('roleName', roleName);
         set({ roleId, roleName });
     },
 
-    // Lưu thông tin user
     setUser: (user) => {
         if (user) {
             localStorage.setItem('user', JSON.stringify(user));
@@ -46,7 +58,6 @@ export const useAuthStore = create((set) => ({
         set({ user });
     },
 
-    // Đăng xuất
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('roleId');

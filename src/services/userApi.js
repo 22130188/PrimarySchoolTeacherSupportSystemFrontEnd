@@ -1,11 +1,26 @@
 const BASE_URL = 'http://localhost:8080/api';
 
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-});
+const normalizeToken = (token) => {
+  if (!token) return null;
+  const trimmed = token.toString().trim();
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return null;
+  if (trimmed.toLowerCase().startsWith('bearer ')) {
+    return trimmed.substring(7).trim();
+  }
+  return trimmed;
+};
 
-// LẤY THÔNG TIN USER
+const authHeaders = () => {
+  const token = normalizeToken(localStorage.getItem('token'));
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 export async function getMeAPI() {
   const res = await fetch(`${BASE_URL}/user/me`, { 
     headers: authHeaders(),
@@ -15,7 +30,6 @@ export async function getMeAPI() {
   return await res.json();
 }
 
-// CẬP NHẬT THÔNG TIN CÁ NHÂN
 export async function updatePersonalAPI(payload) {
   const res = await fetch(`${BASE_URL}/user/personal`, {
     method: 'PUT',
@@ -30,7 +44,6 @@ export async function updatePersonalAPI(payload) {
   return await res.json();
 }
 
-// CẬP NHẬT TRƯỜNG HỌC
 export async function updateSchoolAPI(payload) {
   const res = await fetch(`${BASE_URL}/user/school`, {
     method: 'PUT',
@@ -45,7 +58,6 @@ export async function updateSchoolAPI(payload) {
   return await res.json();
 }
 
-// CẬP NHẬT LỚP HỌC
 export async function updateClassesAPI(classes) {
   const res = await fetch(`${BASE_URL}/user/classes`, {
     method: 'PUT',
@@ -58,7 +70,6 @@ export async function updateClassesAPI(classes) {
   return await res.json();
 }
 
-// CẬP NHẬT ẢNH ĐẠI DIỆN
 export async function updateAvatarUrlAPI(avatarUrl) {
   const res = await fetch(`${BASE_URL}/user/avatar-url`, {
     method: 'PUT',
@@ -73,7 +84,6 @@ export async function updateAvatarUrlAPI(avatarUrl) {
   return await res.json();
 }
 
-// ĐỔI MẬT KHẨU
 export async function changePasswordAPI(payload) {
   const res = await fetch(`${BASE_URL}/user/change-password`, {
     method: 'PUT',
