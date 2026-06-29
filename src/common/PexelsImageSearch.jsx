@@ -76,7 +76,7 @@ function appendParam(params, key, value) {
   if (value) params.set(key, value);
 }
 
-export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orange' }) {
+export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orange', wide = false }) {
   const { user } = useAuthStore();
   const apiKey = import.meta.env.VITE_PEXELS_API_KEY;
   const hasApiKey = Boolean(apiKey && apiKey !== 'your_pexels_api_key_here');
@@ -218,29 +218,57 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
   };
 
   const selectClass = `w-full rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-[12px] text-gray-700 outline-none transition focus:ring-2 ${theme.focus}`;
+  const wideInputClass = `h-11 min-w-0 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] text-gray-700 outline-none transition focus:ring-2 ${theme.focus}`;
+  const wideSelectClass = `h-11 min-w-0 rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-[12px] text-gray-700 outline-none transition focus:ring-2 ${theme.focus}`;
 
   return (
     <div>
-      <form onSubmit={searchPhotos} className="space-y-2.5">
-        <div className="flex items-center gap-2">
+      <form onSubmit={searchPhotos} className={wide ? "space-y-2" : "space-y-2.5"}>
+        <div className={wide ? "grid grid-cols-[minmax(220px,1.4fr)_repeat(4,minmax(140px,1fr))_44px] gap-2 max-xl:grid-cols-3 max-md:grid-cols-1" : "flex items-center gap-2"}>
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Tìm ảnh minh họa..."
-            className={`min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] text-gray-700 outline-none transition focus:ring-2 ${theme.focus}`}
+            className={wide ? wideInputClass : `min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] text-gray-700 outline-none transition focus:ring-2 ${theme.focus}`}
           />
+
+          {wide && (
+            <>
+              <select value={orientation} onChange={(e) => setOrientation(e.target.value)} className={wideSelectClass}>
+                {ORIENTATION_OPTIONS.map((option) => (
+                  <option key={option.value || 'all-orientation'} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <select value={size} onChange={(e) => setSize(e.target.value)} className={wideSelectClass}>
+                {SIZE_OPTIONS.map((option) => (
+                  <option key={option.value || 'default-size'} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <select value={color} onChange={(e) => setColor(e.target.value)} className={wideSelectClass}>
+                {COLOR_OPTIONS.map((option) => (
+                  <option key={option.value || 'default-color'} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <select value={locale} onChange={(e) => setLocale(e.target.value)} className={wideSelectClass}>
+                {LOCALE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </>
+          )}
+
           <button
             type="submit"
             disabled={loading || !hasApiKey}
-            className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-none text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${theme.button}`}
+            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-none text-white transition disabled:cursor-not-allowed disabled:opacity-50 max-md:w-full ${theme.button}`}
             title="Tìm kiếm"
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
+        <div className={wide ? "hidden" : "grid grid-cols-1 gap-2"}>
           <select value={orientation} onChange={(e) => setOrientation(e.target.value)} className={selectClass}>
             {ORIENTATION_OPTIONS.map((option) => (
               <option key={option.value || 'all-orientation'} value={option.value}>{option.label}</option>
@@ -262,7 +290,6 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
             ))}
           </select>
         </div>
-
         {!hasApiKey && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-500">
             Pexels chưa sẵn sàng vui lòng đợi.
@@ -271,7 +298,7 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
         {status.msg && <p className={`text-[11px] ${statusClass}`}>{status.msg}</p>}
       </form>
 
-      <div className="mt-4 grid grid-cols-1 gap-3">
+      <div className={wide ? "mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" : "mt-4 grid grid-cols-1 gap-3"}>
         {photos.map((photo) => {
           const source = getPhotoSource(photo);
           return (
@@ -285,7 +312,7 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
                 <img
                   src={photo.src?.medium || source}
                   alt={getPhotoDescription(photo)}
-                  className="h-[118px] w-full object-cover"
+                  className={wide ? "aspect-[4/3] w-full object-cover" : "h-[118px] w-full object-cover"}
                   loading="lazy"
                 />
               </button>
