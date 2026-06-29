@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../../components/Navbar';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { Image } from 'lucide-react';
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api.config.js';
 import { useAuthStore } from '../../stores/authStore';
@@ -33,27 +32,13 @@ export default function ImagePage() {
   }, [user?.id]);
 
   return (
-    <div className="min-h-screen bg-[#f8f7ff]">
+    <div className="min-h-screen bg-[#eef2f7]">
       <Navbar />
       <div className="flex" style={{ paddingTop: '64px' }}>
         <DashboardSidebar />
         <div className="flex-1 flex flex-col min-h-[calc(100vh-64px)]" style={{ marginLeft: '72px' }}>
-          <main className="flex-1 p-6">
-            <div className="max-w-7xl mx-auto">
-              <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3 mb-1">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-400 flex items-center justify-center shadow-lg">
-                      <Image className="w-5 h-5 text-white" />
-                    </div>
-                    Tạo & Biên Tập Hình Ảnh
-                  </h1>
-                  <p className="text-sm text-gray-500 ml-[52px]">
-                    Thiết kế, ghép ảnh, thêm icon và chỉnh sửa ảnh chuyên nghiệp
-                  </p>
-                </div>
-              </div>
-
+          <main className="flex-1 px-3 pb-3 pt-0 md:px-4 md:pb-4 md:pt-0">
+            <div className="mx-auto max-w-[1800px]">
               <PillowImageEditor
                 user={user}
                 savedImages={savedImages}

@@ -8,17 +8,18 @@ import {
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config.js';
 import { AI_IMAGE_ICON_LIBRARY } from '../data/mockDashboardData.jsx';
-import PexelsImageSearch from '../common/PexelsImageSearch';
+
+
 
 const DEFAULT_TEXT_SIZE = 100;
 
-export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) {
+export default function PillowImageEditor({ user, savedImages, onSaveSuccess, stickyToolbar = true, toolbarStickyTopClass = 'top-[64px]', compactShell = false }) {
   const CANVAS_API_URL = API_CONFIG.CANVAS_API_URL;
   const IMAGE_API_URL = API_CONFIG.IMAGE_API_URL;
 
   const [baseImage, setBaseImage] = useState(null);
   const [naturalSize, setNaturalSize] = useState({ width: 800, height: 600 });
-  const [activeTab, setActiveTab] = useState('source');
+  const [activeTab, setActiveTab] = useState(null);
 
   const [previewSrc, setPreviewSrc] = useState(null);
   const [previewScale, setPreviewScale] = useState(1);
@@ -1072,23 +1073,35 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
       alert("Vui lòng chọn ảnh hoặc tạo bản vẽ mới trước!");
       return;
     }
+    if (activeTab === tabName) {
+      setActiveTab(null);
+      setIsCropActive(false);
+      return;
+    }
     setActiveTab(tabName);
     setIsCropActive(isCrop);
   };
 
   const handleClass = "absolute w-3.5 h-3.5 bg-pink-500 border-2 border-white rounded-full shadow-md z-30 transform";
 
+  const editorShellClass = compactShell
+    ? "flex min-h-0 flex-1 flex-col overflow-visible rounded-lg border border-slate-300 bg-[#f3f6fb] shadow-sm"
+    : "flex min-h-[calc(100vh-112px)] flex-col overflow-visible rounded-lg border border-slate-300 bg-[#f3f6fb] shadow-sm";
+  const toolbarShellClass = stickyToolbar
+    ? `sticky ${toolbarStickyTopClass} z-50 flex shrink-0 flex-col border-b border-slate-300 bg-white`
+    : "relative z-50 flex shrink-0 flex-col border-b border-slate-300 bg-white";
+
   return (
     <div
-      className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[500px]"
+      className={editorShellClass}
       onMouseMove={handleGlobalMouseMove}
       onMouseUp={handleGlobalMouseUp}
     >
-      <div className="lg:col-span-1 flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm p-4 h-full">
-        <div className="grid grid-cols-5 gap-1 mb-4 bg-slate-50 p-1 rounded-xl">
+      <div className={toolbarShellClass}>
+        <div className="flex min-h-[58px] items-center gap-1 border-b border-slate-200 bg-[#f8fafc] px-2 py-1.5 pr-56">
           <button
-            onClick={() => { setActiveTab('source'); setIsCropActive(false); }}
-            className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'source' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            onClick={() => { setActiveTab(activeTab === 'source' ? null : 'source'); setIsCropActive(false); }}
+            className={`h-[48px] w-[64px] rounded-md text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all ${activeTab === 'source' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}
             title="Nguồn"
           >
             <FileImage className="w-4 h-4" />
@@ -1096,7 +1109,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           </button>
           <button
             onClick={() => handleTabClick('crop', true)}
-            className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'crop' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`h-[48px] w-[64px] rounded-md text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all ${activeTab === 'crop' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}
             title="Cắt xoay"
           >
             <Crop className="w-4 h-4" />
@@ -1104,7 +1117,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           </button>
           <button
             onClick={() => handleTabClick('adjust', false)}
-            className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'adjust' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`h-[48px] w-[64px] rounded-md text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all ${activeTab === 'adjust' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}
             title="Điều chỉnh"
           >
             <Sliders className="w-4 h-4" />
@@ -1112,7 +1125,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           </button>
           <button
             onClick={() => handleTabClick('overlay', false)}
-            className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'overlay' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`h-[48px] w-[64px] rounded-md text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all ${activeTab === 'overlay' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}
             title="Ghép & Chữ"
           >
             <Type className="w-4 h-4" />
@@ -1120,7 +1133,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           </button>
           <button
             onClick={() => handleTabClick('icons', false)}
-            className={`p-2 rounded-lg text-xs font-semibold flex flex-col items-center gap-1 transition-all ${activeTab === 'icons' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`h-[48px] w-[64px] rounded-md text-xs font-semibold flex flex-col items-center justify-center gap-1 transition-all ${activeTab === 'icons' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-blue-200' : 'text-slate-600 hover:bg-white hover:text-slate-900'}`}
             title="Biểu tượng"
           >
             <Smile className="w-4 h-4" />
@@ -1128,21 +1141,23 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto max-h-[480px] pr-1">
+        <div className={`absolute left-3 top-[64px] z-50 max-h-[calc(100vh-180px)] overflow-y-auto rounded-lg border border-slate-200 bg-white p-3 shadow-2xl w-[min(460px,calc(100vw-140px))] ${activeTab ? '' : 'hidden'}`}>
           {activeTab === 'source' && (
             <div className="space-y-4">
-              <div>
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-blue-500 uppercase tracking-wider">Ảnh</h4>
+                <div>
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Bắt đầu bản vẽ mới</h4>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleCreateBlankCanvas(800, 600)}
-                    className="p-3 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 border border-purple-100 transition-colors text-xs font-medium text-center"
+                    className="p-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 border border-purple-100 transition-colors text-xs font-medium text-center"
                   >
                     Mới (800x600)
                   </button>
                   <button
                     onClick={() => handleCreateBlankCanvas(600, 600)}
-                    className="p-3 bg-purple-50 text-purple-600 rounded-xl hover:bg-purple-100 border border-purple-100 transition-colors text-xs font-medium text-center"
+                    className="p-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 border border-purple-100 transition-colors text-xs font-medium text-center"
                   >
                     Mới (Vuông 1:1)
                   </button>
@@ -1160,7 +1175,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 />
                 <label
                   htmlFor="pillow-editor-file"
-                  className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 hover:border-purple-400 rounded-2xl cursor-pointer text-sm font-semibold text-slate-600 transition"
+                  className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200 hover:border-purple-400 rounded-lg cursor-pointer text-sm font-semibold text-slate-600 transition"
                 >
                   <ImageIcon className="w-5 h-5 text-slate-400" />
                   Chọn tệp ảnh
@@ -1173,7 +1188,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                   <select
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 outline-none transition hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 outline-none transition hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 cursor-pointer"
                   >
                     <option value="all">Tất cả ảnh</option>
                     <option value="Toán">Ảnh môn Toán</option>
@@ -1181,7 +1196,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                     <option value="Tiếng Việt">Ảnh môn Tiếng Việt</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
                   {savedImages
                     .filter(img => selectedSubject === 'all' || img.subject === selectedSubject)
                     .map(img => (
@@ -1195,20 +1210,13 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                     ))}
                 </div>
               </div>
-              <div className="border-t border-slate-100 pt-4">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Tìm ảnh trên Pexels</h4>
-                <PexelsImageSearch
-                  onAddImage={handleSelectBaseImage}
-                  onSaved={onSaveSuccess}
-                  accent="indigo"
-                />
               </div>
             </div>
           )}
 
           {activeTab === 'crop' && (
             <div className="space-y-4">
-              <div className="p-3 bg-pink-50 text-pink-700 text-xs rounded-xl border border-pink-100">
+              <div className="p-3 bg-pink-50 text-pink-700 text-xs rounded-lg border border-pink-100">
                 {cropShape === 'freeform'
                   ? "Nhấn giữ và vẽ một đường khép kín trên ảnh để thực hiện cắt tự do."
                   : "Sử dụng chuột kéo các góc hình chữ nhật trên ảnh để điều chỉnh khung cắt."}
@@ -1289,14 +1297,14 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                   type="button"
                   onClick={handleCommitCrop}
                   disabled={!baseImage}
-                  className="flex-1 py-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 text-sm font-semibold transition flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-sm shadow-pink-500/10 hover:shadow-md"
+                  className="flex-1 py-2.5 bg-pink-500 text-white rounded-lg hover:bg-pink-600 text-sm font-semibold transition flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-sm shadow-pink-500/10 hover:shadow-md"
                 >
                   <Check className="w-4 h-4" /> Cắt ảnh
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsCropActive(false)}
-                  className="py-2.5 px-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 text-sm font-semibold transition cursor-pointer"
+                  className="py-2.5 px-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-sm font-semibold transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1363,7 +1371,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 <button
                   onClick={handleRemoveBackground}
                   disabled={!baseImage || isProcessing}
-                  className="w-full py-2.5 px-3 bg-white hover:bg-purple-50 text-slate-900 border border-purple-400 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-2.5 px-3 bg-white hover:bg-purple-50 text-slate-900 border border-purple-400 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   Xóa hình nền (AI Rembg)
                 </button>
@@ -1496,7 +1504,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
 
               <button
                 onClick={handleApplyAdjustments}
-                className="w-full py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-xs font-semibold transition mt-2"
+                className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-xs font-semibold transition mt-2"
               >
                 Áp dụng hiệu ứng hiện tại
               </button>
@@ -1530,7 +1538,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !activeTextId) handleAddTextOverlay();
                   }}
-                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                   placeholder="Nhập nội dung chữ..."
                 />
 
@@ -1615,12 +1623,12 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                     type="button"
                     onClick={handleAddTextOverlay}
                     disabled={!newText.trim()}
-                    className="w-full py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4" /> Thêm chữ vào ảnh
                   </button>
                 ) : (
-                  <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 space-y-2">
+                  <div className="p-3 bg-indigo-50/60 rounded-lg border border-indigo-100 space-y-2">
                     <p className="text-[10px] font-medium text-indigo-700">Thay đổi được tự động giữ khi tải hoặc lưu ảnh.</p>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -1721,7 +1729,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
               <div>
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Thêm ảnh khác lên ảnh (Overlay)</h4>
                 {overlayImage ? (
-                  <div className="flex flex-col gap-2 bg-slate-50 border border-slate-100 rounded-xl p-2 text-xs">
+                  <div className="flex flex-col gap-2 bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs">
                     <div className="flex gap-2 items-center">
                       <img src={overlayImage} alt="Overlay" className="w-10 h-10 object-cover rounded" />
                       <span className="flex-1 truncate">Đang chèn ảnh...</span>
@@ -1745,7 +1753,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                     </div>
                   </div>
                 ) : (
-                  <div className="max-h-36 overflow-y-auto grid grid-cols-3 gap-2 border border-slate-100 p-2 rounded-xl">
+                  <div className="max-h-36 overflow-y-auto grid grid-cols-3 gap-2 border border-slate-100 p-2 rounded-lg">
                     {savedImages
                       .filter(img => selectedSubject === 'all' || img.subject === selectedSubject)
                       .map(img => (
@@ -1766,7 +1774,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
               <div>
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ghép nhiều ảnh (Merge)</h4>
 
-                <div className="max-h-36 overflow-y-auto grid grid-cols-3 gap-2 border border-slate-100 p-2 rounded-xl mb-3">
+                <div className="max-h-36 overflow-y-auto grid grid-cols-3 gap-2 border border-slate-100 p-2 rounded-lg mb-3">
                   {savedImages
                     .filter(img => selectedSubject === 'all' || img.subject === selectedSubject)
                     .map(img => {
@@ -1827,7 +1835,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                   <button
                     onClick={handleCommitMerge}
                     disabled={mergeImages.length === 0}
-                    className="w-full py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-xs font-semibold transition disabled:opacity-50"
+                    className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-xs font-semibold transition disabled:opacity-50"
                   >
                     Ghép ảnh ({mergeImages.length} ảnh)
                   </button>
@@ -1843,7 +1851,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 <select
                   value={activeIconCategory}
                   onChange={(e) => setActiveIconCategory(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
                 >
                   {iconCategoryOptions.map((option) => (
                     <option key={option.id} value={option.id}>{option.label}</option>
@@ -1851,7 +1859,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 </select>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 max-h-[272px] overflow-y-auto pr-1 border border-slate-100 p-2 rounded-xl bg-slate-50/50">
+              <div className="grid grid-cols-3 gap-2 max-h-[272px] overflow-y-auto pr-1 border border-slate-100 p-2 rounded-lg bg-slate-50/50">
                 {displayIcons.map((icon) => (
                   <button
                     key={icon.id}
@@ -1915,7 +1923,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
               )}
 
               {selectedIconLayer && (
-                <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 space-y-3">
+                <div className="p-3 bg-purple-50/50 rounded-lg border border-purple-100 space-y-3">
                   <div className="text-[10px] font-bold text-purple-600 uppercase">Tùy chỉnh: {selectedIconLayer.name}</div>
 
                   {selectedIconLayer.type === 'library' && (
@@ -1974,7 +1982,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 <button
                   onClick={handleCommitAllIcons}
                   disabled={isProcessing}
-                  className="w-full py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-xs font-semibold transition disabled:opacity-50"
+                  className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-xs font-semibold transition disabled:opacity-50"
                 >
                   Ghim tất cả ({iconLayers.length}) vào ảnh
                 </button>
@@ -1983,11 +1991,11 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           )}
         </div>
 
-        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+        <div className="absolute right-3 top-2 flex gap-2">
           <button
             onClick={handleUndo}
             disabled={history.length === 0}
-            className="p-2 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 disabled:opacity-40 transition flex-1 flex items-center justify-center gap-1 text-xs font-semibold"
+            className="h-9 px-3 border border-slate-200 bg-white text-slate-600 rounded-md hover:bg-slate-50 disabled:opacity-40 transition flex items-center justify-center gap-1 text-xs font-semibold"
             title="Quay lại"
           >
             <Undo className="w-4 h-4" />
@@ -1996,7 +2004,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           <button
             onClick={handleReset}
             disabled={operations.length === 0}
-            className="p-2 border border-red-200 text-red-600 rounded-xl hover:bg-red-50 disabled:opacity-40 transition flex-1 flex items-center justify-center gap-1 text-xs font-semibold"
+            className="h-9 px-3 border border-red-200 bg-white text-red-600 rounded-md hover:bg-red-50 disabled:opacity-40 transition flex items-center justify-center gap-1 text-xs font-semibold"
             title="Đặt lại"
           >
             <Trash2 className="w-4 h-4" />
@@ -2005,8 +2013,8 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
         </div>
       </div>
 
-      <div className="lg:col-span-3 flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+      <div className="relative flex min-h-0 flex-1 flex-col bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-[#f8fafc] px-4 py-2">
           <div>
             <h3 className="font-semibold text-slate-800 text-sm">
               Biên tập ảnh
@@ -2019,21 +2027,21 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
             <button
               onClick={handleDownloadImage}
               disabled={!previewSrc}
-              className="py-1.5 px-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 border border-blue-100 text-xs font-semibold transition flex items-center gap-1 disabled:opacity-50"
+              className="py-1.5 px-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 border border-blue-100 text-xs font-semibold transition flex items-center gap-1 disabled:opacity-50"
             >
               <Download className="w-3.5 h-3.5" /> Tải về máy
             </button>
             <button
               onClick={handleOpenSaveModal}
               disabled={!previewSrc}
-              className="py-1.5 px-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 text-xs font-semibold transition flex items-center gap-1 disabled:opacity-50 shadow-sm shadow-purple-500/20"
+              className="py-1.5 px-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-xs font-semibold transition flex items-center gap-1 disabled:opacity-50 shadow-sm shadow-purple-500/20"
             >
               <Save className="w-3.5 h-3.5" /> Lưu thư viện
             </button>
           </div>
         </div>
 
-        <div className="flex-1 min-h-[380px] bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center overflow-hidden relative select-none">
+        <div className="relative flex min-h-[640px] flex-1 select-none items-center justify-center overflow-auto bg-[#f6f8fb]">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
           {isProcessing && (
@@ -2046,7 +2054,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
           {previewSrc ? (
             <div
               ref={previewContainerRef}
-              className={`relative max-w-full max-h-[480px] select-none shadow-lg rounded-lg overflow-hidden ${baseImage === 'transparent' ? 'bg-white border-2 border-purple-500' : 'border border-slate-200'
+              className={`relative max-w-full max-h-[calc(100vh-260px)] select-none shadow-lg rounded-sm overflow-hidden ${baseImage === 'transparent' ? 'bg-white border-2 border-purple-500' : 'border border-slate-200'
                 }`}
               style={{ display: 'inline-block' }}
             >
@@ -2055,7 +2063,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 src={previewSrc}
                 alt="Preview"
                 onLoad={handleImageLoad}
-                className="interactive-image-preview shadow-lg rounded-md max-w-full max-h-[480px] block object-contain"
+                className="interactive-image-preview block max-h-[calc(100vh-260px)] max-w-full rounded-sm object-contain shadow-lg"
                 style={{
                   aspectRatio: `${naturalSize.width} / ${naturalSize.height}`,
                   transform: `scale(${keepAspectRatio ? 1 : 'none'})`,
@@ -2225,7 +2233,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
             </div>
           ) : (
             <div className="text-center p-8 max-w-sm">
-              <div className="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center text-3xl mb-4">
+              <div className="w-16 h-16 mx-auto bg-slate-100 rounded-lg flex items-center justify-center text-3xl mb-4">
                 🖼️
               </div>
               <h4 className="font-semibold text-slate-700 mb-1">Chọn ảnh hoặc tạo mới</h4>
@@ -2261,7 +2269,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                   rows={3}
                   value={saveForm.description}
                   onChange={(e) => setSaveForm(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
                 />
               </div>
 
@@ -2270,7 +2278,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 <select
                   value={saveForm.subject}
                   onChange={(e) => setSaveForm(prev => ({ ...prev, subject: e.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none cursor-pointer focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none cursor-pointer focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
                 >
                   <option value="">-- Chọn môn học --</option>
                   <option value="Toán">🔢 Toán</option>
@@ -2283,7 +2291,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                 <button
                   type="button"
                   onClick={() => setShowSaveModal(false)}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
                 >
                   Hủy
                 </button>
@@ -2291,7 +2299,7 @@ export default function PillowImageEditor({ user, savedImages, onSaveSuccess }) 
                   type="button"
                   onClick={handleSaveToLibrary}
                   disabled={saving}
-                  className="inline-flex items-center justify-center rounded-2xl bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50"
+                  className="inline-flex items-center justify-center rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50"
                 >
                   {saving ? 'Đang lưu...' : 'Lưu ảnh'}
                 </button>

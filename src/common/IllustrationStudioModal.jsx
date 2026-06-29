@@ -21,11 +21,13 @@ export default function IllustrationStudioModal({ open, onClose, onSaved, user, 
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1 min-h-0 [scrollbar-width:thin]">
+        <div className="px-4 pb-4 pt-0 overflow-y-auto flex-1 min-h-0 [scrollbar-width:thin]">
           <PillowImageEditor
             user={user}
             savedImages={savedImages}
             onSaveSuccess={onSaved}
+            toolbarStickyTopClass="top-0"
+            compactShell
           />
         </div>
       </div>
