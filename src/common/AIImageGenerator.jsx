@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { ImagePlus, RotateCcw, Save, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import {
   MODEL_OPTIONS,
@@ -18,7 +19,7 @@ import {
 import { loadPuter } from '../helpers/puterLoader';
 import SaveImageModal from './SaveImageModal';
 
-export default function AIImageGenerator({ onAddImage, accent = 'indigo' }) {
+export default function AIImageGenerator({ onAddImage, accent = 'indigo', wide = false }) {
   const { user } = useAuthStore();
 
   const [prompt, setPrompt] = useState('');
@@ -146,6 +147,135 @@ export default function AIImageGenerator({ onAddImage, accent = 'indigo' }) {
 
   const statusColor = STATUS_COLORS[status.type] || 'text-gray-500';
 
+  if (wide) {
+    return (
+      <>
+        <div className="mx-auto grid h-full min-h-0 w-full max-w-7xl gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 px-5 py-3">
+              <div className="flex items-center gap-3">
+                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-white ${theme.btnPrimary}`}>
+                  <Sparkles size={20} />
+                </span>
+                <div>
+                  <p className={`text-xs font-semibold uppercase tracking-wide ${theme.title}`}>Tạo ảnh minh họa</p>
+                  <h3 className="text-lg font-semibold text-slate-900">Mô tả ảnh cần tạo</h3>
+                </div>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">Viết mô tả tự nhiên bằng tiếng Việt. AI sẽ dịch và tạo ảnh phù hợp để chèn vào bài giảng.</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-3 [scrollbar-width:thin]">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nội dung ảnh</label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="VD: một giỏ có 4 quả cam, phong cách minh họa rõ ràng cho học sinh tiểu học..."
+                rows={4}
+                disabled={loading}
+                className={`min-h-[104px] w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm leading-relaxed outline-none transition resize-none focus:ring-2 ${theme.ring} disabled:bg-slate-50 disabled:cursor-not-allowed`}
+              />
+
+              <label className="mb-2 mt-3 block text-xs font-semibold uppercase tracking-wide text-slate-500">Kiểu tạo ảnh</label>
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                disabled={loading}
+                className={`w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition cursor-pointer focus:ring-2 ${theme.ring} disabled:cursor-not-allowed`}
+              >
+                {MODEL_OPTIONS.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+
+              <button
+                onClick={handleGenerate}
+                disabled={loading || !puterReady}
+                className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border-none py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${theme.btnPrimary}`}
+              >
+                <Sparkles size={17} />
+                {loading ? 'Đang tạo ảnh...' : !puterReady ? 'Đang tải công cụ AI...' : 'Tạo ảnh'}
+              </button>
+
+              {status.msg && (
+                <p className={`mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm leading-relaxed ${statusColor}`}>
+                  {status.msg}
+                </p>
+              )}
+
+              {translatedPrompt && (
+                <div className={`mt-3 rounded-lg border px-3 py-2 text-xs italic leading-relaxed ${theme.translatedBox}`}>
+                  <span className="mb-1 block font-semibold not-italic text-slate-500">Prompt tiếng Anh</span>
+                  {translatedPrompt}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Kết quả</p>
+                <h3 className="text-lg font-semibold text-slate-900">Ảnh vừa tạo</h3>
+              </div>
+              {previewSrc && (
+                <button
+                  onClick={handleGenerate}
+                  disabled={loading}
+                  className={`inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${theme.btnSecondary}`}
+                >
+                  <RotateCcw size={14} /> Tạo lại
+                </button>
+              )}
+            </div>
+
+            <div className="flex min-h-0 flex-1 items-center justify-center bg-slate-50 p-5">
+              <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-slate-200 bg-white">
+                {previewSrc ? (
+                  <img src={previewSrc} alt="Ảnh AI" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <div className="max-w-md px-8 py-12 text-center">
+                    <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                      <Sparkles size={26} />
+                    </span>
+                    <p className="mt-4 text-base font-semibold text-slate-800">Chưa có ảnh</p>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-500">Nhập mô tả ở bên trái rồi nhấn Tạo ảnh. Kết quả sẽ hiển thị tại đây để bạn chèn ngay vào Collabora.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:grid-cols-2">
+              <button
+                onClick={handleInsert}
+                disabled={!previewSrc && !previewDataUrl}
+                className={`inline-flex items-center justify-center gap-2 rounded-lg border-none py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${theme.btnPrimary}`}
+              >
+                <ImagePlus size={17} /> Chèn vào Collabora
+              </button>
+              <button
+                onClick={openSaveModal}
+                disabled={!previewSrc && !previewDataUrl}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white py-2.5 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Save size={17} /> Lưu vào thư viện
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <SaveImageModal
+          open={showSaveModal}
+          title="Lưu ảnh AI vào thư viện"
+          form={saveForm}
+          onChange={setSaveForm}
+          onClose={() => setShowSaveModal(false)}
+          onSubmit={handleSaveLibrary}
+          saving={saving}
+        />
+      </>
+    );
+  }
   return (
     <div>
       <p className={`text-xs font-semibold uppercase tracking-wide mb-3 ${theme.title}`}>

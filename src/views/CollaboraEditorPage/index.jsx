@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, FileText, Loader2 } from 'lucide-react';
 import collaboraApi from '../../services/collaboraApi';
 import lessonDraftApi from '../../services/lessonDraftApi';
-import CollaboraImageSidebar from './CollaboraImageSidebar';
+import CollaboraImageSidebar, { COLLABORA_IMAGE_TABS } from './CollaboraImageSidebar';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function CollaboraEditorPage() {
@@ -17,11 +17,14 @@ export default function CollaboraEditorPage() {
   const isStudentClassroomView = classroomId && roleId === 1;
   const mode = isTemplatePreview ? 'view' : (isStudentClassroomView ? 'view' : (searchParams.get('mode') || 'edit'));
   const formRef = useRef(null);
+  const imageToolsRef = useRef(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editorReady, setEditorReady] = useState(false);
   const [insertStatus, setInsertStatus] = useState('');
+  const [activeImageTab, setActiveImageTab] = useState('images');
+  const [imagePanelExpanded, setImagePanelExpanded] = useState(false);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -186,37 +189,89 @@ export default function CollaboraEditorPage() {
     }
   };
 
+  const canUseImageTools = session && session.canWrite !== false && !isStudentClassroomView && !isTemplatePreview;
+
+  const handleImageTabClick = (tabId) => {
+    if (activeImageTab === tabId && imagePanelExpanded) {
+      setImagePanelExpanded(false);
+      return;
+    }
+    setActiveImageTab(tabId);
+    setImagePanelExpanded(true);
+  };
+  useEffect(() => {
+    if (!imagePanelExpanded) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (imageToolsRef.current?.contains(event.target)) return;
+      setImagePanelExpanded(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [imagePanelExpanded]);
+
   return (
     <div className="fixed inset-0 flex flex-col z-[9999] bg-white font-[Inter,sans-serif]">
-      <div className="h-13 min-h-[52px] bg-white border-b border-gray-200 flex items-center justify-between px-4">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="h-13 min-h-[52px] bg-white border-b border-gray-200 relative flex items-center justify-between gap-3 px-4">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             type="button"
             onClick={() => navigate(classroomId ? `/classrooms/${classroomId}?tab=lessons` : '/lessons')}
-            className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            className="w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             title="Quay lại"
           >
             <ArrowLeft size={18} />
           </button>
-          <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
+          <div className="w-8 h-8 shrink-0 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
             <FileText size={17} />
           </div>
           <div className="min-w-0">
             <h1 className="text-sm font-semibold text-gray-900 truncate">{session?.fileName || 'Collabora Online'}</h1>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 truncate">
               {isTemplatePreview ? 'Xem mẫu bài giảng' : (session?.canWrite === false ? 'Xem bằng Collabora Online' : 'Soạn thảo bằng Collabora Online')}
             </p>
           </div>
         </div>
-        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1">
-          Collabora
-        </span>
+        <div ref={imageToolsRef} className="flex items-center gap-3 shrink-0">
+          {canUseImageTools && (
+            <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 max-sm:static max-sm:translate-x-0 max-sm:translate-y-0">
+              {COLLABORA_IMAGE_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeImageTab === tab.id && imagePanelExpanded;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handleImageTabClick(tab.id)}
+                    className={`h-9 px-2.5 rounded-lg border-none inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer transition-all duration-150 ${
+                      isActive
+                        ? 'bg-emerald-50 text-emerald-700 shadow-[inset_0_-2px_0_#059669]'
+                        : 'bg-transparent text-gray-500 hover:bg-gray-100 hover:text-emerald-600'
+                    }`}
+                    title={tab.label}
+                  >
+                    <Icon size={17} />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {canUseImageTools && (
+            <CollaboraImageSidebar
+              onInsertImage={handleInsertImage}
+              activeTab={activeImageTab}
+              expanded={imagePanelExpanded}
+              onExpandedChange={setImagePanelExpanded}
+            />
+          )}
+          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1">
+            Collabora
+          </span>
+        </div>
       </div>
-
       <div className="flex-1 flex min-h-0 bg-gray-50">
-        {session && session.canWrite !== false && !isStudentClassroomView && !isTemplatePreview && (
-          <CollaboraImageSidebar onInsertImage={handleInsertImage} />
-        )}
 
         <div className="flex-1 relative min-w-0">
           {insertStatus && (

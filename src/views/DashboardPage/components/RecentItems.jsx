@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle, ArrowDownUp, BookOpen, ClipboardCheck,
@@ -28,6 +28,8 @@ const COLORS = {
   'Tiếng Anh': 'from-violet-600 to-pink-400',
   'Khoa học': 'from-indigo-600 to-cyan-400',
 };
+
+const RETRY_DELAY_MS = 3000;
 
 const getName = (user) => user?.username || user?.fullName || user?.name || user?.email || 'Bạn';
 const getOwnerKey = (item, fallback) => `owner:${item.ownerEmail || item.ownerName || item.authorId || fallback}`;
@@ -175,10 +177,17 @@ export default function RecentItems({
   const [direction, setDirection] = useState('desc');
   const [showCreateChoices, setShowCreateChoices] = useState(false);
   const [showLessonCreator, setShowLessonCreator] = useState(false);
+  const retryTimerRef = useRef(null);
+
+  const scheduleRetry = useCallback((loadFn) => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = setTimeout(() => { retryTimerRef.current = null; loadFn(); }, RETRY_DELAY_MS);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
     try {
       if (student) {
         const classrooms = await getMyJoinedClassrooms();
@@ -193,29 +202,41 @@ export default function RecentItems({
             ? postsResult.value.filter((post) => post.postType === 'TEST' || post.postType === 'ASSIGNMENT').map((post) => postFromClass(post, classroom)) : [];
           return { items: [...lessons, ...posts], partial: lessonsResult.status === 'rejected' || postsResult.status === 'rejected' };
         }));
+        const allFailed = results.every((result) => result.status === 'rejected');
+        if (allFailed) {
+          console.warn('All classroom data failed to load, retrying...');
+          scheduleRetry(load);
+          return; // keep loading=true, don't show error
+        }
         setItems(results.flatMap((result) => result.status === 'fulfilled' ? result.value.items : []));
-        if (results.some((result) => result.status === 'rejected' || result.value.partial)) setError('Một số nội dung lớp học chưa tải được. Các mục còn lại vẫn được hiển thị.');
+        if (results.some((result) => result.status === 'rejected' || (result.status === 'fulfilled' && result.value.partial))) setError('Một số nội dung lớp học chưa tải được. Các mục còn lại vẫn được hiển thị.');
+        setLoading(false);
       } else {
         const [mine, shared, tests] = await Promise.allSettled([
           lessonDraftApi.getDrafts(), lessonDraftApi.getSharedWithMe(), testApi.getAllTests(),
         ]);
+        const allFailed = [mine, shared, tests].every((result) => result.status === 'rejected');
+        if (allFailed) {
+          console.warn('All data sources failed to load, retrying...');
+          scheduleRetry(load);
+          return; // keep loading=true, don't show error
+        }
         setItems([
           ...(mine.status === 'fulfilled' && Array.isArray(mine.value) ? mine.value.map((draft) => lessonFromOwner(draft, userName)) : []),
           ...(shared.status === 'fulfilled' && Array.isArray(shared.value) ? shared.value.map(lessonFromDirectShare) : []),
           ...(tests.status === 'fulfilled' && Array.isArray(tests.value) ? tests.value.map((test) => testFromOwner(test, userName)) : []),
         ]);
         if ([mine, shared, tests].some((result) => result.status === 'rejected')) setError('Một phần dữ liệu chưa tải được. Vui lòng thử lại.');
+        setLoading(false);
       }
     } catch (loadError) {
       console.error('Failed to load recent items:', loadError);
-      setItems([]);
-      setError('Không thể tải nội dung gần đây.');
-    } finally {
-      setLoading(false);
+      // Total failure — keep spinner and auto-retry
+      scheduleRetry(load);
     }
-  }, [student, userName]);
+  }, [student, userName, scheduleRetry]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); return () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current); }; }, [load]);
   const owners = useMemo(() => {
     const unique = new Map();
     items.filter((item) => !item.source.startsWith('OWNED')).forEach((item) => unique.set(item.ownerKey, { value: item.ownerKey, label: item.ownerName }));
