@@ -1,42 +1,124 @@
 import { useNavigate } from 'react-router-dom';
 import { FileText, Loader2, Presentation, Upload, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import collaboraApi from '../../services/collaboraApi';
+import lessonCatalogApi from '../../services/lessonCatalogApi';
 import { SUBJECTS, GRADES } from '../../data/editorSharedConstants';
 
+const CUSTOM_LESSON_VALUE = '__custom_lesson__';
+const DEFAULT_VOLUME = 'Chưa phân tập';
+const COMMON_VOLUME_OPTIONS = ['Tập 1', 'Tập 2', 'Tập 1, 2'];
+const DEFAULT_BOOK_BY_SUBJECT = {
+  'Tiếng Anh': 'Global Success',
+  'Tiếng Việt': 'Kết nối tri thức',
+  Toán: 'Kết nối tri thức',
+};
+
+const normalizeGradeValue = (grade) => {
+  if (!grade) return '';
+  const match = grade.toString().match(/\d+/);
+  return match ? match[0] : grade.toString();
+};
+
+const getLessonVolume = (content) => (
+  content?.volume || content?.bookVolume || content?.semester || content?.term || DEFAULT_VOLUME
+);
 export default function CreateLessonModal({ onClose }) {
   const navigate = useNavigate();
   const [creatingType, setCreatingType] = useState('');
-  const [collaboraType, setCollaboraType] = useState('');
+  const [selectedType, setSelectedType] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
+  const [lessonContents, setLessonContents] = useState([]);
+  const [lessonContentsLoading, setLessonContentsLoading] = useState(false);
+  const [lessonContentMode, setLessonContentMode] = useState('');
   const fileInputRef = useRef(null);
   const [collaboraForm, setCollaboraForm] = useState({
     title: '',
     subject: '',
     grade: '',
+    volume: '',
+    book: '',
   });
 
-  const handleSelectDocx = () => {
-    onClose();
-    navigate('/lessons/docx-editor');
+  useEffect(() => {
+    const loadLessonContents = async () => {
+      setLessonContentsLoading(true);
+      try {
+        const data = await lessonCatalogApi.getCatalog();
+        setLessonContents(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load lesson contents:', err);
+        setLessonContents([]);
+      } finally {
+        setLessonContentsLoading(false);
+      }
+    };
+
+    loadLessonContents();
+  }, []);
+
+  const matchingLessonContents = useMemo(() => {
+    const selectedGrade = normalizeGradeValue(collaboraForm.grade);
+    return lessonContents.filter((content) => {
+      if (content?.isActive === false) return false;
+      if (collaboraForm.subject && content.subject !== collaboraForm.subject) return false;
+      if (selectedGrade && normalizeGradeValue(content.grade) !== selectedGrade) return false;
+      return true;
+    });
+  }, [collaboraForm.grade, collaboraForm.subject, lessonContents]);
+
+  const volumeOptions = useMemo(() => {
+    if (!collaboraForm.subject || !collaboraForm.grade) return [];
+    return Array.from(new Set([
+      ...matchingLessonContents.map(getLessonVolume).filter(Boolean),
+      ...COMMON_VOLUME_OPTIONS,
+    ]));
+  }, [collaboraForm.grade, collaboraForm.subject, matchingLessonContents]);
+
+  const bookOptions = useMemo(() => (
+    Array.from(new Set(matchingLessonContents
+      .filter((content) => !collaboraForm.volume || getLessonVolume(content) === collaboraForm.volume)
+      .map((content) => content.book)
+      .filter(Boolean)))
+  ), [collaboraForm.volume, matchingLessonContents]);
+
+  const defaultBook = bookOptions[0] || DEFAULT_BOOK_BY_SUBJECT[collaboraForm.subject] || '';
+
+  const lessonNameOptions = useMemo(() => (
+    matchingLessonContents
+      .filter((content) => !collaboraForm.volume || getLessonVolume(content) === collaboraForm.volume)
+      .map((content) => content.name)
+      .filter(Boolean)
+      .filter((name, index, names) => names.indexOf(name) === index)
+  ), [collaboraForm.volume, matchingLessonContents]);
+
+  const resetLessonSelection = (keepCustomTitle = false) => {
+    setCollaboraForm((prev) => ({
+      ...prev,
+      title: keepCustomTitle && lessonContentMode === CUSTOM_LESSON_VALUE ? prev.title : '',
+      book: prev.book || defaultBook,
+    }));
+    setLessonContentMode('');
   };
 
-  const handleSelectPptx = () => {
-    onClose();
-    navigate('/lessons/pptx-editor');
+  const handleSelectSimple = (type) => {
+    if (selectedType === type && !uploadFile) {
+      setSelectedType('');
+      return;
+    }
+    setSelectedType(type);
+    setUploadFile(null);
+    resetLessonSelection(true);
   };
 
   const handleSelectCollabora = (type) => {
-    if (collaboraType === type && !uploadFile) {
-      setCollaboraType('');
+    if (selectedType === type && !uploadFile) {
+      setSelectedType('');
       return;
     }
-    setCollaboraType(type);
+    setSelectedType(type);
     setUploadFile(null);
-    setCollaboraForm((prev) => ({
-      ...prev,
-      title: prev.title || (type === 'COLLABORA_PPTX' ? 'Trình chiếu Collabora' : 'Bài giảng Collabora'),
-    }));
+    resetLessonSelection(true);
   };
 
   const handleFileChange = (e) => {
@@ -50,17 +132,18 @@ export default function CreateLessonModal({ onClose }) {
     }
     setUploadFile(file);
     const type = ext === 'pptx' ? 'COLLABORA_PPTX' : 'COLLABORA_DOCX';
-    setCollaboraType(type);
+    setSelectedType(type);
     const baseName = file.name.replace(/\.(docx|pptx)$/i, '');
     setCollaboraForm((prev) => ({
       ...prev,
       title: prev.title || baseName,
     }));
+    setLessonContentMode((prev) => prev || CUSTOM_LESSON_VALUE);
   };
 
   const handleUploadAndOpen = async () => {
-    if (!uploadFile || !collaboraForm.title.trim() || !collaboraForm.subject || !collaboraForm.grade) {
-      alert('Vui lòng chọn file và nhập đầy đủ thông tin.');
+    if (!uploadFile || !collaboraForm.title.trim() || !collaboraForm.subject || !collaboraForm.grade || !collaboraForm.volume) {
+      alert('Vui lòng chọn file và nhập đầy đủ môn học, lớp, tập, tên bài giảng.');
       return;
     }
     try {
@@ -70,6 +153,8 @@ export default function CreateLessonModal({ onClose }) {
         title: collaboraForm.title.trim(),
         subject: collaboraForm.subject,
         grade: collaboraForm.grade,
+        volume: collaboraForm.volume,
+        book: collaboraForm.book || defaultBook,
       });
       onClose();
       navigate(`/lessons/collabora-editor?draftId=${draft.id}`);
@@ -81,18 +166,20 @@ export default function CreateLessonModal({ onClose }) {
   };
 
   const handleCreateCollabora = async () => {
-    if (!collaboraType || !collaboraForm.title.trim() || !collaboraForm.subject || !collaboraForm.grade) {
-      alert('Vui lòng nhập tên bài giảng, môn học và lớp.');
+    if (!selectedType || !collaboraForm.title.trim() || !collaboraForm.subject || !collaboraForm.grade || !collaboraForm.volume) {
+      alert('Vui lòng chọn môn học, lớp, tập và tên bài giảng.');
       return;
     }
 
     try {
-      setCreatingType(collaboraType);
+      setCreatingType(selectedType);
       const draft = await collaboraApi.createDraft({
         title: collaboraForm.title.trim(),
         subject: collaboraForm.subject,
         grade: collaboraForm.grade,
-        type: collaboraType,
+        volume: collaboraForm.volume,
+        book: collaboraForm.book || defaultBook,
+        type: selectedType,
       });
       onClose();
       navigate(`/lessons/collabora-editor?draftId=${draft.id}`);
@@ -102,37 +189,88 @@ export default function CreateLessonModal({ onClose }) {
       setCreatingType('');
     }
   };
+  const handleCreateSimple = () => {
+    if (!selectedType || !collaboraForm.title.trim() || !collaboraForm.subject || !collaboraForm.grade || !collaboraForm.volume) {
+      alert('Vui lòng chọn môn học, lớp, tập và tên bài giảng.');
+      return;
+    }
 
-  const updateCollaboraForm = (field, value) => {
-    setCollaboraForm((prev) => ({ ...prev, [field]: value }));
+    const editorPath = selectedType === 'PPTX' ? '/lessons/pptx-editor' : '/lessons/docx-editor';
+    onClose();
+    navigate(editorPath, {
+      state: {
+        lessonDraft: {
+          title: collaboraForm.title.trim(),
+          subject: collaboraForm.subject,
+          grade: collaboraForm.grade,
+          volume: collaboraForm.volume,
+          book: collaboraForm.book || defaultBook,
+          type: selectedType,
+        },
+      },
+    });
   };
 
-  const renderForm = (isUpload) => (
+  const updateCollaboraForm = (field, value) => {
+    setCollaboraForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'subject' || field === 'grade') {
+        next.volume = '';
+        next.book = '';
+        next.title = '';
+        setLessonContentMode('');
+      }
+      if (field === 'volume') {
+        const matchingBook = matchingLessonContents.find((content) => getLessonVolume(content) === value)?.book;
+        next.book = matchingBook || DEFAULT_BOOK_BY_SUBJECT[next.subject] || '';
+        next.title = '';
+        setLessonContentMode('');
+      }
+      return next;
+    });
+  };
+
+  const handleLessonNameChange = (value) => {
+    setLessonContentMode(value);
+    const selectedContent = matchingLessonContents.find((content) => (
+      content.name === value && (!collaboraForm.volume || getLessonVolume(content) === collaboraForm.volume)
+    ));
+    setCollaboraForm((prev) => ({
+      ...prev,
+      title: value === CUSTOM_LESSON_VALUE ? '' : value,
+      book: selectedContent?.book || prev.book || defaultBook,
+    }));
+  };
+
+  const renderForm = (mode) => {
+    const isUpload = mode === 'upload';
+    const isSimple = mode === 'simple';
+    const focusClass = isUpload
+      ? 'focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
+      : isSimple
+        ? 'focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100'
+        : 'focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100';
+    const borderClass = isUpload ? 'border-blue-100' : isSimple ? 'border-indigo-100' : 'border-emerald-100';
+    const buttonClass = isUpload
+      ? 'bg-blue-600 hover:bg-blue-700'
+      : isSimple
+        ? 'bg-indigo-600 hover:bg-indigo-700'
+        : 'bg-emerald-600 hover:bg-emerald-700';
+    const actionLabel = isUpload ? 'Tải lên và mở bài giảng' : isSimple ? 'Mở trình soạn thảo' : 'Tạo bài giảng';
+    const handleSubmit = isUpload ? handleUploadAndOpen : isSimple ? handleCreateSimple : handleCreateCollabora;
+
+    return (
     <div className={`mt-1 mb-3 p-4 rounded-2xl border bg-white transition-all duration-200 ${
-      isUpload ? 'border-blue-100' : 'border-emerald-100'
+      borderClass
     }`}>
       <div className="grid grid-cols-1 gap-3">
-        <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Tên bài giảng</label>
-          <input
-            value={collaboraForm.title}
-            onChange={(e) => updateCollaboraForm('title', e.target.value)}
-            placeholder="Tên bài giảng"
-            className={`w-full h-10 px-3 rounded-lg border border-gray-200 text-sm outline-none ${
-              isUpload
-                ? 'focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
-                : 'focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100'
-            }`}
-          />
-        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <select
             value={collaboraForm.subject}
             onChange={(e) => updateCollaboraForm('subject', e.target.value)}
             className={`h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white outline-none ${
-              isUpload
-                ? 'focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
-                : 'focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100'
+              focusClass
             }`}
           >
             <option value="">Chọn môn học</option>
@@ -144,9 +282,7 @@ export default function CreateLessonModal({ onClose }) {
             value={collaboraForm.grade}
             onChange={(e) => updateCollaboraForm('grade', e.target.value)}
             className={`h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white outline-none ${
-              isUpload
-                ? 'focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
-                : 'focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100'
+              focusClass
             }`}
           >
             <option value="">Chọn lớp</option>
@@ -155,22 +291,61 @@ export default function CreateLessonModal({ onClose }) {
             ))}
           </select>
         </div>
+        <select
+          value={collaboraForm.volume}
+          onChange={(e) => updateCollaboraForm('volume', e.target.value)}
+          disabled={!collaboraForm.subject || !collaboraForm.grade || lessonContentsLoading}
+          className={`h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white outline-none disabled:bg-gray-50 disabled:text-gray-400 ${
+            focusClass
+          }`}
+        >
+          <option value="">{lessonContentsLoading ? 'Đang tải tập...' : 'Chọn tập'}</option>
+          {volumeOptions.map((volume) => (
+            <option key={volume} value={volume}>{volume}</option>
+          ))}
+        </select>
+        <div>
+          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Tên bài giảng</label>
+          <select
+            value={lessonContentMode}
+            onChange={(e) => handleLessonNameChange(e.target.value)}
+            disabled={!collaboraForm.subject || !collaboraForm.grade || !collaboraForm.volume || lessonContentsLoading}
+            className={`w-full h-10 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white outline-none disabled:bg-gray-50 disabled:text-gray-400 ${
+              focusClass
+            }`}
+          >
+            <option value="">Chọn tên bài giảng</option>
+            {lessonNameOptions.map((lessonName) => (
+              <option key={lessonName} value={lessonName}>{lessonName}</option>
+            ))}
+            <option value={CUSTOM_LESSON_VALUE}>Không có trong danh sách - nhập tên khác</option>
+          </select>
+          {(lessonContentMode === CUSTOM_LESSON_VALUE || (!lessonContentMode && uploadFile && collaboraForm.title)) && (
+            <input
+              value={collaboraForm.title}
+              onChange={(e) => updateCollaboraForm('title', e.target.value)}
+              placeholder="Nhập tên bài giảng"
+              className={`mt-2 w-full h-10 px-3 rounded-lg border border-gray-200 text-sm outline-none ${
+                focusClass
+              }`}
+            />
+          )}
+        </div>
         <button
           type="button"
-          onClick={isUpload ? handleUploadAndOpen : handleCreateCollabora}
+          onClick={handleSubmit}
           disabled={!!creatingType}
           className={`h-10 rounded-lg text-white text-sm font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
-            isUpload
-              ? 'bg-blue-600 hover:bg-blue-700'
-              : 'bg-emerald-600 hover:bg-emerald-700'
+            buttonClass
           }`}
         >
           {creatingType ? <Loader2 size={16} className="animate-spin" /> : null}
-          {isUpload ? 'Tải lên và mở bài giảng' : 'Tạo bài giảng'}
+          {actionLabel}
         </button>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center z-[9999] animate-[fadeIn_0.2s_ease]"
@@ -197,7 +372,7 @@ export default function CreateLessonModal({ onClose }) {
             onClick={() => handleSelectCollabora('COLLABORA_DOCX')}
             disabled={!!creatingType}
             id="lesson-type-collabora-docx"
-            className={`p-4 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-3 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed text-left ${collaboraType === 'COLLABORA_DOCX' ? 'border-emerald-500 bg-emerald-50' : 'border-emerald-100 bg-emerald-50/60 hover:border-emerald-400 hover:bg-emerald-50'}`}
+            className={`p-4 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-3 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed text-left ${selectedType === 'COLLABORA_DOCX' ? 'border-emerald-500 bg-emerald-50' : 'border-emerald-100 bg-emerald-50/60 hover:border-emerald-400 hover:bg-emerald-50'}`}
           >
             <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 text-white">
               {creatingType === 'COLLABORA_DOCX' ? <Loader2 size={21} className="animate-spin" /> : <FileText size={22} />}
@@ -212,7 +387,7 @@ export default function CreateLessonModal({ onClose }) {
             onClick={() => handleSelectCollabora('COLLABORA_PPTX')}
             disabled={!!creatingType}
             id="lesson-type-collabora-pptx"
-            className={`p-4 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-3 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed text-left ${collaboraType === 'COLLABORA_PPTX' ? 'border-emerald-500 bg-emerald-50' : 'border-emerald-100 bg-emerald-50/60 hover:border-emerald-400 hover:bg-emerald-50'}`}
+            className={`p-4 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-3 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed text-left ${selectedType === 'COLLABORA_PPTX' ? 'border-emerald-500 bg-emerald-50' : 'border-emerald-100 bg-emerald-50/60 hover:border-emerald-400 hover:bg-emerald-50'}`}
           >
             <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 text-white">
               {creatingType === 'COLLABORA_PPTX' ? <Loader2 size={21} className="animate-spin" /> : <Presentation size={22} />}
@@ -223,7 +398,7 @@ export default function CreateLessonModal({ onClose }) {
           </button>
         </div>
 
-        {collaboraType && !uploadFile && renderForm(false)}
+        {(selectedType === 'COLLABORA_DOCX' || selectedType === 'COLLABORA_PPTX') && !uploadFile && renderForm('collabora')}
 
         <button
           type="button"
@@ -254,10 +429,10 @@ export default function CreateLessonModal({ onClose }) {
           className="hidden"
         />
 
-        {uploadFile && renderForm(true)}
+        {uploadFile && renderForm('upload')}
 
-        <div onClick={handleSelectDocx} id="lesson-type-docx"
-          className="p-5 border-2 border-gray-200 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white hover:border-indigo-400 hover:bg-gradient-to-r hover:from-violet-50 hover:to-indigo-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(99,102,241,0.14)]">
+        <button type="button" onClick={() => handleSelectSimple('DOCX')} disabled={!!creatingType} id="lesson-type-docx"
+          className={`w-full p-5 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white hover:border-indigo-400 hover:bg-gradient-to-r hover:from-violet-50 hover:to-indigo-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(99,102,241,0.14)] disabled:opacity-60 disabled:cursor-not-allowed text-left ${selectedType === 'DOCX' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`}>
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shrink-0">
             <FileText size={28} color="#ffffff" />
           </div>
@@ -265,10 +440,12 @@ export default function CreateLessonModal({ onClose }) {
             <h3 className="text-base font-semibold text-gray-800 mb-1">Bài giảng trang đơn giản</h3>
             <p className="text-[13px] text-gray-500 m-0">Soạn thảo bài giảng dạng tài liệu với văn bản, hình ảnh và đồ họa</p>
           </div>
-        </div>
+        </button>
 
-        <div onClick={handleSelectPptx} id="lesson-type-pptx"
-          className="p-5 border-2 border-gray-200 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white hover:border-orange-400 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(249,115,22,0.14)]">
+        {selectedType === 'DOCX' && !uploadFile && renderForm('simple')}
+
+        <button type="button" onClick={() => handleSelectSimple('PPTX')} disabled={!!creatingType} id="lesson-type-pptx"
+          className={`w-full p-5 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white hover:border-orange-400 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(249,115,22,0.14)] disabled:opacity-60 disabled:cursor-not-allowed text-left ${selectedType === 'PPTX' ? 'border-orange-500 bg-orange-50' : 'border-gray-200'}`}>
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
             <Presentation size={28} color="#ffffff" />
           </div>
@@ -276,8 +453,9 @@ export default function CreateLessonModal({ onClose }) {
             <h3 className="text-base font-semibold text-gray-800 mb-1">Bài giảng slide đơn giản</h3>
             <p className="text-[13px] text-gray-500 m-0">Tạo slide cơ bản cho bài giảng trên lớp</p>
           </div>
-        </div>
+        </button>
 
+        {selectedType === 'PPTX' && !uploadFile && renderForm('simple')}
 
         <button onClick={onClose} id="modal-close-btn"
           className="mt-2 w-full py-2.5 border-none bg-transparent text-gray-500 text-sm font-medium cursor-pointer rounded-[10px] transition-all hover:bg-gray-100 hover:text-gray-700 font-[Inter,sans-serif]">

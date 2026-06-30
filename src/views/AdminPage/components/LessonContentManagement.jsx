@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, BookOpen } from 'lucide-react';
-import testApi from '../../../services/testApi';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import lessonCatalogApi from '../../../services/lessonCatalogApi';
 
 const INITIAL_FORM_STATE = {
   subject: '',
   grade: '',
+  volume: '',
+  book: '',
   name: '',
   description: '',
   isActive: true,
@@ -12,6 +14,20 @@ const INITIAL_FORM_STATE = {
 
 const SUBJECTS = ['Toán', 'Tiếng Việt', 'Tiếng Anh'];
 const GRADES = ['1', '2', '3', '4', '5'];
+const PAGE_SIZE_OPTIONS = [12, 24, 48];
+
+const getLessonVolume = (content) => content?.volume || content?.bookVolume || content?.semester || content?.term || '';
+const normalizeText = (value) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .trim();
+const DEFAULT_BOOK_BY_SUBJECT = {
+  'Tiếng Anh': 'Global Success',
+  'Tiếng Việt': 'Kết nối tri thức',
+  Toán: 'Kết nối tri thức',
+};
 
 export default function LessonContentManagement() {
   const [contents, setContents] = useState([]);
@@ -23,6 +39,11 @@ export default function LessonContentManagement() {
   const [formState, setFormState] = useState(INITIAL_FORM_STATE);
   const [filterSubject, setFilterSubject] = useState('');
   const [filterGrade, setFilterGrade] = useState('');
+  const [filterVolume, setFilterVolume] = useState('');
+  const [filterBook, setFilterBook] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(PAGE_SIZE_OPTIONS[0]);
 
   useEffect(() => {
     loadContents();
@@ -33,7 +54,7 @@ export default function LessonContentManagement() {
     setError('');
 
     try {
-      const data = await testApi.getAllLessonContents();
+      const data = await lessonCatalogApi.getAdminCatalog();
       setContents(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Load lesson contents failed', err);
@@ -43,18 +64,67 @@ export default function LessonContentManagement() {
     }
   };
 
-  const filteredContents = contents.filter((item) => {
-    if (filterSubject && item.subject !== filterSubject) return false;
-    if (filterGrade && item.grade !== filterGrade) return false;
-    return true;
-  });
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterSubject, filterGrade, filterVolume, filterBook, itemsPerPage]);
 
+  const filteredContents = useMemo(() => {
+    const normalizedQuery = normalizeText(searchQuery);
+
+    return contents.filter((item) => {
+      if (filterSubject && item.subject !== filterSubject) return false;
+      if (filterGrade && item.grade !== filterGrade) return false;
+      if (filterVolume && getLessonVolume(item) !== filterVolume) return false;
+      if (filterBook && item.book !== filterBook) return false;
+
+      if (normalizedQuery) {
+        const searchableText = normalizeText([
+          item.name,
+          item.description,
+          item.subject,
+          item.grade ? `Lớp ${item.grade}` : '',
+          getLessonVolume(item),
+          item.book,
+        ].join(' '));
+        if (!searchableText.includes(normalizedQuery)) return false;
+      }
+
+      return true;
+    });
+  }, [contents, filterBook, filterGrade, filterSubject, filterVolume, searchQuery]);
+
+  const volumeOptions = useMemo(
+    () => Array.from(new Set(contents.map(getLessonVolume).filter(Boolean))),
+    [contents]
+  );
+  const bookOptions = useMemo(
+    () => Array.from(new Set(contents.map((item) => item.book).filter(Boolean))),
+    [contents]
+  );
+  const totalPages = Math.max(1, Math.ceil(filteredContents.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStartIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const paginatedContents = filteredContents.slice(pageStartIndex, pageStartIndex + itemsPerPage);
+  const showingFrom = filteredContents.length === 0 ? 0 : pageStartIndex + 1;
+  const showingTo = Math.min(pageStartIndex + itemsPerPage, filteredContents.length);
+  const activeFilteredCount = filteredContents.filter((content) => content.isActive).length;
+  const hasActiveFilters = Boolean(searchQuery || filterSubject || filterGrade || filterVolume || filterBook);
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterSubject('');
+    setFilterGrade('');
+    setFilterVolume('');
+    setFilterBook('');
+  };
   const openForm = (content) => {
     if (content) {
       setEditItem(content);
       setFormState({
         subject: content.subject || '',
         grade: content.grade || '',
+        volume: getLessonVolume(content),
+        book: content.book || DEFAULT_BOOK_BY_SUBJECT[content.subject] || '',
         name: content.name || '',
         description: content.description || '',
         isActive: content.isActive ?? true,
@@ -75,8 +145,8 @@ export default function LessonContentManagement() {
   };
 
   const handleSave = async () => {
-    if (!formState.subject.trim() || !formState.grade.trim() || !formState.name.trim()) {
-      setError('Vui lòng nhập môn học, lớp và tên nội dung');
+    if (!formState.subject.trim() || !formState.grade.trim() || !formState.volume.trim() || !formState.book.trim() || !formState.name.trim()) {
+      setError('Vui lòng nhập môn học, lớp, tập, bộ sách và tên nội dung');
       return;
     }
 
@@ -86,6 +156,8 @@ export default function LessonContentManagement() {
     const payload = {
       subject: formState.subject.trim(),
       grade: formState.grade.trim(),
+      volume: formState.volume.trim(),
+      book: formState.book.trim(),
       name: formState.name.trim(),
       description: formState.description.trim(),
       isActive: formState.isActive,
@@ -93,9 +165,9 @@ export default function LessonContentManagement() {
 
     try {
       if (editItem?.id) {
-        await testApi.updateLessonContent(editItem.id, payload);
+        await lessonCatalogApi.updateCatalogItem(editItem.id, payload);
       } else {
-        await testApi.createLessonContent(payload);
+        await lessonCatalogApi.createCatalogItem(payload);
       }
       await loadContents();
       closeForm();
@@ -113,7 +185,7 @@ export default function LessonContentManagement() {
     }
 
     try {
-      await testApi.deleteLessonContent(id);
+      await lessonCatalogApi.deleteCatalogItem(id);
       setContents((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       console.error('Delete lesson content failed', err);
@@ -124,9 +196,11 @@ export default function LessonContentManagement() {
   const toggleActive = async (content) => {
     setError('');
     try {
-      await testApi.updateLessonContent(content.id, {
+      await lessonCatalogApi.updateCatalogItem(content.id, {
         subject: content.subject,
         grade: content.grade,
+        volume: getLessonVolume(content),
+        book: content.book || DEFAULT_BOOK_BY_SUBJECT[content.subject] || '',
         name: content.name,
         description: content.description || '',
         isActive: !content.isActive,
@@ -143,8 +217,8 @@ export default function LessonContentManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Nội dung Bài Học</h2>
-          <p className="text-sm text-gray-500 mt-1">Quản lý nội dung bài học theo môn và lớp.</p>
-          <p className="text-sm text-gray-500 mt-1">{filteredContents.length} nội dung · {filteredContents.filter((c) => c.isActive).length} đang hoạt động</p>
+          <p className="text-sm text-gray-500 mt-1">Quản lý nội dung bài học theo môn, lớp và tập.</p>
+          <p className="text-sm text-gray-500 mt-1">{filteredContents.length} nội dung · {activeFilteredCount} đang hoạt động</p>
         </div>
         <button
           onClick={() => openForm(null)}
@@ -161,31 +235,98 @@ export default function LessonContentManagement() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <select
-          value={filterSubject}
-          onChange={(e) => setFilterSubject(e.target.value)}
-          className="px-4 py-2 rounded-lg border border-gray-200 text-sm"
-        >
-          <option value="">Tất cả môn học</option>
-          {SUBJECTS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterGrade}
-          onChange={(e) => setFilterGrade(e.target.value)}
-          className="px-4 py-2 rounded-lg border border-gray-200 text-sm"
-        >
-          <option value="">Tất cả lớp</option>
-          {GRADES.map((g) => (
-            <option key={g} value={g}>
-              Lớp {g}
-            </option>
-          ))}
-        </select>
+      <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm theo tên bài, môn, lớp, tập, bộ sách..."
+              className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm outline-none transition focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span>Hiển thị</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+            <span>mục/trang</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <select
+            value={filterSubject}
+            onChange={(e) => setFilterSubject(e.target.value)}
+            className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+          >
+            <option value="">Tất cả môn học</option>
+            {SUBJECTS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterGrade}
+            onChange={(e) => setFilterGrade(e.target.value)}
+            className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+          >
+            <option value="">Tất cả lớp</option>
+            {GRADES.map((g) => (
+              <option key={g} value={g}>
+                Lớp {g}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterVolume}
+            onChange={(e) => setFilterVolume(e.target.value)}
+            className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+          >
+            <option value="">Tất cả tập</option>
+            {volumeOptions.map((volume) => (
+              <option key={volume} value={volume}>
+                {volume}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterBook}
+            onChange={(e) => setFilterBook(e.target.value)}
+            className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+          >
+            <option value="">Tất cả bộ sách</option>
+            {bookOptions.map((book) => (
+              <option key={book} value={book}>
+                {book}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={!hasActiveFilters}
+            className={`flex h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-medium transition ${
+              hasActiveFilters
+                ? 'border-gray-200 text-gray-600 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700'
+                : 'cursor-not-allowed border-gray-100 text-gray-300'
+            }`}
+          >
+            <X className="h-4 w-4" />
+            Xóa lọc
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -195,10 +336,10 @@ export default function LessonContentManagement() {
           </div>
         ) : filteredContents.length === 0 ? (
           <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-sm text-gray-500">
-            Chưa có nội dung bài học nào trong danh sách.
+            {hasActiveFilters ? 'Không tìm thấy nội dung phù hợp.' : 'Chưa có nội dung bài học nào trong danh sách.'}
           </div>
         ) : (
-          filteredContents.map((content) => (
+          paginatedContents.map((content) => (
             <div
               key={content.id}
               className={`relative bg-white rounded-2xl border overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${
@@ -210,9 +351,11 @@ export default function LessonContentManagement() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="text-base font-bold text-gray-900">{content.name}</h3>
-                    <div className="flex gap-2 mt-1">
+                    <div className="flex flex-wrap gap-2 mt-1">
                       <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">{content.subject}</span>
                       <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">Lớp {content.grade}</span>
+                      {getLessonVolume(content) && <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded">{getLessonVolume(content)}</span>}
+                      {content.book && <span className="text-xs px-2 py-1 bg-violet-100 text-violet-700 rounded">{content.book}</span>}
                     </div>
                   </div>
                   <button
@@ -253,10 +396,62 @@ export default function LessonContentManagement() {
           ))
         )}
       </div>
+      {!loading && filteredContents.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            Hiển thị {showingFrom}-{showingTo} trong {filteredContents.length} nội dung
+          </div>
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700 disabled:cursor-not-allowed disabled:border-gray-100 disabled:text-gray-300 disabled:hover:bg-white"
+              aria-label="Trang trước"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, index) => index + 1)
+                .filter((page) => totalPages <= 5 || page === 1 || page === totalPages || Math.abs(page - safeCurrentPage) <= 1)
+                .map((page, index, pages) => {
+                  const previousPage = pages[index - 1];
+                  const showGap = previousPage && page - previousPage > 1;
+
+                  return (
+                    <div key={page} className="flex items-center gap-1">
+                      {showGap && <span className="px-1 text-gray-400">...</span>}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={`h-9 min-w-9 rounded-lg px-3 text-sm font-semibold transition ${
+                          page === safeCurrentPage
+                            ? 'bg-violet-600 text-white shadow-sm shadow-violet-500/25'
+                            : 'border border-gray-200 text-gray-600 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={safeCurrentPage === totalPages}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700 disabled:cursor-not-allowed disabled:border-gray-100 disabled:text-gray-300 disabled:hover:bg-white"
+              aria-label="Trang sau"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">
@@ -297,6 +492,24 @@ export default function LessonContentManagement() {
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tập</label>
+                <input
+                  value={formState.volume}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, volume: e.target.value }))}
+                  placeholder="VD: Tập 1"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bộ Sách</label>
+                <input
+                  value={formState.book}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, book: e.target.value }))}
+                  placeholder="VD: Kết nối tri thức"
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tên Nội Dung</label>

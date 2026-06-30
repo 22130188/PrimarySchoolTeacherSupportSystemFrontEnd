@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, Copy, Loader2 } from 'lucide-react';
 import PptxToolbar from './PptxToolbar';
 import PptxSidebar from './PptxSidebar';
@@ -10,7 +10,7 @@ import TableContextMenu from '../../common/TableContextMenu';
 import TableOverlayEditor from '../../common/TableOverlayEditor';
 import { DEFAULT_TEXT_FORMAT, CUSTOM_SERIALIZATION_PROPS, SLIDE_WIDTH, SLIDE_HEIGHT } from './pptxConstants';
 import { addTableRow, addTableCol, deleteTableRow, deleteTableCol } from '../../utils/fabricTable';
-import { rerenderTableImage, isNewTableImage, createTableData, tableDataToFabricImage, ensureTableDataForImage } from '../../utils/tableModel';
+import { rerenderTableImage, isNewTableImage, ensureTableDataForImage } from '../../utils/tableModel';
 import { getShapeFormat, snapshotFabricObject } from '../../utils/shapeSelection';
 import { applyFabricTextFormat, getTextFormatUpdate, isFabricTextObject } from '../../utils/fabricTextFormatting';
 import lessonDraftApi from '../../services/lessonDraftApi';
@@ -20,7 +20,9 @@ import './PptxEditor.css';
 
 export default function PptxEditorPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const initialLessonDraftRef = useRef(location.state?.lessonDraft || {});
   const canvasRef = useRef(null);
   const slidesRef = useRef([{ id: 1, json: null, thumbnail: null, notes: '' }]);
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
@@ -31,9 +33,11 @@ export default function PptxEditorPage() {
   const isSavingRef = useRef(false);
   const [duplicating, setDuplicating] = useState(false);
 
-  const [fileName, setFileName] = useState('Trình chiếu không tên');
-  const [subject, setSubject] = useState('');
-  const [grade, setGrade] = useState('');
+  const [fileName, setFileName] = useState(initialLessonDraftRef.current.title || 'Trình chiếu không tên');
+  const [subject, setSubject] = useState(initialLessonDraftRef.current.subject || '');
+  const [grade, setGrade] = useState(initialLessonDraftRef.current.grade || '');
+  const [volume, setVolume] = useState(initialLessonDraftRef.current.volume || '');
+  const [book, setBook] = useState(initialLessonDraftRef.current.book || '');
   const [slides, setSlides] = useState([{ id: 1, json: null, thumbnail: null, notes: '' }]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [zoom, setZoom] = useState(0.75);
@@ -72,6 +76,8 @@ export default function PptxEditorPage() {
         setFileName(draft.title || 'Trình chiếu không tên');
         setSubject(draft.subject || '');
         setGrade(draft.grade || '');
+        setVolume(draft.volume || '');
+        setBook(draft.book || '');
         if (draft.canvasJson) {
           const parsed = JSON.parse(draft.canvasJson);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -179,7 +185,6 @@ export default function PptxEditorPage() {
     const tableData = ensureTableDataForImage(table);
     if (isNewTableImage(table) && tableData) {
       const data = JSON.parse(JSON.stringify(tableData));
-      const { r, c } = { r: data.rows - 1, c: data.cols - 1 };
 
       switch (action) {
         case 'addRowBefore': {
@@ -432,9 +437,13 @@ export default function PptxEditorPage() {
   const fileNameRef = useRef(fileName);
   const subjectRef = useRef(subject);
   const gradeRef = useRef(grade);
+  const volumeRef = useRef(volume);
+  const bookRef = useRef(book);
   useEffect(() => { fileNameRef.current = fileName; }, [fileName]);
   useEffect(() => { subjectRef.current = subject; }, [subject]);
   useEffect(() => { gradeRef.current = grade; }, [grade]);
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { bookRef.current = book; }, [book]);
 
   const performAutoSave = useCallback(async () => {
     if (isReadOnly || !isDirtyRef.current || isSavingRef.current) return;
@@ -455,6 +464,8 @@ export default function PptxEditorPage() {
         title: fileNameRef.current,
         subject: curSubject,
         grade: curGrade,
+        volume: volumeRef.current,
+        book: bookRef.current,
         type: 'PPTX',
         canvasJson: JSON.stringify(slidesData),
       });
@@ -483,7 +494,13 @@ export default function PptxEditorPage() {
   useEffect(() => {
     if (!isLoadedRef.current) { isLoadedRef.current = true; return; }
     markDirty();
-  }, [fileName, subject, grade, markDirty]);
+  }, [fileName, subject, grade, volume, book, markDirty]);
+
+  useEffect(() => {
+    if (!draftIdRef.current && initialLessonDraftRef.current.title && initialLessonDraftRef.current.subject && initialLessonDraftRef.current.grade) {
+      isDirtyRef.current = true;
+    }
+  }, []);
 
   const handleUpdateObject = useCallback((props) => {
     const canvas = canvasRef.current?.getCanvas?.();

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, Copy, Loader2 } from 'lucide-react';
 import EditorToolbar from './EditorToolbar';
 import LeftSidebar from './LeftSidebar';
@@ -21,7 +21,9 @@ const createBlankPage = () => ({ id: Date.now() + Math.random(), json: null, thu
 
 export default function DocxEditorPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const initialLessonDraftRef = useRef(location.state?.lessonDraft || {});
   const canvasRef = useRef(null);
   const initialPage = useRef(createBlankPage()).current;
   const pagesRef = useRef([initialPage]);
@@ -33,9 +35,11 @@ export default function DocxEditorPage() {
   const isSavingRef = useRef(false);
   const [duplicating, setDuplicating] = useState(false);
 
-  const [fileName, setFileName] = useState('Bài giảng không tên');
-  const [subject, setSubject] = useState('');
-  const [grade, setGrade] = useState('');
+  const [fileName, setFileName] = useState(initialLessonDraftRef.current.title || 'Bài giảng không tên');
+  const [subject, setSubject] = useState(initialLessonDraftRef.current.subject || '');
+  const [grade, setGrade] = useState(initialLessonDraftRef.current.grade || '');
+  const [volume, setVolume] = useState(initialLessonDraftRef.current.volume || '');
+  const [book, setBook] = useState(initialLessonDraftRef.current.book || '');
   const [pages, setPages] = useState([initialPage]);
   const [activePageId, setActivePageId] = useState(initialPage.id);
   const [zoom, setZoom] = useState(1);
@@ -76,6 +80,8 @@ export default function DocxEditorPage() {
         setFileName(draft.title || 'Bài giảng không tên');
         setSubject(draft.subject || '');
         setGrade(draft.grade || '');
+        setVolume(draft.volume || '');
+        setBook(draft.book || '');
         if (draft.canvasJson) {
           const parsed = JSON.parse(draft.canvasJson);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -372,9 +378,13 @@ export default function DocxEditorPage() {
   const fileNameRef = useRef(fileName);
   const subjectRef = useRef(subject);
   const gradeRef = useRef(grade);
+  const volumeRef = useRef(volume);
+  const bookRef = useRef(book);
   useEffect(() => { fileNameRef.current = fileName; }, [fileName]);
   useEffect(() => { subjectRef.current = subject; }, [subject]);
   useEffect(() => { gradeRef.current = grade; }, [grade]);
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { bookRef.current = book; }, [book]);
 
   const performAutoSave = useCallback(async () => {
     if (isReadOnly || !isDirtyRef.current || isSavingRef.current) return;
@@ -393,6 +403,8 @@ export default function DocxEditorPage() {
         title: fileNameRef.current,
         subject: curSubject,
         grade: curGrade,
+        volume: volumeRef.current,
+        book: bookRef.current,
         type: 'DOCX',
         canvasJson: JSON.stringify(pagesData),
       });
@@ -419,7 +431,13 @@ export default function DocxEditorPage() {
   useEffect(() => {
     if (!isLoadedRef.current) { isLoadedRef.current = true; return; }
     markDirty();
-  }, [fileName, subject, grade, markDirty]);
+  }, [fileName, subject, grade, volume, book, markDirty]);
+
+  useEffect(() => {
+    if (!draftIdRef.current && initialLessonDraftRef.current.title && initialLessonDraftRef.current.subject && initialLessonDraftRef.current.grade) {
+      isDirtyRef.current = true;
+    }
+  }, []);
 
   const handleUpdateObject = useCallback((props) => {
     const canvas = canvasRef.current?.getCanvas?.();
