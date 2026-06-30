@@ -9,11 +9,13 @@ const getAuthHeader = () => {
 };
 
 const collaboraApi = {
-  createDraft: async ({ title, subject, grade, type }) => {
+  createDraft: async ({ title, subject, grade, volume, book, type }) => {
     const response = await axios.post(`${BASE_URL}/drafts`, {
       title,
       subject,
       grade,
+      volume,
+      book,
       type,
     }, { headers: getAuthHeader() });
     return response.data;
@@ -41,12 +43,14 @@ const collaboraApi = {
     return response.data;
   },
 
-  uploadDraft: async ({ file, title, subject, grade }) => {
+  uploadDraft: async ({ file, title, subject, grade, volume, book }) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('title', title);
     formData.append('subject', subject);
     formData.append('grade', grade);
+    if (volume) formData.append('volume', volume);
+    if (book) formData.append('book', book);
 
     const response = await axios.post(`${BASE_URL}/drafts/upload`, formData, {
       headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },

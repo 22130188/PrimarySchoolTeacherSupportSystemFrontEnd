@@ -1,13 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Search, BookOpen, Trash2, Eye,
+  Search, BookOpen, Trash2, Eye, MoreHorizontal,
   Loader2, FileText, Presentation,
 } from 'lucide-react';
 import { SUBJECT_COLORS } from '../../../data/lessonData';
 import adminLessonService from '../../../services/adminLessonService';
 import LessonTable from './LessonTable';
 
-function buildColumns({ onView, onDelete }) {
+function buildColumns({ onView, onDelete, openMenuId, setOpenMenuId, menuDirection, setMenuDirection, menuRef }) {
   return [
     {
       accessorKey: 'title',
@@ -68,26 +68,53 @@ function buildColumns({ onView, onDelete }) {
     },
     {
       id: 'actions',
-      header: '',
+      header: () => <span className="sr-only">Hành động</span>,
       enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onView(row.original)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
-            title="Xem chi tiết"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(row.original.id)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Xóa"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const lesson = row.original;
+        return (
+          <div className="relative flex min-w-[44px] justify-center" ref={openMenuId === lesson.id ? menuRef : null}>
+            <button
+              type="button"
+              onClick={(event) => {
+                if (openMenuId === lesson.id) {
+                  setOpenMenuId(null);
+                  return;
+                }
+                const rect = event.currentTarget.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - rect.bottom;
+                setMenuDirection(spaceBelow < 150 ? 'up' : 'down');
+                setOpenMenuId(lesson.id);
+              }}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+              aria-label="Mở menu bài giảng"
+            >
+              <MoreHorizontal className="w-5 h-5" strokeWidth={2.5} />
+            </button>
+            {openMenuId === lesson.id && (
+              <div className={`absolute right-0 w-44 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-30 ${menuDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                <button
+                  type="button"
+                  onClick={() => onView(lesson)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                  Xem chi tiết
+                </button>
+                <div className="my-1 border-t border-gray-100" />
+                <button
+                  type="button"
+                  onClick={() => onDelete(lesson.id)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Xóa
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
   ];
 }
@@ -98,10 +125,25 @@ export default function LessonManagement() {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuDirection, setMenuDirection] = useState('down');
+  const menuRef = useRef(null);
 
   useEffect(() => {
     fetchLessons();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
 
   const fetchLessons = async () => {
     try {
@@ -126,6 +168,7 @@ export default function LessonManagement() {
   };
 
   const handleDelete = async (lessonId) => {
+    setOpenMenuId(null);
     if (!confirm('Bạn có chắc chắn muốn xóa bài giảng này?')) return;
     try {
       await adminLessonService.deleteLesson(lessonId);
@@ -137,13 +180,19 @@ export default function LessonManagement() {
   };
 
   const handleViewLesson = (lesson) => {
+    setOpenMenuId(null);
     alert(`Xem chi tiết bài giảng: ${lesson.title}`);
   };
 
   const columns = useMemo(() => buildColumns({
     onView: handleViewLesson,
     onDelete: handleDelete,
-  }), []);
+    openMenuId,
+    setOpenMenuId,
+    menuDirection,
+    setMenuDirection,
+    menuRef,
+  }), [openMenuId, menuDirection]);
 
   if (loading) {
     return (
@@ -209,6 +258,7 @@ export default function LessonManagement() {
         onGlobalFilterChange={setGlobalFilter}
         sorting={sorting}
         onSortingChange={setSorting}
+        activeActionId={openMenuId}
       />
     </div>
   );
