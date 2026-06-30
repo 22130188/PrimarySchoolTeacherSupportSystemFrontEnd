@@ -9,7 +9,14 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import SortIcon from '../../../components/SortIcon';
 
-export default function LessonTable({ data, columns, globalFilter, onGlobalFilterChange, sorting, onSortingChange }) {
+const getColumnPinClass = (columnId, area, isActive = false) => {
+  if (columnId !== 'actions') return '';
+  if (area === 'header') return 'sticky right-0 z-30 bg-gray-50 px-3 text-center shadow-[-10px_0_18px_-18px_rgba(15,23,42,0.7)]';
+  const zIndex = isActive ? 'z-50' : 'z-20';
+  return `sticky right-0 ${zIndex} bg-white px-3 shadow-[-10px_0_18px_-18px_rgba(15,23,42,0.7)] group-hover:bg-gray-50`;
+};
+
+export default function LessonTable({ data, columns, globalFilter, onGlobalFilterChange, sorting, onSortingChange, activeActionId }) {
   const table = useReactTable({
     data,
     columns,
@@ -35,7 +42,7 @@ export default function LessonTable({ data, columns, globalFilter, onGlobalFilte
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap"
+                    className={`px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap ${getColumnPinClass(header.column.id, 'header')}`}
                   >
                     {header.isPlaceholder ? null : (
                       <div
@@ -55,9 +62,9 @@ export default function LessonTable({ data, columns, globalFilter, onGlobalFilte
           </thead>
           <tbody className="divide-y divide-gray-200">
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="hover:bg-gray-50">
+              <tr key={row.id} className="group hover:bg-gray-50">
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
+                  <td key={cell.id} className={`px-6 py-4 whitespace-nowrap ${getColumnPinClass(cell.column.id, 'cell', row.original.id === activeActionId)}`}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
