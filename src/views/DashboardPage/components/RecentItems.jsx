@@ -53,61 +53,41 @@ function timeAgo(value) {
 }
 
 function Preview({ item, compact = false }) {
+  let Icon = FileText;
+  let color = COLORS[item.subject] || 'from-slate-600 to-violet-400';
+  let caption;
+
   if (item.kind === 'EXAM' || item.kind === 'EXERCISE') {
     const exercise = item.kind === 'EXERCISE';
-    const Icon = exercise ? Pencil : ClipboardCheck;
-    const color = exercise ? 'from-blue-600 to-violet-500' : 'from-orange-500 to-rose-500';
-    return (
-      <div className={`relative h-full overflow-hidden bg-gradient-to-br ${color} text-white ${compact ? 'grid place-items-center p-2' : 'p-4'}`}>
-        <i className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-white/15" />
-        <Icon className={compact ? 'relative h-6 w-6' : 'relative mb-3 h-6 w-6'} />
-        {!compact && (
-          <>
-            <p className="relative line-clamp-3 text-sm font-extrabold">{item.title}</p>
-            <small className="absolute bottom-3 left-4 right-4 truncate">
-              {exercise ? 'Bài tập' : 'Bài kiểm tra'}{item.questionCount ? ` · ${item.questionCount} câu` : ''}
-            </small>
-          </>
-        )}
-      </div>
-    );
-  }
-
-  const pptx = item.type === 'PPTX' || item.type === 'COLLABORA_PPTX';
-  const color = COLORS[item.subject] || 'from-slate-600 to-violet-400';
-  if (pptx) {
-    return (
-      <div className={`relative h-full overflow-hidden bg-gradient-to-br ${color} text-white ${compact ? 'grid place-items-center p-2' : 'p-4'}`}>
-        <i className="absolute -right-7 -top-8 h-24 w-24 rounded-full bg-white/15" />
-        <Presentation className={compact ? 'relative h-6 w-6' : 'relative mb-3 h-6 w-6'} />
-        {!compact && (
-          <>
-            <p className="relative line-clamp-3 text-sm font-extrabold">{item.title}</p>
-            <small className="absolute bottom-3 left-4 right-4 truncate">
-              {[item.subject, item.grade].filter(Boolean).join(' · ')}
-            </small>
-          </>
-        )}
-      </div>
-    );
+    Icon = exercise ? Pencil : ClipboardCheck;
+    color = exercise ? 'from-blue-600 to-violet-500' : 'from-orange-500 to-rose-500';
+    caption = `${exercise ? 'Bài tập' : 'Bài kiểm tra'}${item.questionCount ? ` · ${item.questionCount} câu` : ''}`;
+  } else {
+    const pptx = item.type === 'PPTX' || item.type === 'COLLABORA_PPTX';
+    Icon = pptx ? Presentation : FileText;
+    caption = [item.subject, item.grade].filter(Boolean).join(' · ');
   }
 
   if (compact) {
-    return <div className="grid h-full place-items-center bg-slate-100"><FileText className="h-6 w-6 text-slate-500" /></div>;
+    return (
+      <div className="grid h-full place-items-center bg-white">
+        <span className={`grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br ${color} text-white`}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+    );
   }
 
   return (
-    <div className="flex h-full items-center justify-center bg-slate-100 p-4">
-      <div className="relative h-full w-[72%] border border-slate-200 bg-white p-3 shadow-sm">
-        <i className={`mb-3 block h-2 w-2/3 rounded bg-gradient-to-r ${color}`} />
-        <p className="line-clamp-3 text-[10px] font-bold text-slate-700">{item.title}</p>
-        <div className="mt-3 space-y-1.5">
-          <i className="block h-1 bg-slate-200" />
-          <i className="block h-1 w-5/6 bg-slate-200" />
-          <i className="block h-1 w-3/4 bg-slate-200" />
-        </div>
-        <FileText className="absolute bottom-3 right-3 h-4 w-4 text-slate-300" />
-      </div>
+    <div className="relative flex h-full flex-col bg-white p-4">
+      <span className={`mb-3 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${color} text-white shadow-sm`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <p className="line-clamp-3 text-sm font-bold text-slate-800">{item.title}</p>
+      <i className={`mt-2 block h-1 w-10 rounded-full bg-gradient-to-r ${color}`} />
+      {caption && (
+        <small className="absolute bottom-3 left-4 right-4 truncate text-slate-500">{caption}</small>
+      )}
     </div>
   );
 }
@@ -350,7 +330,7 @@ export default function RecentItems({
         ) : view === 'grid' ? (
           <div className="grid grid-cols-1 gap-x-5 gap-y-7 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {!hideCreate && !isFiltering && <button type="button" onClick={() => setShowCreateChoices(true)} className="self-start text-left"><div className="flex aspect-[4/3] items-center justify-center rounded-2xl border-2 border-dashed bg-slate-50 hover:border-violet-400"><span className="flex flex-col items-center gap-2 text-sm font-semibold text-slate-500"><Plus />Tạo mới</span></div></button>}
-            {visible.map((item) => <button key={item.key} type="button" onClick={() => openItem(item)} className="group min-w-0 text-left"><div className="aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-slate-200 group-hover:shadow-lg group-hover:ring-violet-300"><Preview item={item} /></div><h3 className="mt-3 truncate text-sm font-semibold group-hover:text-violet-700">{item.title || 'Nội dung không tên'}</h3><p className="mt-1 flex gap-1.5 text-xs text-slate-500"><span className={`mt-1 h-2 w-2 rounded-full ${item.source.startsWith('OWNED') ? 'bg-violet-500' : 'bg-emerald-500'}`} /><span className="truncate">{itemTypeLabel(item)}</span> · <span className="shrink-0">{timeAgo(item.updatedAt || item.createdAt)}</span></p><p className="mt-1 truncate text-[11px] text-slate-400">{item.source.startsWith('OWNED') ? 'Của bạn' : `${item.ownerName}${item.classroomName ? ` · ${item.classroomName}` : ''}`}</p></button>)}
+            {visible.map((item) => <button key={item.key} type="button" onClick={() => openItem(item)} className="group min-w-0 text-left"><div className="aspect-[4/3] overflow-hidden rounded-2xl ring-2 ring-slate-300 group-hover:shadow-lg group-hover:ring-violet-300"><Preview item={item} /></div><h3 className="mt-3 truncate text-sm font-semibold group-hover:text-violet-700">{item.title || 'Nội dung không tên'}</h3><p className="mt-1 flex gap-1.5 text-xs text-slate-500"><span className={`mt-1 h-2 w-2 rounded-full ${item.source.startsWith('OWNED') ? 'bg-violet-500' : 'bg-emerald-500'}`} /><span className="truncate">{itemTypeLabel(item)}</span> · <span className="shrink-0">{timeAgo(item.updatedAt || item.createdAt)}</span></p><p className="mt-1 truncate text-[11px] text-slate-400">{item.source.startsWith('OWNED') ? 'Của bạn' : `${item.ownerName}${item.classroomName ? ` · ${item.classroomName}` : ''}`}</p></button>)}
           </div>
         ) : (
           <div className="overflow-x-auto"><table className="w-full min-w-[760px]"><thead><tr className="border-b text-left text-sm"><th className="p-3">Tên</th><th>Người sở hữu</th><th>Loại</th><th>Đã sửa</th></tr></thead><tbody>{visible.map((item) => <tr key={item.key} onClick={() => openItem(item)} className="cursor-pointer border-b hover:bg-violet-50"><td className="p-3"><div className="flex items-center gap-3"><div className="h-14 w-16 overflow-hidden rounded"><Preview item={item} compact /></div><b className="max-w-sm truncate text-sm">{item.title}</b></div></td><td>{item.source.startsWith('OWNED') ? `${item.ownerName} (Bạn)` : item.ownerName}</td><td>{itemTypeLabel(item)}</td><td>{timeAgo(item.updatedAt || item.createdAt)}</td></tr>)}</tbody></table></div>
