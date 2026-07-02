@@ -3,9 +3,9 @@ import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import TakeTestModal from './components/TakeTestModal';
 import TestTakingInterface from './components/TestTakingInterface';
-import { ClipboardCheck, Plus, Search, CheckCircle, Clock, AlertCircle, MoreHorizontal, Trash2, Pencil } from 'lucide-react';
+import { Plus, Search, CheckCircle, Clock, MoreHorizontal, Trash2, BookOpenCheck, NotebookPen, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import testApi from '../../services/testApi';
 import resourceService from '../../services/resourceService';
@@ -25,11 +25,11 @@ const STATUS_LABEL = {
 const TEST_TYPE_CONFIG = {
   EXAM: {
     color: 'from-orange-500 to-red-500',
-    icon: ClipboardCheck,
+    icon: BookOpenCheck,
   },
   EXERCISE: {
     color: 'from-blue-500 to-purple-500',
-    icon: Pencil,
+    icon: NotebookPen,
   },
 };
 
@@ -121,7 +121,7 @@ export default function TestsPage() {
           } else {
             setAttemptHistory([]);
           }
-        } catch (err) {
+        } catch {
           setAttemptHistory([]);
         }
       } catch (err) {
@@ -203,6 +203,15 @@ export default function TestsPage() {
     (typeFilter === 'all' || test.testType === typeFilter)
   );
 
+  const ITEMS_PER_PAGE = 6;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filteredTests.length / ITEMS_PER_PAGE));
+  const paginatedTests = useMemo(() => {
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    return filteredTests.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredTests, page]);
+  useEffect(() => { setPage(1); }, [searchTerm, typeFilter]);
+
   return (
     <div className="min-h-screen bg-[#f8f7ff]">
       <Navbar />
@@ -216,7 +225,7 @@ export default function TestsPage() {
               <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
-                    <ClipboardCheck className="w-5 h-5 text-white" />
+                    <GraduationCap className="w-5 h-5 text-white" />
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900">Bài kiểm tra</h1>
@@ -244,23 +253,23 @@ export default function TestsPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 {[
-                  { icon: <ClipboardCheck className="w-4.5 h-4.5" />, label: 'Tổng bài kiểm tra', value: tests.length, color: 'from-orange-500 to-red-500' },
+                  { icon: <BookOpenCheck className="w-4.5 h-4.5" />, label: 'Tổng bài kiểm tra', value: tests.length, color: 'from-orange-500 to-red-500' },
                   { icon: <CheckCircle className="w-4.5 h-4.5" />, label: 'Đã hoàn thành', value: tests.filter(t => t.status === 'PUBLISHED').length, color: 'from-emerald-500 to-teal-500' },
                   { icon: <Clock className="w-4.5 h-4.5" />, label: 'Bản nháp', value: tests.filter(t => t.status === 'DRAFT').length, color: 'from-amber-500 to-orange-500' },
                 ].map((stat, i) => (
-                  <div key={i} className="bg-white rounded-xl py-2.5 px-4 border border-gray-100 flex items-center gap-3 hover:shadow-md transition-shadow duration-200">
+                  <div key={i} className="bg-white rounded-xl px-4 py-3 border border-gray-100 flex items-center gap-3 hover:shadow-md transition-shadow duration-200">
                     <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center text-white shadow-sm`}>
                       {stat.icon}
                     </div>
                     <div>
                       <div className="text-xl font-bold text-gray-900 leading-tight">{stat.value}</div>
-                      <div className="text-[11px] text-gray-500 leading-tight">{stat.label}</div>
+                      <div className="text-xs text-gray-500 leading-tight">{stat.label}</div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 mb-6">
+              <div className="mb-6 bg-white rounded-xl border border-gray-100 p-3 shadow-sm flex flex-col sm:flex-row items-center gap-3">
                 <div className="flex-1 relative w-full">
                   <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
@@ -307,7 +316,7 @@ export default function TestsPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredTests.map((test) => {
+                  {paginatedTests.map((test) => {
                     const typeConfig = TEST_TYPE_CONFIG[test.testType] || TEST_TYPE_CONFIG.EXAM;
                     const IconComponent = typeConfig.icon;
                     return (
@@ -345,7 +354,7 @@ export default function TestsPage() {
                               </div>
                             )}
                           </div>
-                          <span className={`absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-bold ${STATUS_STYLE[test.status] || 'bg-amber-100 text-amber-700'}`}>
+                          <span className={`absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm ${STATUS_STYLE[test.status] || 'bg-amber-100 text-amber-700'}`}>
                             {STATUS_LABEL[test.status] || test.status}
                           </span>
                         </div>
@@ -375,6 +384,41 @@ export default function TestsPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {!loading && !error && filteredTests.length > ITEMS_PER_PAGE && (
+                <div className="mt-8 border-t border-gray-100 pt-5 flex items-center justify-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 disabled:hover:border-gray-100 transition-all"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPage(p)}
+                      className={`h-7 min-w-[28px] rounded-lg text-xs font-semibold transition-all ${
+                        p === page
+                          ? 'bg-orange-500 text-white shadow-sm'
+                          : 'border border-gray-100 bg-white text-gray-600 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 disabled:hover:border-gray-100 transition-all"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
             </div>

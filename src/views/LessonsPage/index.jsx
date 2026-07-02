@@ -139,7 +139,7 @@ export default function LessonsPage() {
       isCollabora,
       isPptx,
       date: formatDate(draft.updatedAt || draft.createdAt),
-      color: type === 'PPTX' ? 'from-amber-400 to-orange-500' : DRAFT_COLORS[index % DRAFT_COLORS.length],
+      color: type === 'PPTX' ? 'from-orange-300 to-amber-400' : DRAFT_COLORS[index % DRAFT_COLORS.length],
       emoji: type === 'PPTX' ? '📊' : (SUBJECT_EMOJI[draft.subject] || DRAFT_EMOJIS[index % DRAFT_EMOJIS.length]),
     };
   }), [drafts]);
@@ -544,7 +544,7 @@ export default function LessonsPage() {
                   </div>
 
                   {!loadingDrafts && !draftError && visibleLessonCards.length > ITEMS_PER_PAGE && (
-                    <div className="fixed bottom-4 right-4 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 p-1.5">
+                    <div className="mt-8 border-t border-gray-100 pt-5 flex items-center justify-center gap-1">
                       <button
                         type="button"
                         onClick={() => setMyPage((p) => Math.max(1, p - 1))}
