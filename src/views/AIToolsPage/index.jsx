@@ -26,6 +26,9 @@ export default function AIToolsPage() {
       case 'pronunciation':
         navigate('/pronunciation');
         break;
+      case 'translate':
+        navigate('/translate');
+        break;
       default:
         console.log(`Tool ${toolId} clicked - implement navigation`);
         break;

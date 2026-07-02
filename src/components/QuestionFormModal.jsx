@@ -1129,7 +1129,7 @@ const QuestionFormModal = ({
                         alt={image.description || 'Ảnh'}
                         className="w-full h-24 object-cover group-hover:opacity-75 transition-opacity"
                       />
-                      <div className="absolute inset-0 bg-blue-600 bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
                         <span className="text-xs text-white font-medium opacity-0 group-hover:opacity-100">Chọn</span>
                       </div>
                     </button>
