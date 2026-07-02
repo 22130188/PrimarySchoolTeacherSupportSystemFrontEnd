@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { FileText, Loader2, Presentation, Upload, X } from 'lucide-react';
+import { ChevronLeft, FileText, Loader2, Presentation, Upload, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import collaboraApi from '../../services/collaboraApi';
 import lessonCatalogApi from '../../services/lessonCatalogApi';
@@ -25,6 +25,8 @@ const getLessonVolume = (content) => (
 );
 export default function CreateLessonModal({ onClose }) {
   const navigate = useNavigate();
+  const [step, setStep] = useState('format');
+  const [format, setFormat] = useState('');
   const [creatingType, setCreatingType] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
@@ -102,23 +104,40 @@ export default function CreateLessonModal({ onClose }) {
   };
 
   const handleSelectSimple = (type) => {
-    if (selectedType === type && !uploadFile) {
-      setSelectedType('');
-      return;
-    }
     setSelectedType(type);
     setUploadFile(null);
     resetLessonSelection(true);
   };
 
   const handleSelectCollabora = (type) => {
-    if (selectedType === type && !uploadFile) {
-      setSelectedType('');
-      return;
-    }
     setSelectedType(type);
     setUploadFile(null);
     resetLessonSelection(true);
+  };
+
+  const computeType = (fmt, tool) => {
+    if (tool === 'COLLABORA') return fmt === 'SLIDE' ? 'COLLABORA_PPTX' : 'COLLABORA_DOCX';
+    return fmt === 'SLIDE' ? 'PPTX' : 'DOCX';
+  };
+
+  const handleChooseFormat = (fmt) => {
+    setFormat(fmt);
+    setStep('tool');
+  };
+
+  const handleChooseTool = (tool) => {
+    const type = computeType(format, tool);
+    if (tool === 'COLLABORA') handleSelectCollabora(type);
+    else handleSelectSimple(type);
+    setStep('form');
+  };
+
+  const handleBackFromUpload = () => {
+    setUploadFile(null);
+    setSelectedType('');
+    setLessonContentMode('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setStep('format');
   };
 
   const handleFileChange = (e) => {
@@ -139,6 +158,7 @@ export default function CreateLessonModal({ onClose }) {
       title: prev.title || baseName,
     }));
     setLessonContentMode((prev) => prev || CUSTOM_LESSON_VALUE);
+    setStep('form');
   };
 
   const handleUploadAndOpen = async () => {
@@ -242,6 +262,8 @@ export default function CreateLessonModal({ onClose }) {
     }));
   };
 
+  const formMode = uploadFile ? 'upload' : selectedType.startsWith('COLLABORA') ? 'collabora' : 'simple';
+
   const renderForm = (mode) => {
     const isUpload = mode === 'upload';
     const isSimple = mode === 'simple';
@@ -260,10 +282,20 @@ export default function CreateLessonModal({ onClose }) {
     const handleSubmit = isUpload ? handleUploadAndOpen : isSimple ? handleCreateSimple : handleCreateCollabora;
 
     return (
-    <div className={`mt-1 mb-3 p-4 rounded-2xl border bg-white transition-all duration-200 ${
+    <div className={`p-4 rounded-2xl border bg-white transition-all duration-200 ${
       borderClass
     }`}>
       <div className="grid grid-cols-1 gap-3">
+
+        <button
+          type="button"
+          onClick={() => (uploadFile ? handleBackFromUpload() : setStep('tool'))}
+          disabled={!!creatingType}
+          className="self-start inline-flex items-center gap-1.5 text-sm font-medium text-violet-600 hover:text-violet-700 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft size={16} />
+          Quay lại
+        </button>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <select
@@ -358,7 +390,13 @@ export default function CreateLessonModal({ onClose }) {
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-[22px] font-bold text-gray-800 mb-1.5">Tạo bài giảng mới</h2>
-            <p className="text-sm text-gray-500 mb-7">Chọn định dạng bạn muốn sử dụng</p>
+            <p className="text-sm text-gray-500 mb-5">
+              {step === 'format'
+                ? 'Chọn định dạng bạn muốn sử dụng'
+                : step === 'tool'
+                  ? 'Chọn công cụ soạn thảo'
+                  : 'Nhập thông tin bài giảng'}
+            </p>
           </div>
           <button onClick={onClose} id="modal-close-x"
             className="w-8 h-8 rounded-md bg-transparent text-gray-400 inline-flex items-center justify-center cursor-pointer transition-all hover:bg-gray-100 hover:text-gray-600 border-none shrink-0">
@@ -366,61 +404,121 @@ export default function CreateLessonModal({ onClose }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <button
-            type="button"
-            onClick={() => handleSelectCollabora('COLLABORA_DOCX')}
-            disabled={!!creatingType}
-            id="lesson-type-collabora-docx"
-            className={`p-4 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-3 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed text-left ${selectedType === 'COLLABORA_DOCX' ? 'border-emerald-500 bg-emerald-50' : 'border-emerald-100 bg-emerald-50/60 hover:border-emerald-400 hover:bg-emerald-50'}`}
-          >
-            <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 text-white">
-              {creatingType === 'COLLABORA_DOCX' ? <Loader2 size={21} className="animate-spin" /> : <FileText size={22} />}
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-0.5">DOCX Collabora</h3>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSelectCollabora('COLLABORA_PPTX')}
-            disabled={!!creatingType}
-            id="lesson-type-collabora-pptx"
-            className={`p-4 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-3 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed text-left ${selectedType === 'COLLABORA_PPTX' ? 'border-emerald-500 bg-emerald-50' : 'border-emerald-100 bg-emerald-50/60 hover:border-emerald-400 hover:bg-emerald-50'}`}
-          >
-            <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 text-white">
-              {creatingType === 'COLLABORA_PPTX' ? <Loader2 size={21} className="animate-spin" /> : <Presentation size={22} />}
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-0.5">PPTX Collabora</h3>
-            </div>
-          </button>
+        <div className="flex items-center justify-center mb-7">
+          {[
+            { key: 'format', label: 'Định dạng' },
+            { key: 'tool', label: 'Công cụ' },
+            { key: 'form', label: 'Thông tin' },
+          ].map((s, index, arr) => {
+            const order = { format: 0, tool: 1, form: 2 };
+            const currentIndex = order[step];
+            const isActive = index === currentIndex;
+            const isDone = index < currentIndex;
+            return (
+              <div key={s.key} className="flex items-center">
+                <div className="flex flex-col items-center gap-1">
+                  <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                    isDone
+                      ? 'border-violet-500 bg-violet-500 text-white'
+                      : isActive
+                        ? 'border-violet-500 text-violet-500 bg-white'
+                        : 'border-gray-300 text-gray-400 bg-white/60'
+                  }`}>
+                    {isDone
+                      ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+                      : index + 1}
+                  </div>
+                  <span className={`text-[11px] font-medium ${isActive || isDone ? 'text-violet-600' : 'text-gray-400'}`}>{s.label}</span>
+                </div>
+                {index < arr.length - 1 && (
+                  <div className={`w-10 sm:w-16 h-0.5 mx-1 mb-5 transition-all duration-300 ${index < currentIndex ? 'bg-violet-400' : 'bg-gray-200'}`} />
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        {(selectedType === 'COLLABORA_DOCX' || selectedType === 'COLLABORA_PPTX') && !uploadFile && renderForm('collabora')}
+        {step === 'format' && (
+          <>
+            <button type="button" onClick={() => handleChooseFormat('DOC')} disabled={!!creatingType} id="lesson-format-doc"
+              className="w-full p-5 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white border-gray-200 hover:border-indigo-400 hover:bg-gradient-to-r hover:from-violet-50 hover:to-indigo-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(99,102,241,0.14)] disabled:opacity-60 disabled:cursor-not-allowed text-left">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shrink-0">
+                <FileText size={28} color="#ffffff" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 mb-1">Tài liệu</h3>
+                <p className="text-[13px] text-gray-500 m-0">Bài giảng dạng văn bản (DOCX) với chữ, hình ảnh và đồ họa</p>
+              </div>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={!!creatingType}
-          id="lesson-type-upload"
-          className={`w-full p-5 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-blue-50/40 hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-sky-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(59,130,246,0.12)] disabled:opacity-60 disabled:cursor-not-allowed text-left ${
-            uploadFile ? 'border-blue-400 bg-blue-50' : 'border-blue-200'
-          }`}
-        >
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shrink-0">
-            <Upload size={28} color="#ffffff" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-base font-semibold text-gray-800 mb-1">Tải file từ máy tính</h3>
-            <p className="text-[13px] text-gray-500 m-0">
-              {uploadFile
-                ? <span className="text-blue-600 font-medium truncate block">{uploadFile.name}</span>
-                : 'Tải lên file .docx hoặc .pptx có sẵn và mở bằng Collabora'}
-            </p>
-          </div>
-        </button>
+            <button type="button" onClick={() => handleChooseFormat('SLIDE')} disabled={!!creatingType} id="lesson-format-slide"
+              className="w-full p-5 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white border-gray-200 hover:border-orange-400 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(249,115,22,0.14)] disabled:opacity-60 disabled:cursor-not-allowed text-left">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
+                <Presentation size={28} color="#ffffff" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 mb-1">Slide</h3>
+                <p className="text-[13px] text-gray-500 m-0">Bài giảng dạng slide (PPTX) để trình chiếu trên lớp</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!!creatingType}
+              id="lesson-type-upload"
+              className="w-full p-5 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-blue-50/40 border-blue-200 hover:border-blue-400 hover:bg-gradient-to-r hover:from-blue-50 hover:to-sky-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(59,130,246,0.12)] disabled:opacity-60 disabled:cursor-not-allowed text-left"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shrink-0">
+                <Upload size={28} color="#ffffff" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-semibold text-gray-800 mb-1">Tải file từ máy tính</h3>
+                <p className="text-[13px] text-gray-500 m-0">Tải lên file .docx hoặc .pptx có sẵn và mở bằng Collabora</p>
+              </div>
+            </button>
+
+            <button onClick={onClose} id="modal-close-btn"
+              className="mt-2 w-full py-2.5 border-none bg-transparent text-gray-500 text-sm font-medium cursor-pointer rounded-[10px] transition-all hover:bg-gray-100 hover:text-gray-700 font-[Inter,sans-serif]">
+              Hủy bỏ
+            </button>
+          </>
+        )}
+
+        {step === 'tool' && (
+          <>
+            <button type="button" onClick={() => handleChooseTool('COLLABORA')} disabled={!!creatingType} id="lesson-tool-collabora"
+              className="w-full p-5 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-emerald-50/60 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(16,185,129,0.14)] disabled:opacity-60 disabled:cursor-not-allowed text-left">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center shrink-0 text-white">
+                {format === 'SLIDE' ? <Presentation size={28} /> : <FileText size={28} />}
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 mb-1">Collabora (đầy đủ)</h3>
+                <p className="text-[13px] text-gray-500 m-0">Trình soạn thảo đầy đủ tính năng giống Word/PowerPoint</p>
+              </div>
+            </button>
+
+            <button type="button" onClick={() => handleChooseTool('SIMPLE')} disabled={!!creatingType} id="lesson-tool-simple"
+              className="w-full p-5 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white border-gray-200 hover:border-indigo-400 hover:bg-gradient-to-r hover:from-violet-50 hover:to-indigo-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(99,102,241,0.14)] disabled:opacity-60 disabled:cursor-not-allowed text-left">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shrink-0 text-white">
+                {format === 'SLIDE' ? <Presentation size={28} /> : <FileText size={28} />}
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 mb-1">Đơn giản</h3>
+                <p className="text-[13px] text-gray-500 m-0">Trình soạn thảo gọn nhẹ, nhanh cho bài giảng cơ bản</p>
+              </div>
+            </button>
+
+            <button type="button" onClick={() => setStep('format')} disabled={!!creatingType} id="lesson-tool-back"
+              className="mt-2 w-full py-2.5 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-violet-500 text-violet-600 text-sm font-semibold cursor-pointer transition-all hover:bg-violet-50 disabled:opacity-60 disabled:cursor-not-allowed">
+              <ChevronLeft size={16} />
+              Quay lại
+            </button>
+          </>
+        )}
+
+        {step === 'form' && renderForm(formMode)}
+
         <input
           ref={fileInputRef}
           type="file"
@@ -428,39 +526,6 @@ export default function CreateLessonModal({ onClose }) {
           onChange={handleFileChange}
           className="hidden"
         />
-
-        {uploadFile && renderForm('upload')}
-
-        <button type="button" onClick={() => handleSelectSimple('DOCX')} disabled={!!creatingType} id="lesson-type-docx"
-          className={`w-full p-5 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white hover:border-indigo-400 hover:bg-gradient-to-r hover:from-violet-50 hover:to-indigo-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(99,102,241,0.14)] disabled:opacity-60 disabled:cursor-not-allowed text-left ${selectedType === 'DOCX' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'}`}>
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shrink-0">
-            <FileText size={28} color="#ffffff" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-gray-800 mb-1">Bài giảng trang đơn giản</h3>
-            <p className="text-[13px] text-gray-500 m-0">Soạn thảo bài giảng dạng tài liệu với văn bản, hình ảnh và đồ họa</p>
-          </div>
-        </button>
-
-        {selectedType === 'DOCX' && !uploadFile && renderForm('simple')}
-
-        <button type="button" onClick={() => handleSelectSimple('PPTX')} disabled={!!creatingType} id="lesson-type-pptx"
-          className={`w-full p-5 border-2 rounded-2xl cursor-pointer transition-all duration-[220ms] flex items-center gap-4 mb-3 bg-white hover:border-orange-400 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(249,115,22,0.14)] disabled:opacity-60 disabled:cursor-not-allowed text-left ${selectedType === 'PPTX' ? 'border-orange-500 bg-orange-50' : 'border-gray-200'}`}>
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
-            <Presentation size={28} color="#ffffff" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-gray-800 mb-1">Bài giảng slide đơn giản</h3>
-            <p className="text-[13px] text-gray-500 m-0">Tạo slide cơ bản cho bài giảng trên lớp</p>
-          </div>
-        </button>
-
-        {selectedType === 'PPTX' && !uploadFile && renderForm('simple')}
-
-        <button onClick={onClose} id="modal-close-btn"
-          className="mt-2 w-full py-2.5 border-none bg-transparent text-gray-500 text-sm font-medium cursor-pointer rounded-[10px] transition-all hover:bg-gray-100 hover:text-gray-700 font-[Inter,sans-serif]">
-          Hủy bỏ
-        </button>
       </div>
     </div>
   );
