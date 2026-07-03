@@ -35,5 +35,7 @@ export function updateActiveText(canvas, props) {
   const a = canvas?.getActiveObject();
   if (!a || (a.type !== 'i-text' && a.type !== 'text' && a.type !== 'textbox')) return;
   a.set(props);
+  if (typeof a.initDimensions === 'function') a.initDimensions();
+  a.setCoords();
   canvas.requestRenderAll();
 }

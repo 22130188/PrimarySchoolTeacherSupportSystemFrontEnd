@@ -362,11 +362,31 @@ export function useFabricCanvas({ onSelectionChange } = {}) {
     const prevVpt = canvas.viewportTransform.slice();
     canvas.discardActiveObject();
     canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-    const url = canvas.toDataURL({
+
+    const opts = {
       format: format === 'jpg' ? 'jpeg' : format,
       quality,
       enableRetinaScaling: false,
-    });
+    };
+
+    const objects = canvas.getObjects();
+    if (objects.length) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      objects.forEach((o) => {
+        o.setCoords();
+        const r = o.getBoundingRect();
+        minX = Math.min(minX, r.left);
+        minY = Math.min(minY, r.top);
+        maxX = Math.max(maxX, r.left + r.width);
+        maxY = Math.max(maxY, r.top + r.height);
+      });
+      opts.left = minX;
+      opts.top = minY;
+      opts.width = maxX - minX;
+      opts.height = maxY - minY;
+    }
+
+    const url = canvas.toDataURL(opts);
     canvas.setViewportTransform(prevVpt);
     canvas.requestRenderAll();
     return url;

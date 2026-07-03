@@ -143,7 +143,7 @@ export default function ComposePanel({ savedImages = [], naturalSize, onApply, w
 
       <div className="space-y-2 border-t border-slate-100 pt-3">
         <span className="text-xs font-medium text-slate-600">Ghép ảnh (overlay)</span>
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid max-h-64 grid-cols-4 gap-1 overflow-y-auto pr-1">
           {savedImages.map((img) => {
             const url = pick(img);
             return (
@@ -170,7 +170,7 @@ export default function ComposePanel({ savedImages = [], naturalSize, onApply, w
 
       <div className="space-y-2 border-t border-slate-100 pt-3">
         <span className="text-xs font-medium text-slate-600">Ghép nhiều ảnh (merge)</span>
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid max-h-64 grid-cols-4 gap-1 overflow-y-auto pr-1">
           {savedImages.map((img) => {
             const url = pick(img);
             const idx = mergeUrls.indexOf(url);
