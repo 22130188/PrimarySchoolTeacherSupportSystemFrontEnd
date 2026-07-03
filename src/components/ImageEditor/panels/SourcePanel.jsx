@@ -58,7 +58,7 @@ export default function SourcePanel({ savedImages = [], onPickImage, onCreateBla
         {savedImages.length === 0 ? (
           <p className="text-xs text-slate-400">Chưa có ảnh nào trong thư viện.</p>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid max-h-84 grid-cols-3 gap-2 overflow-y-auto pr-1">
             {savedImages.map((img) => {
               const url = img.imageUrl || img.url || img;
               return (

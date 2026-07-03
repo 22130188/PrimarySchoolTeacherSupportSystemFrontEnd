@@ -74,12 +74,12 @@ export default function AdjustPanel({ hasBackground, onApply, isProcessing }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <h4 className="text-sm font-semibold text-slate-800">Chỉnh màu (Pillow)</h4>
       {!hasBackground && (
         <p className="text-xs text-amber-600">Chọn ảnh nền ở tab Nguồn trước.</p>
       )}
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         <Slider label="Độ sáng" value={brightness} min={0.2} max={2} step={0.05} onChange={setBrightness} />
         <Slider label="Tương phản" value={contrast} min={0.2} max={2} step={0.05} onChange={setContrast} />
         <Slider label="Bão hòa" value={saturation} min={0} max={2} step={0.05} onChange={setSaturation} />
@@ -113,7 +113,7 @@ export default function AdjustPanel({ hasBackground, onApply, isProcessing }) {
         <Slider label="Cường độ" value={tintAmount} min={0} max={1} step={0.05} onChange={setTintAmount} />
       </div>
 
-      <div className="border-t border-slate-100 pt-3 space-y-3">
+      <div className="border-t border-slate-100 pt-2 space-y-1.5">
         <span className="text-xs font-medium text-slate-600">Hiệu ứng thêm</span>
         <Slider label="Làm mờ (blur)" value={blur} min={0} max={20} step={1} onChange={setBlur} />
         <label className="flex items-center gap-2 text-xs text-slate-600">
@@ -135,21 +135,10 @@ export default function AdjustPanel({ hasBackground, onApply, isProcessing }) {
         type="button"
         onClick={apply}
         disabled={disabled}
-        className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40"
+        className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40"
       >
         Áp dụng lên ảnh nền
       </button>
-
-      <div className="border-t border-slate-100 pt-3">
-        <button
-          type="button"
-          onClick={() => onApply([{ type: 'remove_background' }])}
-          disabled={disabled}
-          className="w-full rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-40"
-        >
-          Xóa nền (remove background)
-        </button>
-      </div>
     </div>
   );
 }

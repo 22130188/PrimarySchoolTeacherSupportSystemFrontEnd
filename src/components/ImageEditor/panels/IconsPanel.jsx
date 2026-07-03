@@ -90,7 +90,7 @@ export default function IconsPanel({ fabricRef, saveHistory }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid max-h-80 grid-cols-4 gap-2 overflow-y-auto pr-1">
         {shownLibrary.map((ic) => (
           <button
             key={ic.id}
