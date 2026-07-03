@@ -18,12 +18,17 @@ const getGatewayUrl = () => {
   return import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080';
 };
 
+const getTranslateApiUrl = () => {
+  return import.meta.env.VITE_TRANSLATE_API_URL || 'http://localhost:8080/api/translate';
+};
+
 export const API_CONFIG = {
   CANVAS_API_URL: getCanvasApiUrl(),
   IMAGE_API_URL: getImageApiUrl(),
   TTS_API_URL: getTtsApiUrl(),
   PRONUNCIATION_API_URL: getPronunciationApiUrl(),
   GATEWAY_URL: getGatewayUrl(),
+  TRANSLATE_API_URL: getTranslateApiUrl(),
 };
 
 export const logApiConfig = () => {

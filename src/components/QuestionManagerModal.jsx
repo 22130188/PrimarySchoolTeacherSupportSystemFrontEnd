@@ -304,7 +304,6 @@ const QuestionManagerModal = ({
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
                           {question.points !== undefined && (
                             <span className="inline-flex items-center gap-1">
-                              <span className="text-amber-500">⭐</span>
                               <span className="font-medium text-gray-500">{question.points} điểm</span>
                             </span>
                           )}
