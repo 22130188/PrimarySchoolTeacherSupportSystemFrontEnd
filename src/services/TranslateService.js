@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config.js';
 
-const TRANSLATE_SERVICE_URL = API_CONFIG.TRANSLATE_API_URL;
+const TRANSLATE_SERVICE_URL = 'http://localhost:8001/api/translate';
 
 class TranslateService {
   /**
@@ -86,9 +86,44 @@ class TranslateService {
   }
 
   /**
-   * @param {File} file 
-   * @returns {Promise<Object>} 
-   */
+    * @param {File} file 
+    * @param {string} sourceLang 
+    * @param {string} targetLang 
+    * @returns {Promise<Blob>} 
+    */
+  static async translateDocumentFile(file, sourceLang = 'vi', targetLang = 'en') {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('source_lang', sourceLang);
+      formData.append('target_lang', targetLang);
+
+      const response = await axios.post(
+        `${TRANSLATE_SERVICE_URL}/document/file`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          responseType: 'blob',
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Lỗi dịch file tài liệu'
+      );
+    }
+  }
+
+  /**
+    * @param {File} file 
+    * @returns {Promise<Object>} 
+    */
   static async extractTextFromFile(file) {
     try {
       const token = localStorage.getItem('token');

@@ -25,6 +25,8 @@ export default function TranslatePage() {
   const [showSegments, setShowSegments] = useState(false);
   const [charCount, setCharCount] = useState(0);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [translatedFileBlob, setTranslatedFileBlob] = useState(null);
   const fileInputRef = useRef(null);
 
   const maxChars = mode === 'text' ? 10000 : 50000;
@@ -48,6 +50,7 @@ export default function TranslatePage() {
     setTranslatedText('');
     setSegments([]);
     setShowSegments(false);
+    setTranslatedFileBlob(null);
 
     if (!sourceText || sourceText.trim() === '') {
       setError('Vui lòng nhập văn bản cần dịch');
@@ -67,18 +70,25 @@ export default function TranslatePage() {
 
     setIsLoading(true);
     try {
-      let result;
-      if (mode === 'document') {
-        result = await TranslateService.translateDocument(sourceText, sourceLang, targetLang);
+      if (mode === 'document' && uploadedFile) {
+        const blob = await TranslateService.translateDocumentFile(uploadedFile, sourceLang, targetLang);
+        setTranslatedFileBlob(blob);
+        
+        const result = await TranslateService.translateDocument(sourceText, sourceLang, targetLang);
         setTranslatedText(result.translated_text || result.translatedText || '');
-        if (result.segments) {
-          setSegments(result.segments);
-        }
+        if (result.segments) setSegments(result.segments);
+        
+        setSuccess('Dịch file thành công! Bạn có thể tải file đã dịch về.');
+      } else if (mode === 'document') {
+        const result = await TranslateService.translateDocument(sourceText, sourceLang, targetLang);
+        setTranslatedText(result.translated_text || result.translatedText || '');
+        if (result.segments) setSegments(result.segments);
+        setSuccess('Dịch thành công!');
       } else {
-        result = await TranslateService.translateText(sourceText, sourceLang, targetLang);
+        const result = await TranslateService.translateText(sourceText, sourceLang, targetLang);
         setTranslatedText(result.translated_text || result.translatedText || '');
+        setSuccess('Dịch thành công!');
       }
-      setSuccess('Dịch thành công!');
     } catch (err) {
       setError(err.message || 'Lỗi trong quá trình dịch thuật');
     } finally {
@@ -115,13 +125,14 @@ export default function TranslatePage() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // reset input so same file can be uploaded again
     e.target.value = null;
 
     setError('');
     setSuccess('');
     setIsExtracting(true);
     setMode('document');
+    setUploadedFile(file);
+    setTranslatedFileBlob(null);
 
     try {
       const result = await TranslateService.extractTextFromFile(file);
@@ -130,7 +141,7 @@ export default function TranslatePage() {
       if (extractedText.length > maxChars) {
         setError(`Văn bản trong tệp quá dài. Hệ thống đã tự động cắt bớt để phù hợp giới hạn ${maxChars.toLocaleString()} ký tự.`);
       } else {
-        setSuccess('Trích xuất văn bản từ tệp thành công');
+        setSuccess('Trích xuất văn bản từ tệp thành công. Sau khi dịch sẽ có nút tải file.');
       }
 
       setSourceText(extractedText.slice(0, maxChars));
@@ -213,7 +224,6 @@ export default function TranslatePage() {
       </div>
 
       <div className="flex items-center gap-3 mb-6 p-3 rounded-2xl bg-gradient-to-r from-blue-50/80 to-cyan-50/80 border border-blue-100">
-        {/* Source Language */}
         <div className="flex-1 flex items-center gap-2 bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100">
           <span className="text-lg">{sourceLangObj?.flag}</span>
           <span className="text-sm font-semibold text-slate-800">{sourceLangObj?.label}</span>
@@ -332,7 +342,7 @@ export default function TranslatePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-6">
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-3xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-blue-200/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-300/50 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-md"
+          className="inline-flex items-center justify-center gap-2 rounded-3xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-blue-200/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-300/50 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover-translate-y-0 disabled:hover:shadow-md"
           onClick={handleTranslate}
           disabled={isLoading || !sourceText.trim()}
         >
@@ -348,6 +358,26 @@ export default function TranslatePage() {
             </>
           )}
         </button>
+
+        {translatedFileBlob && (
+          <button
+            type="button"
+            onClick={() => {
+              const url = window.URL.createObjectURL(translatedFileBlob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `translated_${uploadedFile?.name || 'document'}`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              window.URL.revokeObjectURL(url);
+            }}
+            className="inline-flex items-center justify-center gap-2 rounded-3xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md hover:bg-emerald-700 transition-all duration-300"
+          >
+            <FileText className="h-4 w-4" />
+            Tải file đã dịch
+          </button>
+        )}
 
         <p className="text-sm text-slate-500">
          
