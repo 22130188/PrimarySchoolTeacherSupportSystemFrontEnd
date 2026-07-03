@@ -59,6 +59,8 @@ export default function ImageEditor({
 
   const [fillColor, setFillColor] = useState('#ffffff');
 
+  const [fractionTick, setFractionTick] = useState(0);
+
   const [hasBackground, setHasBackground] = useState(false);
   const naturalSizeRef = useRef({ width: 800, height: 600 });
 
@@ -120,6 +122,7 @@ export default function ImageEditor({
         grp.set('dirty', true);
         c.requestRenderAll();
         saveHistory();
+        setFractionTick((t) => t + 1);
       }
     };
     c.on('mouse:dblclick', onDbl);
@@ -174,7 +177,8 @@ export default function ImageEditor({
       img.set({
         left: 0, top: 0, originX: 'left', originY: 'top',
         scaleX: fit, scaleY: fit,
-        selectable: false, evented: false, isBackground: true,
+        selectable: true, evented: true, isBackground: true,
+        ...CONTROL_STYLE,
       });
       setCanvasSize(cw, ch);
       c.add(img);
@@ -318,12 +322,38 @@ export default function ImageEditor({
           onBringForward={bringForward}
           onSendBackward={sendBackward}
           hasSelection={hasSelection}
+          onResetAll={handleResetAll}
+          onDownload={handleDownload}
+          onSaveLibrary={() => setShowSaveModal(true)}
         />
+        {(selectedObject || hasBackground) && (
+          <div className="border-t border-slate-100">
+            <PropertiesPanel
+              fabricRef={fabricRef}
+              selectedObject={selectedObject}
+              onUpdateText={(props) => {
+                updateActiveText(fabricRef.current, props);
+                saveHistory();
+              }}
+              onGroup={groupSelection}
+              onUngroup={ungroupSelection}
+              strokeColor={strokeColor}
+              setStrokeColor={setStrokeColor}
+              strokeWidth={strokeWidth}
+              setStrokeWidth={setStrokeWidth}
+              fillColor={fillColor}
+              setFillColor={setFillColor}
+              hasBackground={hasBackground}
+              isProcessing={isProcessing}
+              onRemoveBackground={() => runPillowOnBackground([{ type: 'remove_background' }])}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <div className="relative flex-1 min-w-0 overflow-auto bg-slate-100 p-4">
-          <div ref={wrapperRef} className="relative inline-block shadow-lg">
+        <div className="relative flex flex-1 min-w-0 overflow-auto bg-slate-100 p-4">
+          <div ref={wrapperRef} className="relative m-auto inline-block shadow-lg">
             <canvas ref={canvasElRef} className="block" />
             {isProcessing && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/60">
@@ -366,6 +396,7 @@ export default function ImageEditor({
                 fabricRef={fabricRef}
                 selectedObject={selectedObject}
                 saveHistory={saveHistory}
+                fractionTick={fractionTick}
               />
             )}
             {panel === 'crop' && (
@@ -375,57 +406,6 @@ export default function ImageEditor({
                 fabricRef={fabricRef}
               />
             )}
-            {selectedObject && panel !== 'source' && (
-              <PropertiesPanel
-                fabricRef={fabricRef}
-                selectedObject={selectedObject}
-                onUpdateText={(props) => {
-                  updateActiveText(fabricRef.current, props);
-                  saveHistory();
-                }}
-                onGroup={groupSelection}
-                onUngroup={ungroupSelection}
-                strokeColor={strokeColor}
-                setStrokeColor={setStrokeColor}
-                strokeWidth={strokeWidth}
-                setStrokeWidth={setStrokeWidth}
-                fillColor={fillColor}
-                setFillColor={setFillColor}
-              />
-            )}
-          </div>
-
-          <div className="border-t border-slate-200 p-3 space-y-2">
-            <button
-              type="button"
-              onClick={handleResetAll}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
-            >
-              <RotateCcw className="h-4 w-4" /> Hủy hết
-            </button>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDownload('png')}
-                className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
-              >
-                <Download className="h-4 w-4" /> PNG
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDownload('jpg')}
-                className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
-              >
-                <Download className="h-4 w-4" /> JPG
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowSaveModal(true)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-            >
-              <Save className="h-4 w-4" /> Lưu thư viện
-            </button>
           </div>
         </aside>
       </div>

@@ -7,6 +7,7 @@ import {
   ZoomIn, ZoomOut, Maximize, Grid3x3,
   Undo2, Redo2, Copy, Trash2,
   ChevronsUp, ChevronsDown, ArrowUp, ArrowDown,
+  RotateCcw, Download, Save,
 } from 'lucide-react';
 
 const SHAPE_ITEMS = [
@@ -64,6 +65,9 @@ export default function Toolbar({
   onBringForward,
   onSendBackward,
   hasSelection,
+  onResetAll,
+  onDownload,
+  onSaveLibrary,
 }) {
   const [shapeOpen, setShapeOpen] = React.useState(false);
 
@@ -96,7 +100,7 @@ export default function Toolbar({
         </ToolButton>
         {shapeOpen && (
           <div
-            className="absolute left-0 top-full z-50 mt-1 grid grid-cols-4 gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-xl"
+            className="absolute left-0 top-full z-50 mt-1 grid w-46 grid-cols-4 gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-xl"
             onMouseLeave={() => setShapeOpen(false)}
           >
             {SHAPE_ITEMS.map((s) => {
@@ -188,6 +192,31 @@ export default function Toolbar({
       <ToolButton onClick={onRedo} disabled={!canRedo} title="Làm lại (Ctrl+Y)">
         <Redo2 className="h-4 w-4" />
       </ToolButton>
+
+      <div className="ml-auto flex items-center gap-0.5">
+        <ToolButton onClick={onResetAll} title="Hủy hết">
+          <RotateCcw className="h-4 w-4" />
+        </ToolButton>
+        <ToolButton onClick={() => onDownload('png')} title="Tải PNG">
+          <Download className="h-4 w-4" />
+        </ToolButton>
+        <button
+          type="button"
+          onClick={() => onDownload('jpg')}
+          title="Tải JPG"
+          className="h-9 shrink-0 rounded-md px-2 text-xs font-semibold text-slate-600 inline-flex items-center gap-1 hover:bg-slate-100 hover:text-slate-900 transition-all"
+        >
+          <Download className="h-4 w-4" /> JPG
+        </button>
+        <button
+          type="button"
+          onClick={onSaveLibrary}
+          title="Lưu thư viện"
+          className="h-9 shrink-0 rounded-md bg-indigo-600 px-3 text-xs font-semibold text-white inline-flex items-center gap-1.5 hover:bg-indigo-700 transition-all"
+        >
+          <Save className="h-4 w-4" /> Lưu thư viện
+        </button>
+      </div>
     </div>
   );
 }
