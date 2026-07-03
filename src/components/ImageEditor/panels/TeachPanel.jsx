@@ -1,23 +1,35 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PieChart, Clock, Divide, Smile } from 'lucide-react';
-import { addFractionPizza, fractionState } from '../tools/fractionTool.js';
+import { addFractionPizza, fractionState, setFractionColor, FRACTION_COLORS } from '../tools/fractionTool.js';
 import { addClock, setClockTime } from '../tools/clockTool.js';
 import { addTextFraction } from '../tools/textFraction.js';
 
-export default function TeachPanel({ fabricRef, selectedObject, saveHistory }) {
+export default function TeachPanel({ fabricRef, selectedObject, saveHistory, fractionTick }) {
   const [slices, setSlices] = useState(8);
   const [pizzaShape, setPizzaShape] = useState('circle');
   const [hour, setHour] = useState(3);
   const [minute, setMinute] = useState(0);
   const [numerator, setNumerator] = useState('1');
   const [denominator, setDenominator] = useState('2');
+  const [fractionColor, setFractionColorState] = useState(FRACTION_COLORS[0]);
+  const [fracNum, setFracNum] = useState('3');
+  const [fracDen, setFracDen] = useState('8');
 
   const c = () => fabricRef.current;
 
   const makePizza = () => {
     const canvas = c();
     if (!canvas) return;
-    addFractionPizza(canvas, { slices, shape: pizzaShape });
+    addFractionPizza(canvas, { slices, shape: pizzaShape, color: fractionColor });
+    saveHistory();
+  };
+
+  const makePizzaFromFraction = () => {
+    const canvas = c();
+    if (!canvas) return;
+    const den = Math.max(2, Math.min(12, parseInt(fracDen, 10) || 2));
+    const num = Math.max(0, Math.min(den, parseInt(fracNum, 10) || 0));
+    addFractionPizza(canvas, { slices: den, shape: pizzaShape, color: fractionColor, filled: num });
     saveHistory();
   };
 
@@ -44,7 +56,19 @@ export default function TeachPanel({ fabricRef, selectedObject, saveHistory }) {
   };
 
   const selFraction = selectedObject?.teachTool === 'fraction' ? selectedObject : null;
-  const frac = selFraction ? fractionState(selFraction) : null;
+  const frac = useMemo(
+    () => (selFraction ? fractionState(selFraction) : null),
+    [selFraction, fractionTick]
+  );
+
+  const pickColor = (color) => {
+    setFractionColorState(color);
+    if (selFraction) {
+      setFractionColor(selFraction, color);
+      c()?.requestRenderAll();
+      saveHistory();
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -81,6 +105,21 @@ export default function TeachPanel({ fabricRef, selectedObject, saveHistory }) {
             className="w-16 rounded-md border border-slate-200 px-2 py-1"
           />
         </div>
+        <div className="space-y-1">
+          <span className="text-xs text-slate-600">Màu {selFraction ? '(đổi hình đang chọn)' : ''}</span>
+          <div className="flex flex-wrap gap-1.5">
+            {FRACTION_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => pickColor(color)}
+                style={{ backgroundColor: color }}
+                className={`h-6 w-6 rounded-full border-2 transition ${fractionColor === color ? 'border-slate-700 ring-2 ring-slate-300' : 'border-white'}`}
+                aria-label={`Chọn màu ${color}`}
+              />
+            ))}
+          </div>
+        </div>
         <button
           type="button"
           onClick={makePizza}
@@ -88,6 +127,37 @@ export default function TeachPanel({ fabricRef, selectedObject, saveHistory }) {
         >
           Thêm hình phân số
         </button>
+        <div className="space-y-1 border-t border-slate-100 pt-2">
+          <span className="text-xs text-slate-600">Tạo từ phân số</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-xs">
+              <input
+                type="number"
+                min={0}
+                max={12}
+                value={fracNum}
+                onChange={(e) => setFracNum(e.target.value)}
+                className="w-12 rounded-md border border-slate-200 px-2 py-1 text-center"
+              />
+              <span className="text-slate-400">/</span>
+              <input
+                type="number"
+                min={2}
+                max={12}
+                value={fracDen}
+                onChange={(e) => setFracDen(e.target.value)}
+                className="w-12 rounded-md border border-slate-200 px-2 py-1 text-center"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={makePizzaFromFraction}
+              className="flex-1 rounded-md border border-amber-500 px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-50"
+            >
+              Tạo hình
+            </button>
+          </div>
+        </div>
         {frac && (
           <p className="text-center text-xs text-slate-500">
             Còn lại: <b className="text-amber-600">{frac.present}/{frac.total}</b>
