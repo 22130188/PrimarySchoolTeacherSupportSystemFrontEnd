@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import {
-  ArrowLeft, Undo2, Redo2, Download, Bold, Italic, Underline, Strikethrough,
+  LogOut, Undo2, Redo2, Download, Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  ZoomIn, ZoomOut, Maximize, Type, Trash2, Copy, Minus, Plus, ChevronDown, Palette,
+  ZoomIn, ZoomOut, Maximize, Type, Trash2, Copy, Minus, Plus, ChevronDown, FileText, Palette,
+  Eraser, Loader2,
 } from 'lucide-react';
 import { FONT_LIST, FONT_SIZES, EDITOR_BTN, EDITOR_BTN_ACTIVE } from './editorConstants';
 import ColorPicker from '../../common/ColorPicker';
@@ -13,6 +14,8 @@ export default function EditorToolbar({
   textFormat, onTextFormatChange, shapeFormat, onShapeFormatChange,
   canUndo, canRedo, onUndo, onRedo, zoom, onZoomChange,
   onExport, onExportPdf, saveStatus, onBack, hasSelection, selectionType, onDeleteSelected, onDuplicateSelected,
+  drawColor, drawWidth, onDrawColorChange, onDrawWidthChange,
+  isImageSelected, onRemoveBackground, isProcessingImage,
 }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFillPicker, setShowFillPicker] = useState(false);
@@ -42,28 +45,30 @@ export default function EditorToolbar({
     onShapeFormatChange('strokeWidth', Math.min(40, Math.max(0, cur + delta)));
   };
 
+  const headBtn = 'w-8 h-8 rounded-md bg-transparent text-white/90 inline-flex items-center justify-center cursor-pointer transition-all duration-150 hover:bg-white/20 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent shrink-0';
+
   return (
     <>
-      <div className="h-[52px] min-h-[52px] bg-white border-b border-gray-200 flex items-center px-3 gap-2 z-[100]">
+      <div className="h-[52px] min-h-[52px] bg-gradient-to-r from-violet-600 to-indigo-600 flex items-center px-3 gap-2 z-[100]">
         <div className="flex items-center gap-2 shrink-0">
-          <button className={EDITOR_BTN} onClick={onBack} title="Quay lại" id="editor-back-btn">
-            <ArrowLeft size={18} />
+          <button className={headBtn} onClick={onBack} title="Thoát" id="editor-back-btn">
+            <LogOut size={18} />
           </button>
-          <div className="w-px h-6 bg-gray-200 mx-1" />
+          <div className="w-px h-6 bg-white/30 mx-1" />
           <div className="flex items-center gap-1.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
-              <Type size={13} color="#fff" />
+            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
+              <FileText size={13} color="#fff" />
             </div>
             <input
-              className="border-none outline-none text-[15px] font-semibold text-gray-800 bg-transparent py-1 px-2.5 rounded-lg min-w-[180px] max-w-[320px] transition-all duration-150 hover:bg-gray-100 focus:bg-indigo-50 focus:ring-2 focus:ring-indigo-200"
+              className="border-none outline-none text-[15px] font-semibold text-white bg-transparent py-1 px-2.5 rounded-lg min-w-[180px] max-w-[320px] transition-all duration-150 placeholder:text-white/60 hover:bg-white/15 focus:bg-white/20"
               value={fileName} onChange={(e) => onFileNameChange(e.target.value)} id="editor-file-name" />
           </div>
-          <div className="w-px h-6 bg-gray-200 mx-1" />
+          <div className="w-px h-6 bg-white/30 mx-1" />
           <select
             id="editor-subject-select"
             value={subject}
             onChange={(e) => onSubjectChange(e.target.value)}
-            className="h-8 px-2.5 border border-gray-200 rounded-lg text-[13px] text-gray-600 bg-white outline-none cursor-pointer transition-all hover:border-violet-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+            className="h-8 px-2.5 border border-white/40 rounded-lg text-[13px] text-gray-700 bg-white outline-none cursor-pointer transition-all focus:ring-2 focus:ring-white/50"
           >
             <option value="">Chọn môn</option>
             <option value="Toán">Toán</option>
@@ -74,7 +79,7 @@ export default function EditorToolbar({
             id="editor-grade-select"
             value={grade}
             onChange={(e) => onGradeChange(e.target.value)}
-            className="h-8 px-2.5 border border-gray-200 rounded-lg text-[13px] text-gray-600 bg-white outline-none cursor-pointer transition-all hover:border-violet-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+            className="h-8 px-2.5 border border-white/40 rounded-lg text-[13px] text-gray-700 bg-white outline-none cursor-pointer transition-all focus:ring-2 focus:ring-white/50"
           >
             <option value="">Chọn lớp</option>
             <option value="Lớp 1">Lớp 1</option>
@@ -86,21 +91,21 @@ export default function EditorToolbar({
         </div>
 
         <div className="flex-1 flex items-center justify-center gap-1">
-          <button className={EDITOR_BTN} disabled={!canUndo} onClick={onUndo} title="Hoàn tác (Ctrl+Z)" id="editor-undo-btn"><Undo2 size={16} /></button>
-          <button className={EDITOR_BTN} disabled={!canRedo} onClick={onRedo} title="Làm lại (Ctrl+Y)" id="editor-redo-btn"><Redo2 size={16} /></button>
-          <div className="w-px h-6 bg-gray-200 mx-1.5" />
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5 h-8 gap-0">
+          <button className={headBtn} disabled={!canUndo} onClick={onUndo} title="Hoàn tác (Ctrl+Z)" id="editor-undo-btn"><Undo2 size={16} /></button>
+          <button className={headBtn} disabled={!canRedo} onClick={onRedo} title="Làm lại (Ctrl+Y)" id="editor-redo-btn"><Redo2 size={16} /></button>
+          <div className="w-px h-6 bg-white/30 mx-1.5" />
+          <div className="flex items-center bg-white/20 rounded-lg p-0.5 h-8 gap-0">
             <button onClick={() => onZoomChange(Math.max(0.25, zoom - 0.1))} title="Thu nhỏ" id="editor-zoom-out"
-              className="w-7 h-7 border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center rounded-md transition-all hover:bg-gray-200 hover:text-gray-700">
+              className="w-7 h-7 border-none bg-transparent text-white/90 cursor-pointer flex items-center justify-center rounded-md transition-all hover:bg-white/25 hover:text-white">
               <ZoomOut size={14} />
             </button>
-            <span className="text-xs font-medium text-gray-700 min-w-[42px] text-center select-none">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs font-medium text-white min-w-[42px] text-center select-none">{Math.round(zoom * 100)}%</span>
             <button onClick={() => onZoomChange(Math.min(3, zoom + 0.1))} title="Phóng to" id="editor-zoom-in"
-              className="w-7 h-7 border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center rounded-md transition-all hover:bg-gray-200 hover:text-gray-700">
+              className="w-7 h-7 border-none bg-transparent text-white/90 cursor-pointer flex items-center justify-center rounded-md transition-all hover:bg-white/25 hover:text-white">
               <ZoomIn size={14} />
             </button>
             <button onClick={() => onZoomChange(1)} title="Vừa trang" id="editor-zoom-fit"
-              className="w-7 h-7 border-none bg-transparent text-gray-500 cursor-pointer flex items-center justify-center rounded-md transition-all hover:bg-gray-200 hover:text-gray-700">
+              className="w-7 h-7 border-none bg-transparent text-white/90 cursor-pointer flex items-center justify-center rounded-md transition-all hover:bg-white/25 hover:text-white">
               <Maximize size={13} />
             </button>
           </div>
@@ -109,31 +114,65 @@ export default function EditorToolbar({
         <div className="flex items-center gap-2 shrink-0">
           {hasSelection && (
             <>
-              <button className={EDITOR_BTN} onClick={onDuplicateSelected} title="Nhân đôi" id="editor-duplicate-btn"><Copy size={15} /></button>
-              <button className={`${EDITOR_BTN} !text-red-500 hover:!bg-red-50`} onClick={onDeleteSelected} title="Xóa" id="editor-delete-btn"><Trash2 size={15} /></button>
-              <div className="w-px h-6 bg-gray-200 mx-1" />
+              <button className={headBtn} onClick={onDuplicateSelected} title="Nhân đôi" id="editor-duplicate-btn"><Copy size={15} /></button>
+              <button className={`${headBtn} hover:!bg-red-500/30`} onClick={onDeleteSelected} title="Xóa" id="editor-delete-btn"><Trash2 size={15} /></button>
+              <div className="w-px h-6 bg-white/30 mx-1" />
             </>
           )}
           {saveStatus && (
-            <span className="text-[13px] text-gray-500 font-medium whitespace-nowrap animate-pulse" id="editor-auto-save-status">
+            <span className="text-[13px] text-white/90 font-medium whitespace-nowrap animate-pulse" id="editor-auto-save-status">
               {saveStatus}
             </span>
           )}
           <button onClick={onExport} id="editor-export-btn"
-            className="h-9 px-4 bg-white text-black border border-black rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:-translate-y-px active:translate-y-0 whitespace-nowrap">
+            className="h-9 px-4 bg-white text-indigo-700 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:bg-indigo-50 hover:-translate-y-px active:translate-y-0 whitespace-nowrap">
             <Download size={15} /> Xuất DOCX
           </button>
           {onExportPdf && (
             <button onClick={onExportPdf} id="editor-export-pdf-btn"
-              className="h-9 px-4 bg-white text-black border border-black rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:-translate-y-px active:translate-y-0 whitespace-nowrap">
+              className="h-9 px-4 bg-white/15 text-white border border-white/40 rounded-lg text-[13px] font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:bg-white/25 hover:-translate-y-px active:translate-y-0 whitespace-nowrap">
               <Download size={15} /> Xuất PDF
             </button>
           )}
         </div>
       </div>
 
-      <div className={`h-11 min-h-[44px] bg-white border-b border-gray-200 flex items-center px-4 gap-0.5 z-[99] overflow-x-auto hide-scrollbar ${!isTextSelected && !isShapeSelected ? 'opacity-45 pointer-events-none' : ''}`}>
-        {isShapeSelected ? (
+      <div className="h-11 min-h-[44px] bg-white border-b border-gray-200 flex items-center px-4 gap-0.5 z-[99] overflow-x-auto hide-scrollbar">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 shrink-0 mr-2">Thuộc tính</span>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-xs text-gray-600">Màu nét</span>
+          <input type="color" value={drawColor || '#111827'} onChange={(e) => onDrawColorChange?.(e.target.value)}
+            className="h-6 w-7 cursor-pointer rounded border border-gray-200 bg-white" id="editor-draw-color" />
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0 ml-3">
+          <span className="text-xs text-gray-600">Độ dày</span>
+          <input type="range" min={1} max={40} value={drawWidth || 4} onChange={(e) => onDrawWidthChange?.(parseInt(e.target.value, 10))}
+            className="w-24 accent-indigo-600" id="editor-draw-width" />
+          <span className="w-6 text-right text-xs tabular-nums text-gray-500">{drawWidth || 4}</span>
+        </div>
+
+        {isImageSelected && (
+          <>
+            <div className="w-px h-6 bg-gray-200 mx-2 shrink-0" />
+            <button
+              type="button"
+              onClick={onRemoveBackground}
+              disabled={isProcessingImage}
+              title="Tách nền ảnh"
+              id="editor-remove-bg-btn"
+              className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-rose-50 px-2.5 h-8 text-xs font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            >
+              {isProcessingImage ? <Loader2 size={14} className="animate-spin" /> : <Eraser size={14} />}
+              Tách nền
+            </button>
+          </>
+        )}
+
+        {(isTextSelected || isShapeSelected) && <div className="w-px h-6 bg-gray-200 mx-2 shrink-0" />}
+
+        {isShapeSelected && (
           <>
             {shapeFormat.hasFill && (
               <div className="relative shrink-0">
@@ -172,7 +211,9 @@ export default function EditorToolbar({
               </button>
             </div>
           </>
-        ) : (
+        )}
+
+        {isTextSelected && (
           <>
             <div className="relative shrink-0">
               <select value={textFormat.fontFamily || 'Inter'} onChange={(e) => onTextFormatChange('fontFamily', e.target.value)}
