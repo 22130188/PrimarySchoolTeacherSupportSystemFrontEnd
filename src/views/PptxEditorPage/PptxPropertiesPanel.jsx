@@ -22,7 +22,7 @@ export default function PptxPropertiesPanel({ selectedObject, onUpdateObject }) 
   const titleCls = 'text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-3';
 
   return (
-    <div className="w-[240px] min-w-[240px] bg-white border-l border-gray-200 overflow-y-auto z-[45] transition-all duration-300">
+    <div className="absolute top-3 right-3 w-[240px] max-h-[calc(100%-24px)] bg-white rounded-xl border border-gray-200 shadow-xl overflow-y-auto z-[60] [scrollbar-width:thin]">
       <div className={sectionCls}>
         <div className={titleCls}>Vị trí & Kích thước</div>
         <div className="flex items-center gap-2 mb-2">
