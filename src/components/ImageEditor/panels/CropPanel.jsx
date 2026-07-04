@@ -37,12 +37,14 @@ function CropOverlay({
 
   if (!wrapper || !canvas) return null;
 
+  const visualZoom = canvas.__visualZoom;
+  const isCssZoom = typeof visualZoom === 'number';
   const vpt = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
-  const zoom = vpt[0] || 1;
-  const offsetX = vpt[4] || 0;
-  const offsetY = vpt[5] || 0;
-  const imgW = canvas.getWidth() * zoom;
-  const imgH = canvas.getHeight() * zoom;
+  const screenScale = isCssZoom ? visualZoom : (vpt[0] || 1);
+  const offsetX = isCssZoom ? 0 : (vpt[4] || 0);
+  const offsetY = isCssZoom ? 0 : (vpt[5] || 0);
+  const imgW = canvas.getWidth() * screenScale;
+  const imgH = canvas.getHeight() * screenScale;
   const canvasW = canvas.getWidth() || 800;
   const canvasH = canvas.getHeight() || 600;
 
