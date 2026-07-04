@@ -321,6 +321,11 @@ async function processSlideObjects(slide, fabricCanvas, pptx) {
   const objects = [...fabricCanvas.getObjects()];
   for (const obj of objects) {
 
+    if (obj.teachTool) {
+      await addShapeImageObject(slide, obj);
+      continue;
+    }
+
     const tableData = ensureTableDataForImage(obj);
     if (tableData) {
       addNewTableObject(slide, obj, tableData);
