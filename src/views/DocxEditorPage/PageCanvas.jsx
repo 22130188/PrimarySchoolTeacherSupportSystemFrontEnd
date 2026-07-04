@@ -11,6 +11,14 @@ import {
   isLikelyLegacyTableImage,
   restoreEditableTableImages,
 } from '../../utils/tableModel';
+import { addFractionPizza, toggleFractionSlice, setFractionColor } from '../../components/ImageEditor/tools/fractionTool.js';
+import { addClock, setClockTime } from '../../components/ImageEditor/tools/clockTool.js';
+import { addTextFraction } from '../../components/ImageEditor/tools/textFraction.js';
+import { addLibrarySticker, addServerSticker } from '../../components/ImageEditor/tools/stickers.js';
+import {
+  enablePencil, enableBrush, enableEraser, disableDrawing,
+  updateBrushColor, updateBrushWidth,
+} from '../../components/ImageEditor/tools/drawing.js';
 
 const PageCanvas = forwardRef(function PageCanvas({
   pageId,
@@ -23,12 +31,15 @@ const PageCanvas = forwardRef(function PageCanvas({
   onHistoryChange,
   onTableContextMenu,
   onTableDoubleClick,
+  onFractionToggle,
   readOnly = false,
 }, ref) {
   const canvasElRef = useRef(null);
   const fabricRef = useRef(null);
   const historyRef = useRef({ undoStack: [], redoStack: [], isRestoring: false });
   const isActiveRef = useRef(isActive);
+  const eraserCleanupRef = useRef(null);
+  const overlayWrapperRef = useRef(null);
 
   useEffect(() => { isActiveRef.current = isActive; }, [isActive]);
 
@@ -157,6 +168,15 @@ const PageCanvas = forwardRef(function PageCanvas({
 
       const handleDblClick = (opt) => {
         const target = opt.target;
+        if (target?.teachTool === 'fraction' && opt.subTargets?.length && !readOnly) {
+          toggleFractionSlice(target, opt.subTargets[0]);
+          target.set('dirty', true);
+          canvas.requestRenderAll();
+          saveToHistory();
+          if (isActiveRef.current) onSelectionChange?.(target);
+          onFractionToggle?.();
+          return;
+        }
         if (target && isLikelyLegacyTableImage(target) && !readOnly) {
           ensureTableDataForImage(target);
           onTableDoubleClick?.(target);
@@ -176,6 +196,7 @@ const PageCanvas = forwardRef(function PageCanvas({
       });
       canvas.on('mouse:down', handleMouseDown);
       canvas.on('mouse:dblclick', handleDblClick);
+      canvas.on('path:created', handleModified);
     };
 
     initCanvas();
@@ -192,9 +213,10 @@ const PageCanvas = forwardRef(function PageCanvas({
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.setZoom(zoom);
-    canvas.setDimensions({ width: PAGE_WIDTH * zoom, height: PAGE_HEIGHT * zoom });
-    canvas.renderAll();
+    canvas.__visualZoom = zoom;
+    canvas.setZoom(1);
+    canvas.setDimensions({ width: PAGE_WIDTH, height: PAGE_HEIGHT });
+    canvas.requestRenderAll();
   }, [zoom]);
 
   useEffect(() => {
@@ -212,6 +234,116 @@ const PageCanvas = forwardRef(function PageCanvas({
   useImperativeHandle(ref, () => ({
     getCanvas: () => fabricRef.current,
     saveToHistory: () => saveToHistory(),
+
+    addFractionPizza: (opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      addFractionPizza(canvas, opts);
+      saveToHistory();
+    },
+
+    setFractionColor: (obj, color) => {
+      const canvas = fabricRef.current;
+      if (!canvas || !obj) return;
+      setFractionColor(obj, color);
+      canvas.requestRenderAll();
+      saveToHistory();
+    },
+
+    addClock: (opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      addClock(canvas, opts);
+      saveToHistory();
+    },
+
+    setClockTime: (obj, hour, minute) => {
+      const canvas = fabricRef.current;
+      if (!canvas || !obj) return;
+      setClockTime(obj, hour, minute);
+      canvas.requestRenderAll();
+      saveToHistory();
+    },
+
+    addTextFraction: (opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      addTextFraction(canvas, opts);
+      saveToHistory();
+    },
+
+    addLibrarySticker: async (iconJsx, opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      await addLibrarySticker(canvas, iconJsx, opts);
+      saveToHistory();
+    },
+
+    addServerSticker: async (url, opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      await addServerSticker(canvas, url, opts);
+      saveToHistory();
+    },
+
+    setDrawingMode: (mode, { color = '#111827', width = 4 } = {}) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      if (eraserCleanupRef.current) {
+        eraserCleanupRef.current();
+        eraserCleanupRef.current = null;
+      }
+      disableDrawing(canvas);
+      if (mode === 'pencil') {
+        enablePencil(canvas, { color, width });
+      } else if (mode === 'brush') {
+        enableBrush(canvas, { color, width: Math.max(width, 10) });
+      } else if (mode === 'eraser') {
+        eraserCleanupRef.current = enableEraser(canvas, { onChange: saveToHistory });
+      }
+    },
+
+    updateBrush: (color, width) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      updateBrushColor(canvas, color);
+      updateBrushWidth(canvas, width);
+    },
+
+    getSelectedImage: () => {
+      const active = fabricRef.current?.getActiveObject();
+      return active && active.type === 'image' ? active : null;
+    },
+
+    bringToFront: () => {
+      const canvas = fabricRef.current;
+      const active = canvas?.getActiveObject();
+      if (!active) return;
+      canvas.bringObjectToFront(active); canvas.requestRenderAll(); saveToHistory();
+    },
+
+    bringForward: () => {
+      const canvas = fabricRef.current;
+      const active = canvas?.getActiveObject();
+      if (!active) return;
+      canvas.bringObjectForward(active); canvas.requestRenderAll(); saveToHistory();
+    },
+
+    sendBackward: () => {
+      const canvas = fabricRef.current;
+      const active = canvas?.getActiveObject();
+      if (!active) return;
+      canvas.sendObjectBackwards(active); canvas.requestRenderAll(); saveToHistory();
+    },
+
+    sendToBack: () => {
+      const canvas = fabricRef.current;
+      const active = canvas?.getActiveObject();
+      if (!active) return;
+      canvas.sendObjectToBack(active); canvas.requestRenderAll(); saveToHistory();
+    },
+
+    getOverlayWrapper: () => overlayWrapperRef.current,
 
     addText: (preset = 'body') => {
       const canvas = fabricRef.current;
@@ -417,12 +549,19 @@ const PageCanvas = forwardRef(function PageCanvas({
   return (
     <div
       data-page-id={pageId}
-      className={`relative shrink-0 transition-shadow duration-200 rounded-sm ${isActive
-          ? 'shadow-[0_0_0_2px_rgba(79,70,229,0.45),0_4px_16px_rgba(79,70,229,0.18)]'
-          : 'shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_12px_32px_rgba(0,0,0,0.12)]'
-        }`}
+      ref={overlayWrapperRef}
+      className="relative shrink-0"
+      style={{ width: PAGE_WIDTH * zoom, height: PAGE_HEIGHT * zoom }}
     >
-      <canvas ref={canvasElRef} className="block rounded-sm" />
+      <div
+        className={`relative origin-top-left transition-shadow duration-200 rounded-sm ${isActive
+            ? 'shadow-[0_0_0_2px_rgba(79,70,229,0.45),0_4px_16px_rgba(79,70,229,0.18)]'
+            : 'shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.06),0_12px_32px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08),0_12px_32px_rgba(0,0,0,0.12)]'
+          }`}
+        style={{ width: PAGE_WIDTH, height: PAGE_HEIGHT, transform: `scale(${zoom})` }}
+      >
+        <canvas ref={canvasElRef} className="block rounded-sm" />
+      </div>
     </div>
   );
 });

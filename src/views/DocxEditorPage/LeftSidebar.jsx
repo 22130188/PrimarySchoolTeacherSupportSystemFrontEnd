@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Loader2, Upload, Palette } from 'lucide-react';
-import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES } from './editorConstants';
+import { X, Loader2, Upload, Palette, Pencil, Paintbrush, Eraser } from 'lucide-react';
+import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES, COLORS_SMALL } from './editorConstants';
 import { LIBRARY_SUBJECT_OPTIONS } from '../../data/aiImageConstants';
 import { SHAPE_GROUPS } from '../../data/shapeLibrary';
 import TablePicker from '../../common/TablePicker';
@@ -9,6 +9,17 @@ import AIImageGenerator from '../../common/AIImageGenerator';
 import PexelsImageSearch from '../../common/PexelsImageSearch';
 import SaveImageModal from '../../common/SaveImageModal';
 import IllustrationStudioModal from '../../common/IllustrationStudioModal';
+import TeachPanel from '../../components/ImageEditor/panels/TeachPanel.jsx';
+import IconsPanel from '../../components/ImageEditor/panels/IconsPanel.jsx';
+import AdjustPanel from '../../components/ImageEditor/panels/AdjustPanel.jsx';
+import CropPanel from '../../components/ImageEditor/panels/CropPanel.jsx';
+import ComposePanel from '../../components/ImageEditor/panels/ComposePanel.jsx';
+
+const DRAW_MODES = [
+  { id: 'pencil', label: 'Bút chì', icon: Pencil },
+  { id: 'brush', label: 'Bút lông', icon: Paintbrush },
+  { id: 'eraser', label: 'Tẩy', icon: Eraser },
+];
 
 const TABLE_QUICK = [
   { r: 2, c: 2, label: 'Bảng 2×2' },
@@ -20,7 +31,11 @@ const TABLE_QUICK = [
 export default function LeftSidebar({
   activeTab, onTabChange, expanded, onToggle,
   onAddText, onAddTable, onAddImage, onAddShape,
-  pages, currentPageIndex, onSwitchPage, onAddPage, onDeletePage,
+  getCanvas, onSaveHistory, selectedObject, fractionTick,
+  drawMode = 'none', drawColor = '#111827', drawWidth = 4,
+  onSetDrawMode, onSetDrawColor, onSetDrawWidth,
+  runPillowOnSelected, isProcessing, hasSelectedImage,
+  selectedImageNaturalSize, getOverlayWrapper,
 }) {
   const {
     user, libraryUploadRef, libraryImages, loadingLibrary, uploadingToLibrary,
@@ -30,6 +45,7 @@ export default function LeftSidebar({
 
   const [librarySubject, setLibrarySubject] = useState('all');
   const [showStudio, setShowStudio] = useState(false);
+  const [photoTool, setPhotoTool] = useState('crop');
 
   const filteredImages = librarySubject === 'all'
     ? libraryImages
@@ -52,19 +68,19 @@ export default function LeftSidebar({
 
   return (
     <>
-      <div className="w-[52px] min-w-[52px] bg-white border-r border-gray-200 flex flex-col items-center py-3 gap-0.5 z-50">
+      <div className="w-[72px] min-w-[72px] bg-white border-r border-gray-200 flex flex-col items-center py-2 gap-1 overflow-y-auto [scrollbar-width:thin] z-50">
         {SIDEBAR_TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id && expanded;
           return (
             <button key={tab.id} onClick={() => handleTabClick(tab.id)} id={`sidebar-tab-${tab.id}`}
-              className={`w-10 h-10 rounded-[10px] border-none bg-transparent flex flex-col items-center justify-center cursor-pointer transition-all duration-150 gap-0.5 text-[9px] font-medium relative
+              className={`w-[60px] shrink-0 rounded-lg border-none bg-transparent flex flex-col items-center justify-center cursor-pointer transition-all duration-150 gap-1 py-2 text-[10px] font-medium relative
                 ${isActive
                   ? 'bg-indigo-50 text-indigo-600 before:content-[""] before:absolute before:-left-1.5 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:h-5 before:bg-indigo-600 before:rounded-r'
                   : 'text-gray-500 hover:bg-gray-100 hover:text-indigo-600'
                 }`}>
-              <Icon size={18} />
-              <span>{tab.label}</span>
+              <Icon className="h-5 w-5" />
+              <span className="leading-tight text-center">{tab.label}</span>
             </button>
           );
         })}
@@ -222,36 +238,130 @@ export default function LeftSidebar({
                 <PexelsImageSearch onAddImage={onAddImage} onSaved={loadLibraryImages} accent="indigo" />
               )}
 
-              {activeTab === 'pages' && (
-                <div>
-                  <p className="text-xs text-gray-400 mb-3.5">{pages.length} trang</p>
-                  {pages.map((page, index) => (
-                    <div key={page.id} className="relative mb-3 group">
-                      <div onClick={() => onSwitchPage(index)} id={`page-thumb-${index}`}
-                        className={`relative w-full aspect-[595/842] rounded-lg overflow-hidden cursor-pointer transition-all duration-200 bg-white
-                          ${index === currentPageIndex
-                            ? 'border-2 border-indigo-600 shadow-[0_0_0_2px_rgba(79,70,229,0.2)]'
-                            : 'border-2 border-gray-200 hover:border-indigo-300 hover:shadow-[0_2px_12px_rgba(99,102,241,0.12)]'
-                          }`}>
-                        {page.thumbnail ? (
-                          <img src={page.thumbnail} alt={`Trang ${index + 1}`} className="w-full h-full object-contain" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">Trang trống</div>
-                        )}
-                        <span className="absolute top-1.5 left-1.5 bg-black/55 text-white text-[10px] font-semibold px-[7px] py-0.5 rounded backdrop-blur-sm">{index + 1}</span>
-                      </div>
-                      {pages.length > 1 && (
-                        <button onClick={(e) => { e.stopPropagation(); onDeletePage(index); }} id={`page-delete-${index}`}
-                          className="absolute top-1 right-1 w-[22px] h-[22px] rounded-full border-none bg-red-500/85 text-white hidden group-hover:flex items-center justify-center cursor-pointer text-xs transition-all backdrop-blur-sm hover:bg-red-600 hover:scale-110">
-                          <X size={11} />
+              {activeTab === 'draw' && (
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-400">Chọn chế độ vẽ rồi vẽ trực tiếp lên trang.</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {DRAW_MODES.map((m) => {
+                      const Icon = m.icon;
+                      const active = drawMode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => onSetDrawMode?.(active ? 'none' : m.id)}
+                          className={`flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-3 text-[11px] font-medium transition ${active ? 'border-indigo-400 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-600 hover:border-indigo-300 hover:bg-indigo-50'}`}
+                        >
+                          <Icon size={18} />
+                          {m.label}
                         </button>
-                      )}
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <span className="text-xs font-medium text-gray-600">Màu nét</span>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {COLORS_SMALL.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => onSetDrawColor?.(color)}
+                          style={{ backgroundColor: color }}
+                          className={`h-6 w-6 rounded-full border-2 transition ${drawColor === color ? 'border-slate-700 ring-2 ring-slate-300' : 'border-white shadow'}`}
+                          aria-label={`Chọn màu ${color}`}
+                        />
+                      ))}
                     </div>
-                  ))}
-                  <button onClick={onAddPage} id="add-page-btn"
-                    className="w-full py-3.5 border-2 border-dashed border-gray-300 rounded-[10px] bg-transparent text-gray-500 text-[13px] font-medium cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5 hover:border-indigo-400 hover:bg-violet-50 hover:text-indigo-600">
-                    <Plus size={16} /> Thêm trang mới
-                  </button>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-medium text-gray-600">
+                      <span>Độ rộng nét</span>
+                      <span className="tabular-nums">{drawWidth}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={40}
+                      step={1}
+                      value={drawWidth}
+                      onChange={(e) => onSetDrawWidth?.(Number(e.target.value))}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+
+                  {drawMode !== 'none' && (
+                    <p className="text-[11px] text-indigo-500">Đang bật chế độ {DRAW_MODES.find((m) => m.id === drawMode)?.label}. Nhấn lại nút để tắt.</p>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'teach' && (
+                <TeachPanel
+                  fabricRef={{ current: getCanvas?.() || null }}
+                  selectedObject={selectedObject}
+                  saveHistory={onSaveHistory}
+                  fractionTick={fractionTick}
+                />
+              )}
+
+              {activeTab === 'sticker' && (
+                <IconsPanel
+                  fabricRef={{ current: getCanvas?.() || null }}
+                  saveHistory={onSaveHistory}
+                />
+              )}
+
+              {activeTab === 'photo' && (
+                <div>
+                  <div className="mb-3 grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
+                    {[
+                      { id: 'crop', label: 'Cắt' },
+                      { id: 'adjust', label: 'Chỉnh màu' },
+                      { id: 'compose', label: 'Ghép ảnh' },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setPhotoTool(t.id)}
+                        className={`rounded-md py-1.5 text-[12px] font-medium transition ${photoTool === t.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {!hasSelectedImage && (
+                    <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600">
+                      Chọn một ảnh trên trang để chỉnh sửa.
+                    </p>
+                  )}
+
+                  {photoTool === 'crop' && (
+                    <CropPanel
+                      onApply={runPillowOnSelected}
+                      wrapperRef={{ current: getOverlayWrapper?.() || null }}
+                      fabricRef={{ current: getCanvas?.() || null }}
+                    />
+                  )}
+
+                  {photoTool === 'adjust' && (
+                    <AdjustPanel
+                      hasBackground={hasSelectedImage}
+                      onApply={runPillowOnSelected}
+                      isProcessing={isProcessing}
+                    />
+                  )}
+
+                  {photoTool === 'compose' && (
+                    <ComposePanel
+                      savedImages={libraryImages}
+                      naturalSize={selectedImageNaturalSize}
+                      onApply={runPillowOnSelected}
+                      wrapperRef={{ current: getOverlayWrapper?.() || null }}
+                    />
+                  )}
                 </div>
               )}
             </div>

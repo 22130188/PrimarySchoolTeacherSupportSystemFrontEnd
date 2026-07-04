@@ -14,6 +14,7 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
   onAddPage,
   onTableContextMenu,
   onTableDoubleClick,
+  onFractionToggle,
   readOnly = false,
 }, ref) {
   const containerRef = useRef(null);
@@ -104,6 +105,21 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
       addTable: proxy('addTable'),
       addShape: proxy('addShape'),
       addImage: proxy('addImage'),
+      addFractionPizza: proxy('addFractionPizza'),
+      setFractionColor: proxy('setFractionColor'),
+      addClock: proxy('addClock'),
+      setClockTime: proxy('setClockTime'),
+      addTextFraction: proxy('addTextFraction'),
+      addLibrarySticker: proxy('addLibrarySticker'),
+      addServerSticker: proxy('addServerSticker'),
+      setDrawingMode: proxy('setDrawingMode'),
+      updateBrush: proxy('updateBrush'),
+      getSelectedImage: () => getActivePage()?.getSelectedImage() || null,
+      bringToFront: proxy('bringToFront'),
+      bringForward: proxy('bringForward'),
+      sendBackward: proxy('sendBackward'),
+      sendToBack: proxy('sendToBack'),
+      getOverlayWrapper: () => getActivePage()?.getOverlayWrapper() || null,
       deleteSelected: proxy('deleteSelected'),
       duplicateSelected: proxy('duplicateSelected'),
       undo: proxy('undo'),
@@ -157,6 +173,7 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
             onHistoryChange={onHistoryChange}
             onTableContextMenu={onTableContextMenu}
             onTableDoubleClick={onTableDoubleClick}
+            onFractionToggle={onFractionToggle}
             ref={(inst) => setPageRef(page.id, inst)}
             readOnly={readOnly}
           />

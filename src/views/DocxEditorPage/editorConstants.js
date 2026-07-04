@@ -1,4 +1,4 @@
-import { Type, ImagePlus, FileText, Table2, Sparkles, Shapes, Search } from 'lucide-react';
+import { Type, ImagePlus, Table2, Sparkles, Shapes, Search, Pencil, Calculator, Smile, SlidersHorizontal } from 'lucide-react';
 
 export {
   CONTROL_STYLE, FONT_LIST, FONT_SIZES, COLOR_PRESETS, COLORS_SMALL,
@@ -15,7 +15,10 @@ export const SIDEBAR_TABS = [
   { id: 'images', icon: ImagePlus, label: 'Ảnh' },
   { id: 'pexels', icon: Search, label: 'Pexels' },
   { id: 'ai', icon: Sparkles, label: 'AI' },
-  { id: 'pages', icon: FileText, label: 'Trang' },
+  { id: 'draw', icon: Pencil, label: 'Vẽ' },
+  { id: 'teach', icon: Calculator, label: 'Dạy học' },
+  { id: 'sticker', icon: Smile, label: 'Biểu tượng' },
+  { id: 'photo', icon: SlidersHorizontal, label: 'Chỉnh ảnh' },
 ];
 
 export const PANEL_TITLES = {
@@ -24,6 +27,10 @@ export const PANEL_TITLES = {
   shapes: 'Chèn hình',
   images: 'Hình ảnh',
   ai: 'Tạo ảnh AI',
+  draw: 'Vẽ tay',
+  teach: 'Công cụ dạy học',
+  sticker: 'Biểu tượng / Sticker',
+  photo: 'Chỉnh ảnh',
   pages: 'Trang',
 };
 
