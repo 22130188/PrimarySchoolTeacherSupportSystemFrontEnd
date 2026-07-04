@@ -5,6 +5,7 @@ import EditorToolbar from './EditorToolbar';
 import LeftSidebar from './LeftSidebar';
 import MultiPageCanvas from './MultiPageCanvas';
 import PropertiesPanel from './PropertiesPanel';
+import PagePanel from './PagePanel';
 import TableContextMenu from '../../common/TableContextMenu';
 import TableOverlayEditor from '../../common/TableOverlayEditor';
 import { useDocxExport } from '../../hooks/useDocxExport';
@@ -15,6 +16,7 @@ import { rerenderTableImage, isNewTableImage, ensureTableDataForImage } from '..
 import { getShapeFormat, snapshotFabricObject } from '../../utils/shapeSelection';
 import { applyFabricTextFormat, getTextFormatUpdate, isFabricTextObject } from '../../utils/fabricTextFormatting';
 import lessonDraftApi from '../../services/lessonDraftApi';
+import { usePillowOnSelected } from '../PptxEditorPage/usePillowOnSelected';
 import './DocxEditor.css';
 
 const createBlankPage = () => ({ id: Date.now() + Math.random(), json: null, thumbnail: null });
@@ -52,6 +54,10 @@ export default function DocxEditorPage() {
   const [saveStatus, setSaveStatus] = useState('');
   const [tableContextMenu, setTableContextMenu] = useState(null);
   const [tableOverlay, setTableOverlay] = useState(null);
+  const [drawMode, setDrawMode] = useState('none');
+  const [drawColor, setDrawColor] = useState('#111827');
+  const [drawWidth, setDrawWidth] = useState(4);
+  const [fractionTick, setFractionTick] = useState(0);
 
   const { exportToDocx } = useDocxExport();
   const { exportToPdf } = usePdfExport();
@@ -59,6 +65,22 @@ export default function DocxEditorPage() {
   useEffect(() => { pagesRef.current = pages; }, [pages]);
 
   const markDirty = useCallback(() => { if (!isReadOnly) isDirtyRef.current = true; }, [isReadOnly]);
+
+  const { isProcessing: isPillowProcessing, runPillowOnSelected } = usePillowOnSelected({
+    getCanvas: () => canvasRef.current?.getCanvas?.(),
+    saveHistory: () => canvasRef.current?.saveToHistory?.(),
+    markDirty,
+  });
+
+  useEffect(() => {
+    if (isReadOnly) return;
+    canvasRef.current?.setDrawingMode?.(drawMode, { color: drawColor, width: drawWidth });
+  }, [drawMode, drawColor, drawWidth, isReadOnly]);
+
+  const selectedIsImage = selectedObject?.type === 'image' && !selectedObject?.isTableImage;
+  const selectedImageNaturalSize = selectedIsImage
+    ? { width: selectedObject.width || 800, height: selectedObject.height || 600 }
+    : null;
 
   const currentPageIndex = pages.findIndex((p) => p.id === activePageId);
   const safeCurrentPageIndex = currentPageIndex < 0 ? 0 : currentPageIndex;
@@ -124,6 +146,10 @@ export default function DocxEditorPage() {
 
   const handleSelectionChange = useCallback((obj) => {
     setSelectedObject(obj);
+    if (obj && obj.type === 'image' && !obj.isTableImage) {
+      setActiveSidebarTab('photo');
+      setSidebarExpanded(true);
+    }
     if (obj && (obj.type === 'i-text' || obj.type === 'textbox')) {
       if (obj.isEditing && obj.selectionStart !== obj.selectionEnd) {
         const styles = obj.getSelectionStyles(obj.selectionStart, obj.selectionEnd);
@@ -169,13 +195,25 @@ export default function DocxEditorPage() {
     markDirty();
   }, [markDirty]);
 
+  const thumbTimerRef = useRef(null);
+  const refreshThumbnails = useCallback(() => {
+    if (thumbTimerRef.current) clearTimeout(thumbTimerRef.current);
+    thumbTimerRef.current = setTimeout(() => {
+      const serialized = canvasRef.current?.serializeAllPages?.();
+      if (!serialized) return;
+      pagesRef.current = serialized;
+      setPages(serialized);
+    }, 400);
+  }, []);
+
   const handleHistoryChange = useCallback((u, r) => {
     setCanUndo(u);
     setCanRedo(r);
     markDirty();
-  }, [markDirty]);
+    refreshThumbnails();
+  }, [markDirty, refreshThumbnails]);
 
-  const handleObjectModified = useCallback(() => { markDirty(); }, [markDirty]);
+  const handleObjectModified = useCallback(() => { markDirty(); refreshThumbnails(); }, [markDirty, refreshThumbnails]);
 
   const handleTableContextMenu = useCallback((info) => {
     setTableContextMenu(info);
@@ -484,6 +522,12 @@ export default function DocxEditorPage() {
         hasSelection={!isReadOnly && !!selectedObject} selectionType={selectedObject?.type}
         onDeleteSelected={() => !isReadOnly && canvasRef.current?.deleteSelected()}
         onDuplicateSelected={() => !isReadOnly && canvasRef.current?.duplicateSelected()}
+        drawColor={drawColor} drawWidth={drawWidth}
+        onDrawColorChange={isReadOnly ? () => { } : setDrawColor}
+        onDrawWidthChange={isReadOnly ? () => { } : setDrawWidth}
+        isImageSelected={!isReadOnly && selectedIsImage}
+        onRemoveBackground={() => !isReadOnly && runPillowOnSelected([{ type: 'remove_background' }])}
+        isProcessingImage={isPillowProcessing}
         readOnly={isReadOnly}
       />
 
@@ -529,8 +573,19 @@ export default function DocxEditorPage() {
             onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
             onAddImage={(d) => canvasRef.current?.addImage(d)}
             onAddShape={(s) => canvasRef.current?.addShape(s)}
-            pages={pages} currentPageIndex={safeCurrentPageIndex}
-            onSwitchPage={switchToPageByIndex} onAddPage={addPage} onDeletePage={deletePage}
+            getCanvas={() => canvasRef.current?.getCanvas?.()}
+            onSaveHistory={() => canvasRef.current?.saveToHistory?.()}
+            selectedObject={selectedObject}
+            fractionTick={fractionTick}
+            drawMode={drawMode} drawColor={drawColor} drawWidth={drawWidth}
+            onSetDrawMode={setDrawMode}
+            onSetDrawColor={setDrawColor}
+            onSetDrawWidth={setDrawWidth}
+            runPillowOnSelected={runPillowOnSelected}
+            isProcessing={isPillowProcessing}
+            hasSelectedImage={selectedIsImage}
+            selectedImageNaturalSize={selectedImageNaturalSize}
+            getOverlayWrapper={() => canvasRef.current?.getOverlayWrapper?.()}
           />
         )}
 
@@ -546,10 +601,20 @@ export default function DocxEditorPage() {
           onAddPage={isReadOnly ? () => { } : addPage}
           onTableContextMenu={isReadOnly ? undefined : handleTableContextMenu}
           onTableDoubleClick={isReadOnly ? undefined : handleTableDoubleClick}
+          onFractionToggle={isReadOnly ? undefined : () => setFractionTick((t) => t + 1)}
           readOnly={isReadOnly}
         />
 
         {!isReadOnly && <PropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />}
+
+        <PagePanel
+          pages={pages}
+          currentPageIndex={safeCurrentPageIndex}
+          onSwitchPage={switchToPageByIndex}
+          onAddPage={addPage}
+          onDeletePage={deletePage}
+          readOnly={isReadOnly}
+        />
       </div>
 
       <div className="h-8 min-h-[32px] bg-white border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-[100]">
