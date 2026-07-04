@@ -6,6 +6,7 @@ const HISTORY_LIMIT = 60;
 const SERIALIZE_PROPS = [
   'shapeType', 'isBackground', 'teachTool', 'eaten', 'sliceIndex',
   'sliceCount', 'clockRole', 'fracRole', 'selectable', 'evented', 'subTargetCheck',
+  'thermoRole', 'thermoValue', 'scaleRole', 'scaleLeft', 'scaleRight',
 ];
 
 if (fabric?.FabricObject) {
