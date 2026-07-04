@@ -53,6 +53,7 @@ export const CUSTOM_SERIALIZATION_PROPS = [
   'isTableImage', 'tableData', '_tableData',
   'teachTool', 'eaten', 'sliceIndex', 'sliceCount', 'filledColor', 'fractionShape',
   'clockRole', 'fracRole',
+  'thermoRole', 'thermoValue', 'scaleRole', 'scaleLeft', 'scaleRight',
 ];
 
 /**
