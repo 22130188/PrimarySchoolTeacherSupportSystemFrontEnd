@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, Copy, Loader2 } from 'lucide-react';
 import PptxToolbar from './PptxToolbar';
+import PptxToolStrip from './PptxToolStrip';
 import PptxSidebar from './PptxSidebar';
 import SlideCanvas from './SlideCanvas';
 import PptxPropertiesPanel from './PptxPropertiesPanel';
@@ -16,6 +17,7 @@ import { applyFabricTextFormat, getTextFormatUpdate, isFabricTextObject } from '
 import lessonDraftApi from '../../services/lessonDraftApi';
 import { usePptxExport } from '../../hooks/usePptxExport';
 import { usePdfExport } from '../../hooks/usePdfExport';
+import { usePillowOnSelected } from './usePillowOnSelected';
 import './PptxEditor.css';
 
 export default function PptxEditorPage() {
@@ -51,6 +53,10 @@ export default function PptxEditorPage() {
   const [showNotes, setShowNotes] = useState(false);
   const [tableContextMenu, setTableContextMenu] = useState(null);
   const [tableOverlay, setTableOverlay] = useState(null);
+  const [drawMode, setDrawMode] = useState('none');
+  const [drawColor, setDrawColor] = useState('#111827');
+  const [drawWidth, setDrawWidth] = useState(4);
+  const [fractionTick, setFractionTick] = useState(0);
 
   useEffect(() => { slidesRef.current = slides; }, [slides]);
 
@@ -58,6 +64,22 @@ export default function PptxEditorPage() {
   const { exportToPdf } = usePdfExport();
 
   const markDirty = useCallback(() => { if (!isReadOnly) isDirtyRef.current = true; }, [isReadOnly]);
+
+  const { isProcessing: isPillowProcessing, runPillowOnSelected } = usePillowOnSelected({
+    getCanvas: () => canvasRef.current?.getCanvas?.(),
+    saveHistory: () => canvasRef.current?.saveToHistory?.(),
+    markDirty,
+  });
+
+  useEffect(() => {
+    if (isReadOnly) return;
+    canvasRef.current?.setDrawingMode?.(drawMode, { color: drawColor, width: drawWidth });
+  }, [drawMode, drawColor, drawWidth, isReadOnly]);
+
+  const selectedIsImage = selectedObject?.type === 'image' && !selectedObject?.isTableImage;
+  const selectedImageNaturalSize = selectedIsImage
+    ? { width: selectedObject.width || 800, height: selectedObject.height || 600 }
+    : null;
 
   useEffect(() => {
     const loadDraft = async () => {
@@ -124,6 +146,10 @@ export default function PptxEditorPage() {
 
   const handleSelectionChange = useCallback((obj) => {
     setSelectedObject(obj);
+    if (obj && obj.type === 'image' && !obj.isTableImage) {
+      setActiveSidebarTab('photo');
+      setSidebarExpanded(true);
+    }
     if (obj && (obj.type === 'i-text' || obj.type === 'textbox')) {
       if (obj.isEditing && obj.selectionStart !== obj.selectionEnd) {
         const styles = obj.getSelectionStyles(obj.selectionStart, obj.selectionEnd);
@@ -528,6 +554,14 @@ export default function PptxEditorPage() {
 
   const shapeFormat = getShapeFormat(selectedObject);
 
+  const handleStripTogglePanel = useCallback((tabId) => {
+    setDrawMode('none');
+    setActiveSidebarTab((curTab) => {
+      setSidebarExpanded((curOpen) => !(curOpen && curTab === tabId));
+      return tabId;
+    });
+  }, []);
+
   return (
     <div className="fixed inset-0 flex flex-col z-[9999] font-[Inter,sans-serif] overflow-hidden bg-gray-100" id="pptx-editor-page">
       <PptxToolbar
@@ -547,8 +581,14 @@ export default function PptxEditorPage() {
         hasSelection={!isReadOnly && !!selectedObject} selectionType={selectedObject?.type}
         onDeleteSelected={() => !isReadOnly && canvasRef.current?.deleteSelected()}
         onDuplicateSelected={() => !isReadOnly && canvasRef.current?.duplicateSelected()}
+        drawColor={drawColor} drawWidth={drawWidth}
+        onDrawColorChange={setDrawColor} onDrawWidthChange={setDrawWidth}
+        isImageSelected={!isReadOnly && selectedIsImage}
+        onRemoveBackground={() => !isReadOnly && runPillowOnSelected([{ type: 'remove_background' }])}
+        isProcessingImage={isPillowProcessing}
         readOnly={isReadOnly}
       />
+
 
       {isReadOnly && (
         <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-2 flex items-center justify-between z-[200]">
@@ -585,6 +625,19 @@ export default function PptxEditorPage() {
 
       <div className="flex-1 flex overflow-hidden relative">
         {!isReadOnly && (
+          <PptxToolStrip
+            activeTab={activeSidebarTab}
+            panelOpen={sidebarExpanded}
+            onTogglePanel={handleStripTogglePanel}
+            hasSelection={!!selectedObject}
+            onBringToFront={() => canvasRef.current?.bringToFront()}
+            onBringForward={() => canvasRef.current?.bringForward()}
+            onSendBackward={() => canvasRef.current?.sendBackward()}
+            onSendToBack={() => canvasRef.current?.sendToBack()}
+          />
+        )}
+
+        {!isReadOnly && (
           <PptxSidebar
             activeTab={activeSidebarTab} onTabChange={setActiveSidebarTab}
             expanded={sidebarExpanded} onToggle={setSidebarExpanded}
@@ -593,34 +646,50 @@ export default function PptxEditorPage() {
             onAddShape={(s) => canvasRef.current?.addShape(s)}
             onAddImage={(d) => canvasRef.current?.addImage(d)}
             onSetBackground={(c) => canvasRef.current?.setBackgroundColor(c)}
+            getCanvas={() => canvasRef.current?.getCanvas?.()}
+            onSaveHistory={() => canvasRef.current?.saveToHistory?.()}
+            selectedObject={selectedObject}
+            fractionTick={fractionTick}
+            drawMode={drawMode} drawColor={drawColor} drawWidth={drawWidth}
+            onSetDrawMode={setDrawMode}
+            onSetDrawColor={setDrawColor}
+            onSetDrawWidth={setDrawWidth}
+            runPillowOnSelected={runPillowOnSelected}
+            isProcessing={isPillowProcessing}
+            hasSelectedImage={selectedIsImage}
+            selectedImageNaturalSize={selectedImageNaturalSize}
+            getOverlayWrapper={() => canvasRef.current?.getOverlayWrapper?.()}
           />
         )}
 
-        <SlideCanvas
-          ref={canvasRef} zoom={zoom}
-          onSelectionChange={isReadOnly ? () => { } : handleSelectionChange}
-          onObjectModified={isReadOnly ? () => { } : markDirty}
-          onHistoryChange={isReadOnly ? () => { } : handleHistoryChange}
-          onTableContextMenu={isReadOnly ? undefined : handleTableContextMenu}
-          onTableDoubleClick={isReadOnly ? undefined : handleTableDoubleClick}
+        <div className="flex-1 relative flex overflow-hidden">
+          <SlideCanvas
+            ref={canvasRef} zoom={zoom}
+            onSelectionChange={isReadOnly ? () => { } : handleSelectionChange}
+            onObjectModified={isReadOnly ? () => { } : markDirty}
+            onHistoryChange={isReadOnly ? () => { } : handleHistoryChange}
+            onTableContextMenu={isReadOnly ? undefined : handleTableContextMenu}
+            onTableDoubleClick={isReadOnly ? undefined : handleTableDoubleClick}
+            onFractionToggle={isReadOnly ? undefined : () => setFractionTick((t) => t + 1)}
+            readOnly={isReadOnly}
+          />
+
+          {!isReadOnly && <PptxPropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />}
+        </div>
+
+        <SlidePanel
+          slides={slides}
+          currentSlideIndex={currentSlideIndex}
+          onSwitchSlide={switchToSlide}
+          onAddSlide={addSlide}
+          onDeleteSlide={deleteSlide}
+          speakerNotes={slides[currentSlideIndex]?.notes || ''}
+          onSpeakerNotesChange={handleSpeakerNotesChange}
+          showNotes={showNotes}
+          onToggleNotes={() => setShowNotes(!showNotes)}
           readOnly={isReadOnly}
         />
-
-        {!isReadOnly && <PptxPropertiesPanel selectedObject={selectedObject} onUpdateObject={handleUpdateObject} />}
       </div>
-
-      <SlidePanel
-        slides={slides}
-        currentSlideIndex={currentSlideIndex}
-        onSwitchSlide={switchToSlide}
-        onAddSlide={addSlide}
-        onDeleteSlide={deleteSlide}
-        speakerNotes={slides[currentSlideIndex]?.notes || ''}
-        onSpeakerNotesChange={handleSpeakerNotesChange}
-        showNotes={showNotes}
-        onToggleNotes={() => setShowNotes(!showNotes)}
-        readOnly={isReadOnly}
-      />
 
       <div className="h-8 min-h-[32px] bg-white border-t border-gray-200 flex items-center justify-between px-4 text-xs text-gray-500 z-[100]">
         <div className="flex items-center gap-3">

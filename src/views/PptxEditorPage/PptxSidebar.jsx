@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { X, Loader2, Upload, Palette } from 'lucide-react';
-import { SIDEBAR_TABS, TEXT_PRESETS, PANEL_TITLES, SLIDE_THEME_COLORS } from './pptxConstants';
+import { useEffect, useRef, useState } from 'react';
+import { X, Loader2, Upload, Palette, Pencil, Paintbrush, Eraser } from 'lucide-react';
+import { TEXT_PRESETS, PANEL_TITLES, SLIDE_THEME_COLORS, COLORS_SMALL } from './pptxConstants';
 import { LIBRARY_SUBJECT_OPTIONS } from '../../data/aiImageConstants';
 import { SHAPE_GROUPS } from '../../data/shapeLibrary';
 import TablePicker from '../../common/TablePicker';
@@ -9,10 +9,26 @@ import AIImageGenerator from '../../common/AIImageGenerator';
 import PexelsImageSearch from '../../common/PexelsImageSearch';
 import SaveImageModal from '../../common/SaveImageModal';
 import IllustrationStudioModal from '../../common/IllustrationStudioModal';
+import TeachPanel from '../../components/ImageEditor/panels/TeachPanel.jsx';
+import IconsPanel from '../../components/ImageEditor/panels/IconsPanel.jsx';
+import AdjustPanel from '../../components/ImageEditor/panels/AdjustPanel.jsx';
+import CropPanel from '../../components/ImageEditor/panels/CropPanel.jsx';
+import ComposePanel from '../../components/ImageEditor/panels/ComposePanel.jsx';
+
+const DRAW_MODES = [
+  { id: 'pencil', label: 'Bút chì', icon: Pencil },
+  { id: 'brush', label: 'Bút lông', icon: Paintbrush },
+  { id: 'eraser', label: 'Tẩy', icon: Eraser },
+];
 
 export default function PptxSidebar({
-  activeTab, onTabChange, expanded, onToggle,
+  activeTab, expanded, onToggle,
   onAddText, onAddTable, onAddShape, onAddImage, onSetBackground,
+  getCanvas, onSaveHistory, selectedObject, fractionTick,
+  drawMode = 'none', drawColor = '#111827', drawWidth = 4,
+  onSetDrawMode, onSetDrawColor, onSetDrawWidth,
+  runPillowOnSelected, isProcessing, hasSelectedImage,
+  selectedImageNaturalSize, getOverlayWrapper, onMergeImages,
 }) {
   const {
     user, libraryUploadRef, libraryImages, loadingLibrary, uploadingToLibrary,
@@ -22,6 +38,7 @@ export default function PptxSidebar({
 
   const [librarySubject, setLibrarySubject] = useState('all');
   const [showStudio, setShowStudio] = useState(false);
+  const [photoTool, setPhotoTool] = useState('crop');
 
   const filteredImages = librarySubject === 'all'
     ? libraryImages
@@ -37,31 +54,8 @@ export default function PptxSidebar({
     if (imageUrl) onAddImage(imageUrl);
   };
 
-  const handleTabClick = (tabId) => {
-    if (activeTab === tabId && expanded) { onToggle(false); }
-    else { onTabChange(tabId); onToggle(true); }
-  };
-
   return (
     <>
-      <div className="w-[52px] min-w-[52px] bg-white border-r border-gray-200 flex flex-col items-center py-3 gap-0.5 z-50">
-        {SIDEBAR_TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id && expanded;
-          return (
-            <button key={tab.id} onClick={() => handleTabClick(tab.id)} id={`pptx-tab-${tab.id}`}
-              className={`w-10 h-10 rounded-[10px] border-none bg-transparent flex flex-col items-center justify-center cursor-pointer transition-all duration-150 gap-0.5 text-[9px] font-medium relative
-                ${isActive
-                  ? 'bg-orange-50 text-orange-600 before:content-[""] before:absolute before:-left-1.5 before:top-1/2 before:-translate-y-1/2 before:w-[3px] before:h-5 before:bg-orange-500 before:rounded-r'
-                  : 'text-gray-500 hover:bg-gray-100 hover:text-orange-600'
-                }`}>
-              <Icon size={18} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
       <div className={`bg-white border-r border-gray-200 flex flex-col overflow-hidden z-[45] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
         ${expanded ? 'w-[260px] min-w-[260px] opacity-100' : 'w-0 min-w-0 border-0 opacity-0'}`}>
         {expanded && (
@@ -215,6 +209,133 @@ export default function PptxSidebar({
 
               {activeTab === 'pexels' && (
                 <PexelsImageSearch onAddImage={onAddImage} onSaved={loadLibraryImages} accent="orange" />
+              )}
+
+              {activeTab === 'draw' && (
+                <div className="space-y-4">
+                  <p className="text-xs text-gray-400">Chọn chế độ vẽ rồi vẽ trực tiếp lên slide.</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {DRAW_MODES.map((m) => {
+                      const Icon = m.icon;
+                      const active = drawMode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => onSetDrawMode?.(active ? 'none' : m.id)}
+                          className={`flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-3 text-[11px] font-medium transition ${active ? 'border-orange-400 bg-orange-50 text-orange-600' : 'border-gray-200 text-gray-600 hover:border-orange-300 hover:bg-orange-50'}`}
+                        >
+                          <Icon size={18} />
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <span className="text-xs font-medium text-gray-600">Màu nét</span>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {COLORS_SMALL.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => onSetDrawColor?.(color)}
+                          style={{ backgroundColor: color }}
+                          className={`h-6 w-6 rounded-full border-2 transition ${drawColor === color ? 'border-slate-700 ring-2 ring-slate-300' : 'border-white shadow'}`}
+                          aria-label={`Chọn màu ${color}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-medium text-gray-600">
+                      <span>Độ rộng nét</span>
+                      <span className="tabular-nums">{drawWidth}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={40}
+                      step={1}
+                      value={drawWidth}
+                      onChange={(e) => onSetDrawWidth?.(Number(e.target.value))}
+                      className="w-full accent-orange-500"
+                    />
+                  </div>
+
+                  {drawMode !== 'none' && (
+                    <p className="text-[11px] text-orange-500">Đang bật chế độ {DRAW_MODES.find((m) => m.id === drawMode)?.label}. Nhấn lại nút để tắt.</p>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'teach' && (
+                <TeachPanel
+                  fabricRef={{ current: getCanvas?.() || null }}
+                  selectedObject={selectedObject}
+                  saveHistory={onSaveHistory}
+                  fractionTick={fractionTick}
+                />
+              )}
+
+              {activeTab === 'sticker' && (
+                <IconsPanel
+                  fabricRef={{ current: getCanvas?.() || null }}
+                  saveHistory={onSaveHistory}
+                />
+              )}
+
+              {activeTab === 'photo' && (
+                <div>
+                  <div className="mb-3 grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1">
+                    {[
+                      { id: 'crop', label: 'Cắt' },
+                      { id: 'adjust', label: 'Chỉnh màu' },
+                      { id: 'compose', label: 'Ghép ảnh' },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setPhotoTool(t.id)}
+                        className={`rounded-md py-1.5 text-[12px] font-medium transition ${photoTool === t.id ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {!hasSelectedImage && (
+                    <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-600">
+                      Chọn một ảnh trên slide để chỉnh sửa.
+                    </p>
+                  )}
+
+                  {photoTool === 'crop' && (
+                    <CropPanel
+                      onApply={runPillowOnSelected}
+                      wrapperRef={{ current: getOverlayWrapper?.() || null }}
+                      fabricRef={{ current: getCanvas?.() || null }}
+                    />
+                  )}
+
+                  {photoTool === 'adjust' && (
+                    <AdjustPanel
+                      hasBackground={hasSelectedImage}
+                      onApply={runPillowOnSelected}
+                      isProcessing={isProcessing}
+                    />
+                  )}
+
+                  {photoTool === 'compose' && (
+                    <ComposePanel
+                      savedImages={libraryImages}
+                      naturalSize={selectedImageNaturalSize}
+                      onApply={runPillowOnSelected}
+                      wrapperRef={{ current: getOverlayWrapper?.() || null }}
+                    />
+                  )}
+                </div>
               )}
             </div>
           </>

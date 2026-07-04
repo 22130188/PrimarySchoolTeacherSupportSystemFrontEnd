@@ -11,12 +11,22 @@ import {
   isLikelyLegacyTableImage,
   restoreEditableTableImages,
 } from '../../utils/tableModel';
+import { addFractionPizza, toggleFractionSlice, setFractionColor } from '../../components/ImageEditor/tools/fractionTool.js';
+import { addClock, setClockTime } from '../../components/ImageEditor/tools/clockTool.js';
+import { addTextFraction } from '../../components/ImageEditor/tools/textFraction.js';
+import { addLibrarySticker, addServerSticker } from '../../components/ImageEditor/tools/stickers.js';
+import {
+  enablePencil, enableBrush, enableEraser, disableDrawing,
+  updateBrushColor, updateBrushWidth,
+} from '../../components/ImageEditor/tools/drawing.js';
 
-const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange, onTableContextMenu, onTableDoubleClick, readOnly = false }, ref) => {
+const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified, onHistoryChange, onTableContextMenu, onTableDoubleClick, onFractionToggle, readOnly = false }, ref) => {
   const canvasElRef = useRef(null);
   const fabricRef = useRef(null);
   const historyRef = useRef({ undoStack: [], redoStack: [], isRestoring: false });
   const clipboardRef = useRef(null);
+  const eraserCleanupRef = useRef(null);
+  const overlayWrapperRef = useRef(null);
 
   const saveToHistory = useCallback(() => {
     const hist = historyRef.current;
@@ -126,6 +136,15 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
 
     const handleDblClick = (opt) => {
       const target = opt.target;
+      if (target?.teachTool === 'fraction' && opt.subTargets?.length && !readOnly) {
+        toggleFractionSlice(target, opt.subTargets[0]);
+        target.set('dirty', true);
+        canvas.requestRenderAll();
+        saveToHistory();
+        onSelectionChange?.(target);
+        onFractionToggle?.();
+        return;
+      }
       if (target && isLikelyLegacyTableImage(target) && !readOnly) {
         ensureTableDataForImage(target);
         onTableDoubleClick?.(target);
@@ -145,6 +164,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
     });
     canvas.on('mouse:down', handleMouseDown);
     canvas.on('mouse:dblclick', handleDblClick);
+    canvas.on('path:created', handleModified);
     };
 
     initCanvas();
@@ -300,6 +320,86 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       } catch (err) { console.error('Failed to add image:', err); }
     },
 
+    addFractionPizza: (opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      addFractionPizza(canvas, opts);
+      saveToHistory();
+    },
+
+    setFractionColor: (obj, color) => {
+      const canvas = fabricRef.current;
+      if (!canvas || !obj) return;
+      setFractionColor(obj, color);
+      canvas.requestRenderAll();
+      saveToHistory();
+    },
+
+    addClock: (opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      addClock(canvas, opts);
+      saveToHistory();
+    },
+
+    setClockTime: (obj, hour, minute) => {
+      const canvas = fabricRef.current;
+      if (!canvas || !obj) return;
+      setClockTime(obj, hour, minute);
+      canvas.requestRenderAll();
+      saveToHistory();
+    },
+
+    addTextFraction: (opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      addTextFraction(canvas, opts);
+      saveToHistory();
+    },
+
+    addLibrarySticker: async (iconJsx, opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      await addLibrarySticker(canvas, iconJsx, opts);
+      saveToHistory();
+    },
+
+    addServerSticker: async (url, opts) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      await addServerSticker(canvas, url, opts);
+      saveToHistory();
+    },
+
+    setDrawingMode: (mode, { color = '#111827', width = 4 } = {}) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      if (eraserCleanupRef.current) {
+        eraserCleanupRef.current();
+        eraserCleanupRef.current = null;
+      }
+      disableDrawing(canvas);
+      if (mode === 'pencil') {
+        enablePencil(canvas, { color, width });
+      } else if (mode === 'brush') {
+        enableBrush(canvas, { color, width: Math.max(width, 10) });
+      } else if (mode === 'eraser') {
+        eraserCleanupRef.current = enableEraser(canvas, { onChange: saveToHistory });
+      }
+    },
+
+    updateBrush: (color, width) => {
+      const canvas = fabricRef.current;
+      if (!canvas) return;
+      updateBrushColor(canvas, color);
+      updateBrushWidth(canvas, width);
+    },
+
+    getSelectedImage: () => {
+      const active = fabricRef.current?.getActiveObject();
+      return active && active.type === 'image' ? active : null;
+    },
+
     deleteSelected: () => {
       const canvas = fabricRef.current;
       if (!canvas) return;
@@ -318,6 +418,34 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
         cloned.set({ left: (active.left || 0) + 20, top: (active.top || 0) + 20, ...CONTROL_STYLE });
         canvas.add(cloned); canvas.setActiveObject(cloned); canvas.renderAll(); saveToHistory();
       });
+    },
+
+    bringToFront: () => {
+      const canvas = fabricRef.current;
+      const active = canvas?.getActiveObject();
+      if (!active) return;
+      canvas.bringObjectToFront(active); canvas.requestRenderAll(); saveToHistory();
+    },
+
+    bringForward: () => {
+      const canvas = fabricRef.current;
+      const active = canvas?.getActiveObject();
+      if (!active) return;
+      canvas.bringObjectForward(active); canvas.requestRenderAll(); saveToHistory();
+    },
+
+    sendBackward: () => {
+      const canvas = fabricRef.current;
+      const active = canvas?.getActiveObject();
+      if (!active) return;
+      canvas.sendObjectBackwards(active); canvas.requestRenderAll(); saveToHistory();
+    },
+
+    sendToBack: () => {
+      const canvas = fabricRef.current;
+      const active = canvas?.getActiveObject();
+      if (!active) return;
+      canvas.sendObjectToBack(active); canvas.requestRenderAll(); saveToHistory();
     },
 
     undo: () => {
@@ -407,11 +535,14 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
     },
 
     getObjects: () => fabricRef.current?.getObjects() || [],
+
+    getOverlayWrapper: () => overlayWrapperRef.current,
   }));
 
   return (
     <div className="flex-1 overflow-auto flex justify-center items-center px-5 py-8 pptx-canvas-bg">
       <div
+        ref={overlayWrapperRef}
         className="relative shrink-0"
         style={{ width: SLIDE_WIDTH * zoom, height: SLIDE_HEIGHT * zoom }}
       >
