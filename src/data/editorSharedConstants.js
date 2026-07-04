@@ -51,6 +51,8 @@ export const CUSTOM_SERIALIZATION_PROPS = [
   'subTargetCheck', 'interactive',
   'shapeType',
   'isTableImage', 'tableData', '_tableData',
+  'teachTool', 'eaten', 'sliceIndex', 'sliceCount', 'filledColor', 'fractionShape',
+  'clockRole', 'fracRole',
 ];
 
 /**
