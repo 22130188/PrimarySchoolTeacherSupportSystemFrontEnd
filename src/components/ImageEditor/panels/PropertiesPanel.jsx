@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Group, Ungroup, Eraser } from 'lucide-react';
 import { FONT_LIST, FONT_SIZES } from '../../../data/editorSharedConstants';
+import { processImage } from '../PillowBridge.js';
 
 export default function PropertiesPanel({
   fabricRef,
@@ -17,12 +18,16 @@ export default function PropertiesPanel({
   hasBackground,
   isProcessing,
   onRemoveBackground,
+  saveHistory,
 }) {
   const obj = selectedObject;
   const type = obj?.type;
   const isText = type === 'i-text' || type === 'text' || type === 'textbox';
   const isSelection = type === 'activeselection';
   const isGroup = type === 'group';
+  const hasStickerSelection = type === 'image'
+    ? !!obj?.stickerKind
+    : type === 'activeselection' && obj?.getObjects?.().some((item) => !!item.stickerKind);
 
   const [, force] = useState(0);
   useEffect(() => { force((n) => n + 1); }, [selectedObject]);
@@ -53,14 +58,94 @@ export default function PropertiesPanel({
     onUpdateText(props);
   };
 
+  const recolorSticker = async (object, nextColor) => {
+    if (!object || object.type !== 'image' || object.isBackground || !object.stickerKind) return false;
+
+    const source = object.stickerSource || object.getSrc?.() || object._element?.src;
+    if (!source) return false;
+
+    const resultUrl = await processImage(
+      source,
+      [{ type: 'recolor_icon', color: nextColor, threshold: 245, strength: 1 }],
+      { returnType: 'base64' }
+    );
+    if (!resultUrl) return false;
+
+    await object.setSrc(resultUrl, { crossOrigin: 'anonymous' });
+    object.set({ stickerSource: source, stickerColor: nextColor, dirty: true });
+    return true;
+  };
+
+  const restoreSticker = async (object) => {
+    if (!object || object.type !== 'image' || object.isBackground || !object.stickerKind || !object.stickerSource) return false;
+    await object.setSrc(object.stickerSource, { crossOrigin: 'anonymous' });
+    object.set({ stickerColor: null, dirty: true });
+    return true;
+  };
+
   const applyShape = (props) => {
     const c = fabricRef.current;
     const a = c?.getActiveObject();
     if (!a) return;
     a.set(props);
     c.requestRenderAll();
+    saveHistory?.();
   };
 
+  const applyObjectColor = async (nextColor, propName) => {
+    const c = fabricRef.current;
+    const active = c?.getActiveObject();
+    if (!c || !active) return;
+
+    try {
+      if (active.type === 'activeselection') {
+        let changed = false;
+        for (const object of active.getObjects()) {
+          if (await recolorSticker(object, nextColor)) {
+            changed = true;
+          } else if (!isText) {
+            object.set({ [propName]: nextColor });
+            changed = true;
+          }
+        }
+        if (!changed) return;
+      } else if (await recolorSticker(active, nextColor)) {
+        // Sticker has already been recolored by Pillow.
+      } else if (!isText) {
+        active.set({ [propName]: nextColor });
+      } else {
+        return;
+      }
+
+      c.setActiveObject(active);
+      c.requestRenderAll();
+      saveHistory?.();
+    } catch (err) {
+      console.error('Error applying selected color:', err);
+    }
+  };
+
+  const restoreSelectedStickers = async () => {
+    const c = fabricRef.current;
+    const active = c?.getActiveObject();
+    if (!c || !active) return;
+
+    try {
+      if (active.type === 'activeselection') {
+        const changed = await Promise.all(active.getObjects().map((object) => restoreSticker(object)));
+        if (!changed.some(Boolean)) return;
+      } else {
+        const changed = await restoreSticker(active);
+        if (!changed) return;
+      }
+
+      c.setActiveObject(active);
+      c.requestRenderAll();
+      saveHistory?.();
+    } catch (err) {
+      console.error('Error restoring selected icon:', err);
+    }
+  };
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5">
       <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
@@ -72,7 +157,7 @@ export default function PropertiesPanel({
         <input
           type="color"
           value={strokeColor}
-          onChange={(e) => { setStrokeColor(e.target.value); if (!isText) applyShape({ stroke: e.target.value }); }}
+          onChange={(e) => { setStrokeColor(e.target.value); if (!isText) applyObjectColor(e.target.value, 'stroke'); }}
           className="h-6 w-7 cursor-pointer rounded border border-slate-200"
         />
       </div>
@@ -100,12 +185,22 @@ export default function PropertiesPanel({
           <input
             type="color"
             value={fillColor}
-            onChange={(e) => { setFillColor(e.target.value); applyShape({ fill: e.target.value }); }}
+            onChange={(e) => { setFillColor(e.target.value); applyObjectColor(e.target.value, 'fill'); }}
             className="h-6 w-7 cursor-pointer rounded border border-slate-200"
           />
         </div>
       )}
 
+      {hasStickerSelection && (
+        <button
+          type="button"
+          onClick={restoreSelectedStickers}
+          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+          title="Dùng ảnh gốc"
+        >
+          Gốc
+        </button>
+      )}
       {isText && (
         <>
           <span className="h-6 w-px bg-slate-200" />

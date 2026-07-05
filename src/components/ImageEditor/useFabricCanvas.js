@@ -7,6 +7,7 @@ const SERIALIZE_PROPS = [
   'shapeType', 'isBackground', 'teachTool', 'eaten', 'sliceIndex',
   'sliceCount', 'clockRole', 'fracRole', 'selectable', 'evented', 'subTargetCheck',
   'thermoRole', 'thermoValue', 'scaleRole', 'scaleLeft', 'scaleRight',
+  'stickerKind', 'stickerSource', 'stickerColor',
 ];
 
 if (fabric?.FabricObject) {

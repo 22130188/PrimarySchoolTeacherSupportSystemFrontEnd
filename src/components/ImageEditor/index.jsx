@@ -33,6 +33,7 @@ export default function ImageEditor({
   user,
   savedImages = [],
   onSaveSuccess,
+  onDeleteImage,
   stickyToolbar = true,
   toolbarStickyTopClass = 'top-[64px]',
   compactShell = false,
@@ -386,6 +387,7 @@ export default function ImageEditor({
               hasBackground={hasBackground}
               isProcessing={isProcessing}
               onRemoveBackground={handleRemoveBackground}
+              saveHistory={saveHistory}
             />
           </div>
         )}
@@ -411,6 +413,7 @@ export default function ImageEditor({
                 onPickImage={loadBackground}
                 onAddImage={addImageToCanvas}
                 onCreateBlank={createBlankCanvas}
+                onDeleteImage={onDeleteImage}
               />
             )}
             {panel === 'adjust' && (
