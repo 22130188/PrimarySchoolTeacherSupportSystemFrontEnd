@@ -35,7 +35,8 @@ export async function loadServerIcons() {
 }
 
 export function serverIconUrl(name) {
-  return `${CANVAS_API_URL}/api/canvas/icon/${name}`;
+  const encodedName = String(name || '').split('/').map(encodeURIComponent).join('/');
+  return `${CANVAS_API_URL}/api/canvas/icon/${encodedName}`;
 }
 
 export function dataUrlToBlob(dataUrl) {
@@ -72,3 +73,4 @@ export async function saveToLibrary({ description, subject, imageUrl, user }) {
 }
 
 export { CANVAS_API_URL, IMAGE_API_URL };
+

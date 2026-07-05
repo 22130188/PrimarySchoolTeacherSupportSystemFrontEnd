@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { BookOpen, Plus, Search, FileText, Presentation, Trash2, Loader2, RefreshCw, AlertTriangle, Share2, Eye, Copy, Users, School, Edit3, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, Plus, Search, FileText, Presentation, Trash2, Loader2, RefreshCw, AlertTriangle, Share2, Eye, Copy, Users, School, Edit3, X, ChevronLeft, ChevronRight, Languages } from 'lucide-react';
 import { SUBJECTS, GRADES } from '../../data/editorSharedConstants';
 import { DRAFT_COLORS, DRAFT_EMOJIS, SUBJECT_EMOJI } from '../../data/lessonData';
 import CreateLessonModal from './CreateLessonModal';
 import ShareLessonModal from './ShareLessonModal';
 import ShareToClassroomModal from './ShareToClassroomModal';
+import TranslateLessonModal from './TranslateLessonModal';
 import LessonTemplatesTab from './LessonTemplatesTab';
 import lessonDraftApi from '../../services/lessonDraftApi';
 import { useAuthStore } from '../../stores/authStore';
@@ -64,6 +65,7 @@ export default function LessonsPage() {
   const [sharedError, setSharedError] = useState('');
   const [duplicatingId, setDuplicatingId] = useState(null);
   const [shareToClassroomLesson, setShareToClassroomLesson] = useState(null);
+  const [translateLesson, setTranslateLesson] = useState(null);
 
   const fetchDrafts = useCallback(async (title, subject, grade) => {
     try {
@@ -502,6 +504,20 @@ export default function LessonsPage() {
                             <Share2 className="w-4 h-4" />
                           </button>
                         )}
+                        {/* Translate button */}
+                        {!isStudent && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTranslateLesson({ id: lesson.id, title: lesson.title });
+                            }}
+                            className="absolute bottom-2 right-[4.5rem] p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all opacity-0 group-hover:opacity-100"
+                            title="Dịch bài giảng"
+                          >
+                            <Languages className="w-4 h-4" />
+                          </button>
+                        )}
                         {/* Share to classroom button */}
                         {!isStudent && (
                           <button
@@ -510,7 +526,7 @@ export default function LessonsPage() {
                               e.stopPropagation();
                               setShareToClassroomLesson({ id: lesson.id, title: lesson.title });
                             }}
-                            className="absolute bottom-2 right-[4.5rem] p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-teal-500 hover:bg-teal-50 transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute bottom-2 right-[6.5rem] p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-teal-500 hover:bg-teal-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Chia sẻ vào lớp học"
                           >
                             <School className="w-4 h-4" />
@@ -780,6 +796,17 @@ export default function LessonsPage() {
           lessonId={shareToClassroomLesson.id}
           lessonTitle={shareToClassroomLesson.title}
           onClose={() => setShareToClassroomLesson(null)}
+        />
+      )}
+
+      {/* Translate lesson modal */}
+      {translateLesson && (
+        <TranslateLessonModal
+          lesson={translateLesson}
+          onClose={() => setTranslateLesson(null)}
+          onTranslated={() => {
+            fetchDrafts(searchTitle, filterSubject, filterGrade);
+          }}
         />
       )}
     </div>

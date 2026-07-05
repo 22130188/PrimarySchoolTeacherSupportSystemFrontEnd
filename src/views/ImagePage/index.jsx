@@ -31,6 +31,12 @@ export default function ImagePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  const handleDeleteImage = async (imageId) => {
+    await axios.delete(`${IMAGE_API_URL}/images/${imageId}`);
+    setSavedImages((prev) => prev.filter((image) => image.id !== imageId));
+    loadSavedImages();
+  };
+
   return (
     <div className="min-h-screen bg-[#eef2f7]">
       <Navbar />
@@ -43,6 +49,7 @@ export default function ImagePage() {
                 user={user}
                 savedImages={savedImages}
                 onSaveSuccess={loadSavedImages}
+                onDeleteImage={handleDeleteImage}
               />
             </div>
           </main>

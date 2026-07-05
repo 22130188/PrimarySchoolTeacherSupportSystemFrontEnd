@@ -20,6 +20,16 @@ const collaboraApi = {
     }, { headers: getAuthHeader() });
     return response.data;
   },
+  translateDraft: async (draftId, { sourceLang, targetLang, title }) => {
+    const response = await axios.post(`${BASE_URL}/drafts/${draftId}/translate`, {
+      sourceLang,
+      targetLang,
+      source_lang: sourceLang,
+      target_lang: targetLang,
+      title,
+    }, { headers: getAuthHeader() });
+    return response.data;
+  },
 
   getEditorSession: async (draftId) => {
     const response = await axios.get(`${BASE_URL}/drafts/${draftId}/editor`, {

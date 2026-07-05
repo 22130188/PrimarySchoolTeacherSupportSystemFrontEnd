@@ -22,12 +22,14 @@ const clearDraftListCache = () => {
 };
 
 const lessonDraftApi = {
-  saveDraft: async ({ draftId, title, subject, grade, type, canvasJson }) => {
+  saveDraft: async ({ draftId, title, subject, grade, volume, book, type, canvasJson }) => {
     const response = await axios.post(BASE_URL, {
       draftId: draftId || null,
       title,
       subject,
       grade,
+      volume,
+      book,
       type,
       canvasJson,
     }, { headers: getAuthHeader() });

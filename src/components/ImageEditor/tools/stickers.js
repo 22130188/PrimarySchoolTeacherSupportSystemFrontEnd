@@ -54,7 +54,7 @@ export function renderIconToPngDataUrl(iconElement, size = 400, color = '#7c3aed
   });
 }
 
-async function placeImage(canvas, dataUrl, displaySize = 90) {
+async function placeImage(canvas, dataUrl, displaySize = 90, metadata = {}) {
   if (!canvas || !dataUrl) return null;
   const img = await fabric.FabricImage.fromURL(dataUrl, { crossOrigin: 'anonymous' });
   const scale = displaySize / Math.max(img.width || displaySize, img.height || displaySize);
@@ -63,6 +63,7 @@ async function placeImage(canvas, dataUrl, displaySize = 90) {
     top: canvas.getHeight() / 2 + (Math.random() * 60 - 30),
     originX: 'center', originY: 'center',
     scaleX: scale, scaleY: scale,
+    ...metadata,
     ...CONTROL_STYLE,
   });
   canvas.add(img);
@@ -73,9 +74,17 @@ async function placeImage(canvas, dataUrl, displaySize = 90) {
 
 export async function addLibrarySticker(canvas, iconJsx, { color = '#7c3aed', size = 90 } = {}) {
   const png = await renderIconToPngDataUrl(iconJsx, 400, color);
-  return placeImage(canvas, png, size);
+  return placeImage(canvas, png, size, {
+    stickerKind: 'library',
+    stickerSource: png,
+    stickerColor: color,
+  });
 }
 
-export async function addServerSticker(canvas, url, { size = 90 } = {}) {
-  return placeImage(canvas, url, size);
+export async function addServerSticker(canvas, url, { size = 90, sourceUrl = url, color = null } = {}) {
+  return placeImage(canvas, url, size, {
+    stickerKind: 'server',
+    stickerSource: sourceUrl,
+    stickerColor: color,
+  });
 }
