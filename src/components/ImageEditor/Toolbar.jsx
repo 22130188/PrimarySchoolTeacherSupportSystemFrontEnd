@@ -7,7 +7,7 @@ import {
   ZoomIn, ZoomOut, Maximize, Grid3x3,
   Undo2, Redo2, Copy, Trash2,
   ChevronsUp, ChevronsDown, ArrowUp, ArrowDown,
-  RotateCcw, Download, Save,
+  RotateCcw, Download, Save, Loader2,
 } from 'lucide-react';
 
 const SHAPE_ITEMS = [
@@ -68,6 +68,9 @@ export default function Toolbar({
   onResetAll,
   onDownload,
   onSaveLibrary,
+  onRemoveBackground,
+  canRemoveBackground,
+  isProcessing,
 }) {
   const [shapeOpen, setShapeOpen] = React.useState(false);
 
@@ -137,6 +140,13 @@ export default function Toolbar({
       </ToolButton>
       <ToolButton active={panel === 'adjust'} onClick={() => onTogglePanel('adjust')} title="Chỉnh màu (Pillow)">
         <Sliders className="h-4 w-4" />
+      </ToolButton>
+      <ToolButton
+        onClick={onRemoveBackground}
+        disabled={!canRemoveBackground || isProcessing}
+        title={isProcessing ? 'Đang xóa nền...' : 'Xóa nền bằng Pillow'}
+      >
+        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
       </ToolButton>
       <ToolButton active={panel === 'compose'} onClick={() => onTogglePanel('compose')} title="Ghép ảnh & watermark">
         <Images className="h-4 w-4" />
