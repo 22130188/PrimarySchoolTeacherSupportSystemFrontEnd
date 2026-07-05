@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Upload, FileImage, Square } from 'lucide-react';
 
-export default function SourcePanel({ savedImages = [], onPickImage, onCreateBlank }) {
+export default function SourcePanel({ savedImages = [], onPickImage, onAddImage, onCreateBlank }) {
   const fileRef = useRef(null);
 
   const handleFile = (e) => {
@@ -65,7 +65,7 @@ export default function SourcePanel({ savedImages = [], onPickImage, onCreateBla
                 <button
                   key={img.id || url}
                   type="button"
-                  onClick={() => onPickImage(url)}
+                  onClick={() => onAddImage?.(url)}
                   className="group relative aspect-square overflow-hidden rounded-md border border-slate-200 hover:border-indigo-400"
                   title={img.description || 'Ảnh đã lưu'}
                 >

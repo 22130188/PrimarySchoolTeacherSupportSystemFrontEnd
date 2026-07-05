@@ -19,6 +19,7 @@ import {
 import { addShape } from './tools/shapes.js';
 import { addText, updateActiveText } from './tools/text.js';
 import { toggleFractionSlice } from './tools/fractionTool.js';
+import { addServerSticker } from './tools/stickers.js';
 
 import SourcePanel from './panels/SourcePanel.jsx';
 import AdjustPanel from './panels/AdjustPanel.jsx';
@@ -188,6 +189,14 @@ export default function ImageEditor({
     setHasBackground(true);
   }, [fabricRef, runSilent, setCanvasSize]);
 
+  const addImageToCanvas = useCallback(async (url) => {
+    const c = fabricRef.current;
+    if (!c || !url) return;
+    const maxSize = Math.max(120, Math.min(c.getWidth(), c.getHeight()) * 0.6);
+    await addServerSticker(c, url, { size: maxSize });
+    setTool('select');
+  }, [fabricRef]);
+
   const createBlankCanvas = useCallback((width = 800, height = 600) => {
     const c = fabricRef.current;
     if (!c) return;
@@ -241,6 +250,34 @@ export default function ImageEditor({
     }
   }, [exportBackgroundOnly, loadBackground]);
 
+  const handleRemoveBackground = useCallback(async () => {
+    const c = fabricRef.current;
+    const active = c?.getActiveObject();
+    if (active?.type === 'image' && !active.isBackground) {
+      const src = active.getSrc?.() || active._element?.src;
+      if (!src) { alert('Không đọc được ảnh đang chọn để xóa nền.'); return; }
+      setIsProcessing(true);
+      try {
+        const resultUrl = await processImage(src, [{ type: 'remove_background' }], { returnType: 'base64' });
+        if (resultUrl) {
+          await active.setSrc(resultUrl, { crossOrigin: 'anonymous' });
+          active.set({ dirty: true, ...CONTROL_STYLE });
+          c.setActiveObject(active);
+          c.requestRenderAll();
+          saveHistory();
+          setSelectedObject(active);
+        }
+      } catch (err) {
+        console.error('Pillow remove background error:', err);
+        alert('Lỗi xóa nền: ' + (err?.message || err));
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    runPillowOnBackground([{ type: 'remove_background' }]);
+  }, [fabricRef, runPillowOnBackground, saveHistory]);
   const handleDownload = useCallback((format = 'png') => {
     const url = exportDataURL(format, 0.92);
     if (!url) return;
@@ -325,6 +362,9 @@ export default function ImageEditor({
           onResetAll={handleResetAll}
           onDownload={handleDownload}
           onSaveLibrary={() => setShowSaveModal(true)}
+          onRemoveBackground={handleRemoveBackground}
+          canRemoveBackground={hasBackground || selectedObject?.type === 'image'}
+          isProcessing={isProcessing}
         />
         {(selectedObject || hasBackground) && (
           <div className="border-t border-slate-100">
@@ -345,7 +385,7 @@ export default function ImageEditor({
               setFillColor={setFillColor}
               hasBackground={hasBackground}
               isProcessing={isProcessing}
-              onRemoveBackground={() => runPillowOnBackground([{ type: 'remove_background' }])}
+              onRemoveBackground={handleRemoveBackground}
             />
           </div>
         )}
@@ -369,6 +409,7 @@ export default function ImageEditor({
               <SourcePanel
                 savedImages={savedImages}
                 onPickImage={loadBackground}
+                onAddImage={addImageToCanvas}
                 onCreateBlank={createBlankCanvas}
               />
             )}
