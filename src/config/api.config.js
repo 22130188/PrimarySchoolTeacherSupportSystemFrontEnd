@@ -1,13 +1,13 @@
 const getCanvasApiUrl = () => {
-  return import.meta.env.VITE_CANVAS_API_URL || 'http://localhost:8001';
+  return import.meta.env.VITE_CANVAS_API_URL || 'http://localhost:8080';
 };
 
 const getImageApiUrl = () => {
-  return import.meta.env.VITE_IMAGE_API_URL || 'http://localhost:8083';
+  return import.meta.env.VITE_IMAGE_API_URL || 'http://localhost:8080';
 };
 
 const getTtsApiUrl = () => {
-  return import.meta.env.VITE_TTS_API_URL || 'http://localhost:8084/api/tts';
+  return import.meta.env.VITE_TTS_API_URL || 'http://localhost:8080/api/tts';
 };
 
 const getPronunciationApiUrl = () => {
