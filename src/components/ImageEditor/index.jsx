@@ -11,6 +11,7 @@ import {
   CANVAS_API_URL,
 } from './PillowBridge.js';
 import { CONTROL_STYLE } from '../../data/editorSharedConstants';
+import { SUBJECT_OPTIONS } from '../../data/aiImageConstants';
 
 import {
   enablePencil, enableBrush, enableEraser, disableDrawing,
@@ -470,13 +471,16 @@ export default function ImageEditor({
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600">Môn học</label>
-                <input
-                  type="text"
+                <select
                   value={saveForm.subject}
                   onChange={(e) => setSaveForm((f) => ({ ...f, subject: e.target.value }))}
-                  placeholder="VD: Toán"
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                />
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">Chọn môn học</option>
+                  {SUBJECT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
