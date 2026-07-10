@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const FILTERS = [
   { id: 'none', label: 'Gốc' },
@@ -27,7 +28,7 @@ function Slider({ label, value, min, max, step, onChange }) {
   );
 }
 
-export default function AdjustPanel({ hasBackground, onApply, isProcessing }) {
+export default function AdjustPanel({ hasSelectedImage, onApply, isProcessing }) {
   const [brightness, setBrightness] = useState(1);
   const [contrast, setContrast] = useState(1);
   const [saturation, setSaturation] = useState(1);
@@ -42,7 +43,7 @@ export default function AdjustPanel({ hasBackground, onApply, isProcessing }) {
   const [borderWidth, setBorderWidth] = useState(0);
   const [shadow, setShadow] = useState(false);
 
-  const disabled = !hasBackground || isProcessing;
+  const disabled = !hasSelectedImage || isProcessing;
 
   const buildOps = () => {
     const ops = [];
@@ -69,15 +70,18 @@ export default function AdjustPanel({ hasBackground, onApply, isProcessing }) {
   const apply = async () => {
     const ops = buildOps();
     if (!ops.length) return;
-    await onApply(ops);
-    reset();
+    const applied = await onApply(ops);
+    if (applied) {
+      reset();
+      toast.success('Đã áp dụng chỉnh màu lên ảnh được chọn.');
+    }
   };
 
   return (
     <div className="space-y-2.5">
       <h4 className="text-sm font-semibold text-slate-800">Chỉnh màu (Pillow)</h4>
-      {!hasBackground && (
-        <p className="text-xs text-amber-600">Chọn ảnh nền ở tab Nguồn trước.</p>
+      {!hasSelectedImage && (
+        <p className="text-xs text-amber-600">Chọn một ảnh trên canvas trước khi chỉnh.</p>
       )}
       <div className="space-y-1.5">
         <Slider label="Độ sáng" value={brightness} min={0.2} max={2} step={0.05} onChange={setBrightness} />
@@ -137,7 +141,7 @@ export default function AdjustPanel({ hasBackground, onApply, isProcessing }) {
         disabled={disabled}
         className="w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40"
       >
-        Áp dụng lên ảnh nền
+        {isProcessing ? 'Đang xử lý...' : 'Áp dụng lên ảnh được chọn'}
       </button>
     </div>
   );

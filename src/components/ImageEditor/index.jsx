@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
 import { Download, Save, RotateCcw, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { useFabricCanvas } from './useFabricCanvas.js';
 import Toolbar from './Toolbar.jsx';
@@ -49,7 +50,7 @@ export default function ImageEditor({
     bringForward, sendBackward, bringToFront, sendToBack,
     groupSelection, ungroupSelection,
     deleteSelected, duplicateSelected,
-    setCanvasSize, getBaseSize, exportDataURL,
+    setCanvasSize, exportDataURL,
   } = canvas;
 
   const [tool, setTool] = useState('select');
@@ -73,6 +74,12 @@ export default function ImageEditor({
 
   const eraserCleanupRef = useRef(null);
   const wrapperRef = useRef(null);
+  const [wrapperElement, setWrapperElement] = useState(null);
+
+  const setWrapper = useCallback((node) => {
+    wrapperRef.current = node;
+    setWrapperElement(node);
+  }, []);
 
   function setSelected(obj) {
     setSelectedObject(obj);
@@ -223,9 +230,15 @@ export default function ImageEditor({
     const c = fabricRef.current;
     if (!c) return null;
     const bg = c.getObjects().find((o) => o.isBackground);
-    if (!bg) return null;
     const { width, height } = naturalSizeRef.current;
     const tmp = new fabric.StaticCanvas(null, { width, height });
+    tmp.backgroundColor = c.backgroundColor || '#ffffff';
+    if (!bg) {
+      tmp.renderAll();
+      const url = tmp.toDataURL({ format: 'png', enableRetinaScaling: false });
+      tmp.dispose();
+      return Promise.resolve(url);
+    }
     return bg.clone().then((clone) => {
       clone.set({ left: 0, top: 0, originX: 'left', originY: 'top', scaleX: 1, scaleY: 1, angle: 0 });
       tmp.add(clone);
@@ -236,28 +249,104 @@ export default function ImageEditor({
     });
   }, [fabricRef]);
 
-  const runPillowOnBackground = useCallback(async (operations) => {
-    if (!operations?.length) return;
+  const runPillowOnBackground = useCallback(async (operations, options = {}) => {
+    if (!operations?.length) return false;
     setIsProcessing(true);
     try {
-      const src = await exportBackgroundOnly();
-      if (!src) { alert('Chưa có ảnh nền để xử lý.'); return; }
+      const src = options.source || await exportBackgroundOnly();
+      if (!src) { toast.warning('Chưa có ảnh nền để xử lý.'); return false; }
       const resultUrl = await processImage(src, operations, { returnType: 'base64' });
-      if (resultUrl) await loadBackground(resultUrl);
+      if (!resultUrl) throw new Error('Máy chủ không trả về ảnh kết quả.');
+      await loadBackground(resultUrl);
+      return true;
     } catch (err) {
       console.error('Pillow op error:', err);
-      alert('Lỗi xử lý ảnh: ' + (err?.message || err));
+      toast.error('Xử lý ảnh thất bại', { description: err?.message || String(err) });
+      return false;
     } finally {
       setIsProcessing(false);
     }
   }, [exportBackgroundOnly, loadBackground]);
+
+  const getSelectedImageInfo = useCallback(() => {
+    const c = fabricRef.current;
+    const img = c?.getActiveObject();
+    if (!img || img.type !== 'image') return null;
+
+    img.setCoords();
+    const bounds = img.getBoundingRect();
+    const vpt = c.viewportTransform || [1, 0, 0, 1, 0, 0];
+    const zoomX = Math.abs(vpt[0]) || 1;
+    const zoomY = Math.abs(vpt[3]) || zoomX;
+    return {
+      object: img,
+      naturalWidth: Math.max(1, Math.round(img.width || 1)),
+      naturalHeight: Math.max(1, Math.round(img.height || 1)),
+      bounds: {
+        left: bounds.left * zoomX + vpt[4],
+        top: bounds.top * zoomY + vpt[5],
+        width: bounds.width * zoomX,
+        height: bounds.height * zoomY,
+      },
+    };
+  }, [fabricRef]);
+
+  const getNaturalCanvasSize = useCallback(() => ({ ...naturalSizeRef.current }), []);
+
+  const runPillowOnCanvasImage = useCallback(async (operations, target) => {
+    if (!operations?.length) return false;
+    const c = fabricRef.current;
+    const img = target || c?.getActiveObject();
+    if (!c || !img || img.type !== 'image') {
+      toast.warning('Hãy chọn ảnh muốn xử lý trên canvas.');
+      return false;
+    }
+
+    setIsProcessing(true);
+    try {
+      const width = Math.max(1, Math.round(img.width || 1));
+      const height = Math.max(1, Math.round(img.height || 1));
+      const tmp = new fabric.StaticCanvas(null, { width, height });
+      const clone = await img.clone();
+      clone.set({
+        left: 0, top: 0, originX: 'left', originY: 'top',
+        scaleX: 1, scaleY: 1, angle: 0, flipX: false, flipY: false,
+      });
+      tmp.add(clone);
+      tmp.renderAll();
+      const source = tmp.toDataURL({ format: 'png', enableRetinaScaling: false });
+      tmp.dispose();
+
+      const center = img.getCenterPoint();
+      const scaleX = img.scaleX || 1;
+      const scaleY = img.scaleY || 1;
+      const resultUrl = await processImage(source, operations, { returnType: 'base64' });
+      if (!resultUrl) throw new Error('Máy chủ không trả về ảnh kết quả.');
+
+      await img.setSrc(resultUrl, { crossOrigin: 'anonymous' });
+      img.set({ scaleX, scaleY, dirty: true, ...CONTROL_STYLE });
+      img.setPositionByOrigin(center, 'center', 'center');
+      img.setCoords();
+      c.setActiveObject(img);
+      c.requestRenderAll();
+      saveHistory();
+      setSelectedObject(img);
+      return true;
+    } catch (err) {
+      console.error('Pillow canvas image error:', err);
+      toast.error('Xử lý ảnh thất bại', { description: err?.message || String(err) });
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [fabricRef, saveHistory]);
 
   const handleRemoveBackground = useCallback(async () => {
     const c = fabricRef.current;
     const active = c?.getActiveObject();
     if (active?.type === 'image' && !active.isBackground) {
       const src = active.getSrc?.() || active._element?.src;
-      if (!src) { alert('Không đọc được ảnh đang chọn để xóa nền.'); return; }
+      if (!src) { toast.error('Không đọc được ảnh đang chọn để xóa nền.'); return; }
       setIsProcessing(true);
       try {
         const resultUrl = await processImage(src, [{ type: 'remove_background' }], { returnType: 'base64' });
@@ -271,7 +360,7 @@ export default function ImageEditor({
         }
       } catch (err) {
         console.error('Pillow remove background error:', err);
-        alert('Lỗi xóa nền: ' + (err?.message || err));
+        toast.error('Xóa nền thất bại', { description: err?.message || String(err) });
       } finally {
         setIsProcessing(false);
       }
@@ -295,9 +384,9 @@ export default function ImageEditor({
     setSaving(true);
     try {
       const dataUrl = exportDataURL('png');
-      if (!dataUrl) { alert('Không có nội dung để lưu.'); return; }
+      if (!dataUrl) { toast.warning('Không có nội dung để lưu.'); return; }
       const cloudUrl = await uploadCanvasImage(dataUrl);
-      if (!cloudUrl) { alert('Tải ảnh lên thất bại.'); return; }
+      if (!cloudUrl) { toast.error('Tải ảnh lên thất bại.'); return; }
       const res = await saveToLibrary({
         description: saveForm.description,
         subject: saveForm.subject,
@@ -306,11 +395,14 @@ export default function ImageEditor({
       });
       if (res) {
         setShowSaveModal(false);
+        toast.success('Đã lưu ảnh vào thư viện.');
         onSaveSuccess?.();
+      } else {
+        toast.error('Lưu ảnh vào thư viện thất bại.');
       }
     } catch (err) {
       console.error('Save error:', err);
-      alert('Lỗi lưu thư viện: ' + (err?.message || err));
+      toast.error('Lưu ảnh vào thư viện thất bại', { description: err?.message || String(err) });
     } finally {
       setSaving(false);
     }
@@ -396,7 +488,7 @@ export default function ImageEditor({
 
       <div className="flex flex-1 min-h-0">
         <div className="relative flex flex-1 min-w-0 overflow-auto bg-slate-100 p-4">
-          <div ref={wrapperRef} className="relative m-auto inline-block shadow-lg">
+          <div ref={setWrapper} className="relative m-auto inline-block shadow-lg">
             <canvas ref={canvasElRef} className="block" />
             {isProcessing && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/60">
@@ -419,18 +511,21 @@ export default function ImageEditor({
             )}
             {panel === 'adjust' && (
               <AdjustPanel
-                hasBackground={hasBackground}
-                onApply={runPillowOnBackground}
+                hasSelectedImage={selectedObject?.type === 'image'}
+                onApply={runPillowOnCanvasImage}
                 isProcessing={isProcessing}
               />
             )}
             {panel === 'compose' && (
               <ComposePanel
                 savedImages={savedImages}
-                naturalSize={naturalSizeRef.current}
                 onApply={runPillowOnBackground}
-                wrapperRef={wrapperRef}
+                onApplyToImage={runPillowOnCanvasImage}
+                getSelectedImageInfo={getSelectedImageInfo}
+                getCanvasSize={getNaturalCanvasSize}
+                portalTarget={wrapperElement}
                 zoom={zoom}
+                isProcessing={isProcessing}
               />
             )}
             {panel === 'icons' && (
@@ -446,9 +541,11 @@ export default function ImageEditor({
             )}
             {panel === 'crop' && (
               <CropPanel
-                onApply={runPillowOnBackground}
-                wrapperRef={wrapperRef}
-                fabricRef={fabricRef}
+                onApply={runPillowOnCanvasImage}
+                getSelectedImageInfo={getSelectedImageInfo}
+                portalTarget={wrapperElement}
+                hasSelectedImage={selectedObject?.type === 'image'}
+                isProcessing={isProcessing}
               />
             )}
           </div>

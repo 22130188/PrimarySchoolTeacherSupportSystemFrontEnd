@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { RotateCw, FlipHorizontal, FlipVertical, Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 const SHAPES = [
   { id: 'rectangle', label: 'Chữ nhật' },
@@ -18,35 +19,19 @@ const RATIOS = [
 function CropOverlay({
   box, setBox, shape, aspectRatio,
   freeformPoints, setFreeformPoints,
-  wrapperRef, fabricRef,
+  portalTarget, targetInfo,
 }) {
   const [drag, setDrag] = useState(null);
   const [drawing, setDrawing] = useState(false);
-  const [, forceRender] = useState(0);
   const svgRef = useRef(null);
-  const wrapper = wrapperRef.current;
-  const canvas = fabricRef.current;
 
-  useEffect(() => {
-    const c = fabricRef.current;
-    if (!c) return;
-    const bump = () => forceRender((n) => n + 1);
-    c.on('after:render', bump);
-    return () => c.off('after:render', bump);
-  }, [fabricRef]);
+  if (!portalTarget || !targetInfo) return null;
 
-  if (!wrapper || !canvas) return null;
-
-  const visualZoom = canvas.__visualZoom;
-  const isCssZoom = typeof visualZoom === 'number';
-  const vpt = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
-  const screenScale = isCssZoom ? visualZoom : (vpt[0] || 1);
-  const offsetX = isCssZoom ? 0 : (vpt[4] || 0);
-  const offsetY = isCssZoom ? 0 : (vpt[5] || 0);
-  const imgW = canvas.getWidth() * screenScale;
-  const imgH = canvas.getHeight() * screenScale;
-  const canvasW = canvas.getWidth() || 800;
-  const canvasH = canvas.getHeight() || 600;
+  const { bounds, naturalWidth: canvasW, naturalHeight: canvasH } = targetInfo;
+  const offsetX = bounds.left;
+  const offsetY = bounds.top;
+  const imgW = bounds.width;
+  const imgH = bounds.height;
 
   const onDown = (e, handle) => {
     e.stopPropagation();
@@ -180,7 +165,7 @@ function CropOverlay({
           )}
         </svg>
       </div>,
-      wrapper
+      portalTarget
     );
   }
 
@@ -215,23 +200,23 @@ function CropOverlay({
         <span className={`${handle} -right-1.5 top-1/2 -translate-y-1/2`} style={{ cursor: 'ew-resize' }} onMouseDown={(e) => onDown(e, 'e')} />
       </div>
     </div>,
-    wrapper
+    portalTarget
   );
 }
 
-export default function CropPanel({ onApply, wrapperRef, fabricRef }) {
+export default function CropPanel({ onApply, getSelectedImageInfo, portalTarget, hasSelectedImage, isProcessing }) {
   const [shape, setShape] = useState('rectangle');
   const [ratio, setRatio] = useState('free');
   const [radius, setRadius] = useState(20);
   const [box, setBox] = useState({ x: 10, y: 10, w: 80, h: 80 });
   const [freeformPoints, setFreeformPoints] = useState([]);
+  const targetInfo = hasSelectedImage ? getSelectedImageInfo?.() : null;
 
   const applyAspectRatio = (r) => {
     setRatio(r);
     if (r === 'free') return;
     const R = r === '1:1' ? 1 : r === '16:9' ? 16 / 9 : r === '4:3' ? 4 / 3 : 1;
-    const c = fabricRef.current;
-    const k = R * ((c?.getHeight() || 600) / (c?.getWidth() || 800));
+    const k = R * ((targetInfo?.naturalHeight || 600) / (targetInfo?.naturalWidth || 800));
     setBox((prev) => {
       let w = prev.w;
       let h = w / k;
@@ -247,9 +232,9 @@ export default function CropPanel({ onApply, wrapperRef, fabricRef }) {
     if (id !== 'freeform') setFreeformPoints([]);
   };
 
-  const applyCrop = () => {
+  const applyCrop = async () => {
     if (shape === 'freeform' && freeformPoints.length < 3) {
-      alert('Vui lòng vẽ nét khép kín trên ảnh trước khi cắt.');
+      toast.warning('Vui lòng vẽ nét khép kín trên ảnh trước khi cắt.');
       return;
     }
     const op = {
@@ -260,16 +245,29 @@ export default function CropPanel({ onApply, wrapperRef, fabricRef }) {
     };
     if (shape === 'rounded') op.radius = radius;
     if (shape === 'freeform') op.points = freeformPoints.map((p) => [p.x, p.y]);
-    onApply([op]);
-    setFreeformPoints([]);
+    const applied = await onApply([op]);
+    if (applied) {
+      setBox({ x: 10, y: 10, w: 80, h: 80 });
+      setFreeformPoints([]);
+      toast.success('Đã cắt ảnh được chọn.');
+    }
   };
 
-  const applyRotate = (angle) => onApply([{ type: 'rotate', angle, expand: true }]);
-  const applyFlip = (direction) => onApply([{ type: 'flip', direction }]);
+  const applyRotate = async (angle) => {
+    const applied = await onApply([{ type: 'rotate', angle, expand: true }]);
+    if (applied) toast.success('Đã xoay ảnh được chọn.');
+  };
+  const applyFlip = async (direction) => {
+    const applied = await onApply([{ type: 'flip', direction }]);
+    if (applied) toast.success('Đã lật ảnh được chọn.');
+  };
 
   return (
     <div className="space-y-4">
       <h4 className="text-sm font-semibold text-slate-800">Cắt / Xoay / Lật</h4>
+      {!hasSelectedImage && (
+        <p className="text-xs text-amber-600">Chọn một ảnh trên canvas trước khi thao tác.</p>
+      )}
 
       <div>
         <span className="text-xs font-medium text-slate-600">Kiểu cắt</span>
@@ -331,21 +329,22 @@ export default function CropPanel({ onApply, wrapperRef, fabricRef }) {
       <button
         type="button"
         onClick={applyCrop}
-        className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+        disabled={!hasSelectedImage || isProcessing}
+        className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        <Check className="h-4 w-4" /> Cắt ảnh nền
+        <Check className="h-4 w-4" /> {isProcessing ? 'Đang xử lý...' : 'Cắt ảnh được chọn'}
       </button>
 
       <div className="border-t border-slate-100 pt-3">
         <span className="text-xs font-medium text-slate-600">Xoay & lật</span>
         <div className="mt-1 grid grid-cols-3 gap-1">
-          <button type="button" onClick={() => applyRotate(90)} className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-2 text-xs text-slate-600 hover:bg-slate-50">
+          <button type="button" onClick={() => applyRotate(90)} disabled={!hasSelectedImage || isProcessing} className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-2 text-xs text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
             <RotateCw className="h-3.5 w-3.5" /> 90°
           </button>
-          <button type="button" onClick={() => applyFlip('horizontal')} className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-2 text-xs text-slate-600 hover:bg-slate-50">
+          <button type="button" onClick={() => applyFlip('horizontal')} disabled={!hasSelectedImage || isProcessing} className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-2 text-xs text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
             <FlipHorizontal className="h-3.5 w-3.5" /> Ngang
           </button>
-          <button type="button" onClick={() => applyFlip('vertical')} className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-2 text-xs text-slate-600 hover:bg-slate-50">
+          <button type="button" onClick={() => applyFlip('vertical')} disabled={!hasSelectedImage || isProcessing} className="inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-2 text-xs text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
             <FlipVertical className="h-3.5 w-3.5" /> Dọc
           </button>
         </div>
@@ -358,8 +357,8 @@ export default function CropPanel({ onApply, wrapperRef, fabricRef }) {
         aspectRatio={ratio}
         freeformPoints={freeformPoints}
         setFreeformPoints={setFreeformPoints}
-        wrapperRef={wrapperRef}
-        fabricRef={fabricRef}
+        portalTarget={portalTarget}
+        targetInfo={targetInfo}
       />
     </div>
   );
