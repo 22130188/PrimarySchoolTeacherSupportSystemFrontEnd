@@ -5,6 +5,7 @@ import { NAV_LINKS } from '../data/homePageData';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
 import { getMeAPI } from '../services/userApi';
+import NotificationCenter from './NotificationCenter';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -86,6 +87,12 @@ export default function Navbar() {
                 <a
                   key={link.label}
                   href={link.href}
+                  onClick={(event) => {
+                    if (link.action === 'feedback') {
+                      event.preventDefault();
+                      window.dispatchEvent(new Event('open-support-feedback'));
+                    }
+                  }}
                   className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-violet-600 rounded-lg hover:bg-violet-50 transition-all duration-200"
                 >
                   {link.label}
@@ -176,7 +183,13 @@ export default function Navbar() {
                   key={link.label}
                   href={link.href}
                   className="block px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all duration-200"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(event) => {
+                    setMobileMenuOpen(false);
+                    if (link.action === 'feedback') {
+                      event.preventDefault();
+                      window.dispatchEvent(new Event('open-support-feedback'));
+                    }
+                  }}
                 >
                   {link.label}
                 </a>
@@ -201,6 +214,10 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-gray-800">{displayName}</p>
                       <p className="text-xs text-violet-600">{roleLabel}</p>
                     </div>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-2">
+                    <span className="text-sm font-semibold text-gray-700">Thông báo</span>
+                    <NotificationCenter placement="header" />
                   </div>
                   <a
                     href="/profile"

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Users, School, GraduationCap, FolderOpen } from 'lucide-react';
 import { MONTHLY_DATA, RECENT_ACTIVITIES } from '../../../data/adminDashboardData';
 import { getUsers } from '../../../services/userApi';
 import { getAdminDashboardStats } from '../../../services/adminClassroomApi';
 import resourceService from '../../../services/resourceService';
+import { useAdminStore } from '../../../stores/adminStore';
 
 const normalizeArray = (value) => {
   if (Array.isArray(value)) return value;
@@ -16,6 +18,7 @@ const normalizeArray = (value) => {
 const formatCount = (value) => new Intl.NumberFormat('en-US').format(Number(value || 0));
 
 export default function DashboardOverview() {
+  const navigate = useNavigate();
   const [overviewStats, setOverviewStats] = useState({
     teachers: 0,
     students: 0,
@@ -159,15 +162,16 @@ export default function DashboardOverview() {
             <h3 className="text-lg font-bold text-gray-900 mb-4">Thao tác nhanh</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { icon: Plus,     label: 'Thêm người dùng',   gradient: 'from-violet-500 to-indigo-600' },
-                { icon: BookOpen, label: 'Quản lý môn học',    gradient: 'from-teal-500 to-cyan-600' },
-                { icon: School,   label: 'Tạo lớp học',       gradient: 'from-rose-500 to-pink-600' },
-                { icon: Users,    label: 'Quản lý quyền',     gradient: 'from-amber-500 to-orange-600' },
+                { icon: Plus,     label: 'Thêm người dùng',   gradient: 'from-violet-500 to-indigo-600', route: '/admin/users/create' },
+                { icon: BookOpen, label: 'Quản lý môn học',    gradient: 'from-teal-500 to-cyan-600', route: '/admin/subjects' },
+                { icon: School,   label: 'Tạo lớp học',       gradient: 'from-rose-500 to-pink-600', route: '/admin/classrooms/create' },
+                { icon: Users,    label: 'Quản lý quyền',     gradient: 'from-amber-500 to-orange-600', route: '/admin/users' },
               ].map((action) => {
                 const AIcon = action.icon;
                 return (
                   <button
                     key={action.label}
+                    onClick={() => navigate(action.route)}
                     className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all duration-200 group"
                   >
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200`}>
