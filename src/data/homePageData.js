@@ -4,7 +4,8 @@ export const NAV_LINKS = [
   { label: 'Công cụ AI', href: '/ai-tools', roles: [2] },
   { label: 'Lớp học', href: '/classrooms', roles: [1, 2] },
   { label: 'Giáo dục', href: '/textbooks', roles: [1, 2] },
-  { label: 'Trợ giúp', href: '/dashboard', roles: [1, 2] },
+  { label: 'Hướng dẫn', href: '/help', roles: [1, 2] },
+  { label: 'Trợ giúp', href: '#feedback', action: 'feedback', roles: [1, 2] },
 ];
 
 export const HERO_STATS = [

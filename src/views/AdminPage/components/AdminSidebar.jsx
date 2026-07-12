@@ -31,7 +31,7 @@ export default function AdminSidebar() {
       </div>
 
 
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
         {ADMIN_MENU.map((item) => {
           const Icon = item.icon;
           const routePath = item.key === 'dashboard' ? '/admin' : `/admin/${item.key}`;

@@ -44,9 +44,10 @@ export const useAuthStore = create((set) => ({
     },
 
     setRole: (roleId, roleName) => {
-        localStorage.setItem('roleId', roleId);
+        const normalizedRoleId = Number(roleId);
+        localStorage.setItem('roleId', normalizedRoleId);
         localStorage.setItem('roleName', roleName);
-        set({ roleId, roleName });
+        set({ roleId: normalizedRoleId, roleName });
     },
 
     setUser: (user) => {

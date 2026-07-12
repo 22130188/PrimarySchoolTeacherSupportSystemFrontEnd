@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { loginAPI } from '../../services/authApi';
 import { getMeAPI } from '../../services/userApi';
@@ -8,7 +8,6 @@ import { useAuthStore } from '../../stores/authStore';
 import IllustratedBackground from '../../components/IllustratedBackground';
 
 export default function LoginPage() {
-    const navigate = useNavigate();
     const setToken = useAuthStore((s) => s.setToken);
     const setRole = useAuthStore((s) => s.setRole);
     const setUser = useAuthStore((s) => s.setUser);
@@ -27,10 +26,11 @@ export default function LoginPage() {
         try {
             const loginResult = await loginAPI(account.trim(), password);
             const { token, roleId, roleName } = loginResult;
+            const normalizedRoleId = Number(roleId);
 
             // lưu token  role
             setToken(token);
-            setRole(roleId, roleName);
+            setRole(normalizedRoleId, roleName);
 
             try {
                 const userProfile = await getMeAPI();
@@ -39,11 +39,7 @@ export default function LoginPage() {
                 setUser(null);
             }
 
-            if (roleId === 3) {
-                navigate('/admin');
-            } else {
-                navigate('/dashboard');
-            }
+            window.location.replace(normalizedRoleId === 3 ? '/admin' : '/dashboard');
         } catch (err) {
             setError(err.message);
         } finally {
