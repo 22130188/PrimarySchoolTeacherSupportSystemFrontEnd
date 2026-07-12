@@ -44,11 +44,10 @@ export default function AccessManagement() {
       header: 'Người dùng',
       cell: ({ row }) => (
         <div className="flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-            row.original.userId
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${row.original.userId
               ? 'bg-gradient-to-br from-violet-400 to-indigo-500 text-white'
               : 'bg-red-100 text-red-500'
-          }`}>
+            }`}>
             {row.original.userId ? row.original.username.charAt(0) : '?'}
           </div>
           <div>
@@ -190,11 +189,10 @@ export default function AccessManagement() {
               {table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className={`border-b border-gray-50 transition-colors duration-150 ${
-                    row.original.status === 'failed'
+                  className={`border-b border-gray-50 transition-colors duration-150 ${row.original.status === 'failed'
                       ? 'bg-red-50/30 hover:bg-red-50/60'
                       : 'hover:bg-gray-50/50'
-                  }`}
+                    }`}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-5 py-3.5">
