@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,6 +19,9 @@ import ConfirmModal from '../../../common/ConfirmModal';
 import { formatDate } from '../../../helpers/formatDate';
 
 export default function UserManagement() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   const [activeTab, setActiveTab] = useState('all');
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
@@ -26,8 +30,37 @@ export default function UserManagement() {
 
   const { users, loading, error, refetch } = useUsers(activeTab, globalFilter);
 
-  const [formOpen, setFormOpen] = useState(false);
+  const isCreateRoute = location.pathname.endsWith('/create');
+  const isEditRoute = location.pathname.includes('/edit');
+
+  const [formOpen, setFormOpen] = useState(isCreateRoute || isEditRoute);
   const [editUser, setEditUser] = useState(null);
+
+  useEffect(() => {
+    if (isCreateRoute) {
+      setEditUser(null);
+      setFormOpen(true);
+    } else if (isEditRoute) {
+      const match = location.pathname.match(/\/admin\/users\/([^/]+)\/edit/);
+      if (match && users.length > 0) {
+        const id = match[1];
+        const user = users.find(u => String(u.id) === id);
+        if (user) {
+          setEditUser(user);
+          setFormOpen(true);
+        }
+      }
+    } else {
+      setFormOpen(false);
+      setEditUser(null);
+    }
+  }, [isCreateRoute, isEditRoute, location.pathname, users]);
+
+  const handleCloseForm = () => {
+    setFormOpen(false);
+    setEditUser(null);
+    if (isCreateRoute || isEditRoute) navigate('/admin/users');
+  };
 
   const [detailUser, setDetailUser] = useState(null);
 
@@ -41,11 +74,13 @@ export default function UserManagement() {
   const handleCreate = async (payload) => {
     await userApi.createUser(payload);
     refetch();
+    handleCloseForm();
   };
 
   const handleUpdate = async (payload) => {
     await userApi.updateUser(editUser.id, payload);
     refetch();
+    handleCloseForm();
   };
 
   const handleConfirm = async () => {
@@ -68,13 +103,11 @@ export default function UserManagement() {
   };
 
   const openCreateForm = () => {
-    setEditUser(null);
-    setFormOpen(true);
+    navigate('/admin/users/create');
   };
 
   const openEditForm = (user) => {
-    setEditUser(user);
-    setFormOpen(true);
+    navigate(`/admin/users/${user.id}/edit`);
     setOpenMenuId(null);
   };
 
@@ -389,7 +422,7 @@ export default function UserManagement() {
 
       <UserFormModal
         isOpen={formOpen}
-        onClose={() => { setFormOpen(false); setEditUser(null); }}
+        onClose={handleCloseForm}
         onSubmit={editUser ? handleUpdate : handleCreate}
         initialData={editUser}
         isEdit={!!editUser}

@@ -1,45 +1,15 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useAdminStore } from '../../stores/adminStore';
 import AdminSidebar from './components/AdminSidebar';
 import AdminHeader from './components/AdminHeader';
-import DashboardOverview from './components/DashboardOverview';
-import AdminProfile from './components/AdminProfile';
-import UserManagement from './components/UserManagement';
-import ClassroomManagement from './components/ClassroomManagement';
-import SubjectManagement from './components/SubjectManagement';
-import TestManagement from './components/TestManagement';
-import LessonManagement from './components/LessonManagement';
-import LessonTemplateManagement from './components/LessonTemplateManagement';
-import LessonContentManagement from './components/LessonContentManagement';
-import ResourceManagement from './components/ResourceManagement';
-import AccessManagement from './components/AccessManagement';
-import SystemSettings from './components/SystemSettings';
-import CategoryManagement from './components/CategoryManagement';
-
-const PAGE_MAP = {
-  dashboard:      DashboardOverview,
-  profile:        AdminProfile,
-  users:          UserManagement,
-  classrooms:     ClassroomManagement,
-  subjects:       SubjectManagement,
-  tests:          TestManagement,
-  lessons:        LessonManagement,
-  lesson_templates: LessonTemplateManagement,
-  lesson_content: LessonContentManagement,
-  resources:      ResourceManagement,
-  categories:     CategoryManagement,
-  access:         AccessManagement,
-  settings:       SystemSettings,
-};
 
 export default function AdminPage() {
   const navigate = useNavigate();
   const token = useAuthStore((s) => s.token);
   const roleId = useAuthStore((s) => s.roleId);
-  const { activePage, sidebarCollapsed } = useAdminStore();
-  const ActiveComponent = PAGE_MAP[activePage] || DashboardOverview;
+  const { sidebarCollapsed } = useAdminStore();
 
   useEffect(() => {
     if (!token) {
@@ -61,7 +31,7 @@ export default function AdminPage() {
         style={{ marginLeft: sidebarCollapsed ? 72 : 250 }}
       >
         <AdminHeader />
-        <ActiveComponent />
+        <Outlet />
       </div>
     </div>
   );

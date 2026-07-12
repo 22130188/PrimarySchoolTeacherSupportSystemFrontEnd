@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, FileText, HelpCircle } from 'lucide-react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../../../services/categoryApi';
 
@@ -10,17 +11,52 @@ const INITIAL_FORM_STATE = {
 };
 
 export default function SubjectManagement() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [subjects, setSubjects] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editItem, setEditItem] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  
+  const isCreateRoute = location.pathname.endsWith('/create');
+  const isEditRoute = location.pathname.includes('/edit');
+
+  const [showForm, setShowForm] = useState(isCreateRoute || isEditRoute);
+  const [editItem, setEditItem] = useState(null);
   const [formState, setFormState] = useState(INITIAL_FORM_STATE);
 
   useEffect(() => {
     loadSubjects();
   }, []);
+
+  useEffect(() => {
+    if (isCreateRoute) {
+      setEditItem(null);
+      setFormState(INITIAL_FORM_STATE);
+      setShowForm(true);
+    } else if (isEditRoute) {
+      const match = location.pathname.match(/\/admin\/subjects\/([^/]+)\/edit/);
+      if (match && subjects.length > 0) {
+        const id = match[1];
+        const subject = subjects.find(s => String(s.id) === id);
+        if (subject) {
+          setEditItem(subject);
+          setFormState({
+            name: subject.name || '',
+            code: subject.code || '',
+            description: subject.description || '',
+            isActive: subject.isActive ?? true,
+          });
+          setShowForm(true);
+        }
+      }
+    } else {
+      setShowForm(false);
+      setEditItem(null);
+      setFormState(INITIAL_FORM_STATE);
+    }
+  }, [isCreateRoute, isEditRoute, location.pathname, subjects]);
 
   const loadSubjects = async () => {
     setLoading(true);
@@ -39,19 +75,10 @@ export default function SubjectManagement() {
 
   const openForm = (subject) => {
     if (subject) {
-      setEditItem(subject);
-      setFormState({
-        name: subject.name || '',
-        code: subject.code || '',
-        description: subject.description || '',
-        isActive: subject.isActive ?? true,
-      });
+      navigate(`/admin/subjects/${subject.id}/edit`);
     } else {
-      setEditItem(null);
-      setFormState(INITIAL_FORM_STATE);
+      navigate('/admin/subjects/create');
     }
-    setError('');
-    setShowForm(true);
   };
 
   const closeForm = () => {
@@ -59,6 +86,7 @@ export default function SubjectManagement() {
     setEditItem(null);
     setFormState(INITIAL_FORM_STATE);
     setError('');
+    if (isCreateRoute || isEditRoute) navigate('/admin/subjects');
   };
 
   const handleSave = async () => {
