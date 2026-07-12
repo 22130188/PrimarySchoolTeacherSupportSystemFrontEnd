@@ -30,6 +30,8 @@ const TYPE_STYLE = {
   LESSON_COMMENT: { icon: MessageCircle, color: 'bg-teal-100 text-teal-600' },
   TEST_SUBMITTED: { icon: ClipboardCheck, color: 'bg-emerald-100 text-emerald-600' },
   ADMIN_ANNOUNCEMENT: { icon: Megaphone, color: 'bg-violet-100 text-violet-600' },
+  FEEDBACK_REPLY: { icon: MessageCircle, color: 'bg-emerald-100 text-emerald-600' },
+  NEW_FEEDBACK: { icon: AlertCircle, color: 'bg-rose-100 text-rose-600' },
 };
 
 function htmlToPlainText(value) {

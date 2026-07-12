@@ -25,6 +25,8 @@ import TranslatePage      from '../views/TranslatePage';
 import ClassroomDetail    from '../views/ClassroomsPage/ClassroomDetail';
 import JoinByLinkPage     from '../views/JoinClassroom/JoinByLinkPage';
 import JoinByInvitationPage from '../views/JoinClassroom/JoinByInvitationPage';
+import HelpPage from '../views/HelpPage/ManagedHelpPage';
+import SupportWidget from '../components/SupportWidget';
 import { useAuthStore } from '../stores/authStore';
 
 // Admin nested components
@@ -41,10 +43,13 @@ import ResourceManagement from '../views/AdminPage/components/ResourceManagement
 import CategoryManagement from '../views/AdminPage/components/CategoryManagement';
 import AccessManagement from '../views/AdminPage/components/AccessManagement';
 import SystemSettings from '../views/AdminPage/components/SystemSettings';
+import FeedbackManagement from '../views/AdminPage/components/FeedbackManagement';
+import GuideManagement from '../views/AdminPage/components/GuideManagement';
 
 export default function AppRouter() {
     const token = useAuthStore((s) => s.token);
-    const roleId = useAuthStore((s) => s.roleId);
+    const storedRoleId = useAuthStore((s) => s.roleId);
+    const roleId = Number(storedRoleId);
 
     const defaultAuthenticatedPath = !token
         ? '/'
@@ -69,6 +74,7 @@ export default function AppRouter() {
         <BrowserRouter>
             <Routes>
                 <Route path="/"                element={renderPublicRoute(<HomePage />)} />
+                <Route path="/help"            element={<HelpPage />} />
                 <Route path="/login"           element={renderPublicRoute(<LoginPage />)} />
                 <Route path="/register"        element={renderPublicRoute(<RegisterPage />)} />
                 <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
@@ -100,6 +106,8 @@ export default function AppRouter() {
                     <Route path="lessons" element={<AdminLessonManagement />} />
                     <Route path="lesson_templates" element={<LessonTemplateManagement />} />
                     <Route path="resources" element={<ResourceManagement />} />
+                    <Route path="feedback" element={<FeedbackManagement />} />
+                    <Route path="guides" element={<GuideManagement />} />
                     <Route path="access" element={<AccessManagement />} />
                     <Route path="settings" element={<SystemSettings />} />
                     {/* Fallback for admin pages */}
@@ -129,6 +137,7 @@ export default function AppRouter() {
                 <Route path="/textbooks/:slugId" element={renderPrivateRoute(<TextbookReaderPage />, [1, 2])} />
                 <Route path="*"                element={<Navigate to={token ? defaultAuthenticatedPath : '/'} replace />} />
             </Routes>
+            <SupportWidget />
         </BrowserRouter>
     );
 }

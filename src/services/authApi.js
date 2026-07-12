@@ -56,7 +56,7 @@ export async function loginAPI(username, password) {
     const data = await res.json();
     return {
         token: data.token,
-        roleId: data.roleId,
+        roleId: Number(data.roleId),
         roleName: data.roleName
     };
 }

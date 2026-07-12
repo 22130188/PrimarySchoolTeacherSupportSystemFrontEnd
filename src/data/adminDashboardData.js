@@ -3,7 +3,7 @@ import {
   GraduationCap, FileText,
   BookOpen, ShieldCheck, FolderOpen,
   Image, Volume2, Globe, Shield, BellRing, User,
-  ClipboardCheck, PanelsTopLeft,
+  ClipboardCheck, PanelsTopLeft, MessageSquareWarning, BookMarked,
 } from 'lucide-react';
 
 
@@ -19,6 +19,8 @@ export const ADMIN_MENU = [
   { key: 'lessons', label: 'Bài giảng', icon: FileText },
   { key: 'lesson_templates', label: 'Mẫu bài giảng', icon: PanelsTopLeft },
   { key: 'resources', label: 'Tài nguyên', icon: FolderOpen },
+  { key: 'feedback', label: 'Phản hồi & báo lỗi', icon: MessageSquareWarning },
+  { key: 'guides', label: 'Quản lý hướng dẫn', icon: BookMarked },
   { key: 'access', label: 'Quản lý truy cập', icon: ShieldCheck },
   { key: 'settings', label: 'Cài đặt', icon: Settings },
 ];

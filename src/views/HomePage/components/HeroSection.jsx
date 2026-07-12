@@ -52,7 +52,7 @@ export default function HeroSection() {
           <a href="/register" className="px-8 py-4 rounded-full bg-violet-600 text-white font-bold text-base shadow-xl shadow-violet-300/40 hover:shadow-violet-400/50 hover:-translate-y-1 transition-all duration-300 hover:bg-violet-700">
             Bắt đầu
           </a>
-          <a href="#demo" className="px-8 py-4 rounded-full bg-white text-gray-700 font-semibold text-base border border-gray-200 hover:border-violet-300 hover:text-violet-600 hover:-translate-y-1 transition-all duration-300">
+          <a href="/help" className="px-8 py-4 rounded-full bg-white text-gray-700 font-semibold text-base border border-gray-200 hover:border-violet-300 hover:text-violet-600 hover:-translate-y-1 transition-all duration-300">
             Hướng dẫn →
           </a>
         </div>
