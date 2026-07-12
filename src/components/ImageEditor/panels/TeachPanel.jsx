@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   PieChart, Clock, Divide, Smile, ChevronDown,
-  Ruler, Thermometer, Scale, Minus, Grid3x3, Shapes, BarChart3, CalendarDays,
+  Ruler, Thermometer, Scale, Minus, Grid3x3, Shapes, BarChart3, CalendarDays, Hash,
 } from 'lucide-react';
 import { addFractionPizza, fractionState, setFractionColor, FRACTION_COLORS } from '../tools/fractionTool.js';
 import { addClock, setClockTime } from '../tools/clockTool.js';
@@ -11,6 +11,7 @@ import { addNumberLine, addCoordinatePlane } from '../tools/numberTools.js';
 import { addGeometryShape } from '../tools/geometryTools.js';
 import { addChart } from '../tools/chartTools.js';
 import { addCalendar } from '../tools/calendarTools.js';
+import { addCountingSticks, setCountingStickColor } from '../tools/countingStickTool.js';
 
 const GEOMETRY_SHAPES = [
   { id: 'square', label: 'Vuông' },
@@ -85,6 +86,11 @@ export default function TeachPanel({ fabricRef, selectedObject, saveHistory, fra
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calHighlight, setCalHighlight] = useState('');
+  // que tính
+  const [stickOnes, setStickOnes] = useState(5);
+  const [stickTens, setStickTens] = useState(1);
+  const [stickColor, setStickColor] = useState('#f59e0b');
+  const [stickLabel, setStickLabel] = useState(false);
 
   const c = () => fabricRef.current;
   const toggle = (id) => setOpenSection((cur) => (cur === id ? null : id));
@@ -121,6 +127,23 @@ export default function TeachPanel({ fabricRef, selectedObject, saveHistory, fra
     }).filter((d) => d.label);
     addChart(canvas, { type: chartType, data: data.length ? data : null, title: chartTitle });
   });
+  const makeCountingSticks = () => withCanvas((canvas) => {
+    addCountingSticks(canvas, {
+      ones: Math.max(0, Math.min(20, Number(stickOnes) || 0)),
+      tens: Math.max(0, Math.min(20, Number(stickTens) || 0)),
+      color: stickColor,
+      showLabel: stickLabel,
+    });
+  });
+
+  const selSticks = selectedObject?.teachTool === 'countingStick' ? selectedObject : null;
+  const pickStickColor = (color) => {
+    setStickColor(color);
+    if (selSticks) {
+      setCountingStickColor(selSticks, color);
+      saveHistory();
+    }
+  };
 
   // live-edit selected clock / thermometer
   const selClock = selectedObject?.teachTool === 'clock' ? selectedObject : null;
@@ -154,6 +177,47 @@ export default function TeachPanel({ fabricRef, selectedObject, saveHistory, fra
   return (
     <div className="space-y-2">
       <h4 className="text-sm font-semibold text-slate-800">Công cụ dạy học</h4>
+
+      {/* Que tính */}
+      <Section id="queTinh" icon={Hash} title="Que tính (đếm)" accent="text-orange-500" open={openSection === 'queTinh'} onToggle={toggle}>
+        <p className="text-[11px] text-slate-500">Dành cho môn Toán — tạo que rời và bó 1 chục (10 que).</p>
+        <div className="flex items-center gap-2 text-xs text-slate-600">
+          <span>Số chục</span>
+          <input
+            type="number" min={0} max={20} value={stickTens}
+            onChange={(e) => setStickTens(Math.max(0, Math.min(20, parseInt(e.target.value, 10) || 0)))}
+            className={inputCls}
+          />
+          <span className="ml-2">Số que rời</span>
+          <input
+            type="number" min={0} max={20} value={stickOnes}
+            onChange={(e) => setStickOnes(Math.max(0, Math.min(20, parseInt(e.target.value, 10) || 0)))}
+            className={inputCls}
+          />
+        </div>
+        <div className="space-y-1">
+          <span className="text-xs text-slate-600">Màu que{selSticks ? ' (đổi hình đang chọn)' : ''}</span>
+          <div className="flex flex-wrap gap-1.5">
+            {['#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#a855f7', '#78716c'].map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => pickStickColor(color)}
+                style={{ backgroundColor: color }}
+                className={`h-6 w-6 rounded-full border-2 transition ${stickColor === color ? 'border-slate-700 ring-2 ring-slate-300' : 'border-white'}`}
+                aria-label={`Màu ${color}`}
+              />
+            ))}
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-slate-600">
+          <input type="checkbox" checked={stickLabel} onChange={(e) => setStickLabel(e.target.checked)} />
+          Hiện nhãn tổng (= số)
+        </label>
+        <button type="button" onClick={() => makeCountingSticks()} className={`${btnPrimary} bg-orange-500 hover:bg-orange-600`}>
+          Thêm que tính ({stickTens * 10 + stickOnes})
+        </button>
+      </Section>
 
       {/* Phân số */}
       <Section id="fraction" icon={PieChart} title="Phân số (hình)" accent="text-amber-500" open={openSection === 'fraction'} onToggle={toggle}>
