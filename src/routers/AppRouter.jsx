@@ -27,6 +27,21 @@ import JoinByLinkPage     from '../views/JoinClassroom/JoinByLinkPage';
 import JoinByInvitationPage from '../views/JoinClassroom/JoinByInvitationPage';
 import { useAuthStore } from '../stores/authStore';
 
+// Admin nested components
+import DashboardOverview from '../views/AdminPage/components/DashboardOverview';
+import AdminProfile from '../views/AdminPage/components/AdminProfile';
+import UserManagement from '../views/AdminPage/components/UserManagement';
+import ClassroomManagement from '../views/AdminPage/components/ClassroomManagement';
+import SubjectManagement from '../views/AdminPage/components/SubjectManagement';
+import AdminTestManagement from '../views/AdminPage/components/TestManagement';
+import AdminLessonManagement from '../views/AdminPage/components/LessonManagement';
+import LessonTemplateManagement from '../views/AdminPage/components/LessonTemplateManagement';
+import LessonContentManagement from '../views/AdminPage/components/LessonContentManagement';
+import ResourceManagement from '../views/AdminPage/components/ResourceManagement';
+import CategoryManagement from '../views/AdminPage/components/CategoryManagement';
+import AccessManagement from '../views/AdminPage/components/AccessManagement';
+import SystemSettings from '../views/AdminPage/components/SystemSettings';
+
 export default function AppRouter() {
     const token = useAuthStore((s) => s.token);
     const roleId = useAuthStore((s) => s.roleId);
@@ -58,7 +73,39 @@ export default function AppRouter() {
                 <Route path="/register"        element={renderPublicRoute(<RegisterPage />)} />
                 <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
                 <Route path="/profile"         element={renderPrivateRoute(<ProfilePage />, [1, 2])} />
-                <Route path="/admin"           element={renderPrivateRoute(<AdminPage />, [3])} />
+                
+                {/* Admin Routes */}
+                <Route path="/admin" element={renderPrivateRoute(<AdminPage />, [3])}>
+                    <Route index element={<DashboardOverview />} />
+                    <Route path="profile" element={<AdminProfile />} />
+                    
+                    {/* Users CRUD */}
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="users/create" element={<UserManagement />} />
+                    <Route path="users/:id/edit" element={<UserManagement />} />
+
+                    {/* Classrooms CRUD */}
+                    <Route path="classrooms" element={<ClassroomManagement />} />
+                    <Route path="classrooms/create" element={<ClassroomManagement />} />
+                    <Route path="classrooms/:id/edit" element={<ClassroomManagement />} />
+
+                    {/* Subjects CRUD */}
+                    <Route path="subjects" element={<SubjectManagement />} />
+                    <Route path="subjects/create" element={<SubjectManagement />} />
+                    <Route path="subjects/:id/edit" element={<SubjectManagement />} />
+
+                    <Route path="categories" element={<CategoryManagement />} />
+                    <Route path="lesson_content" element={<LessonContentManagement />} />
+                    <Route path="tests" element={<AdminTestManagement />} />
+                    <Route path="lessons" element={<AdminLessonManagement />} />
+                    <Route path="lesson_templates" element={<LessonTemplateManagement />} />
+                    <Route path="resources" element={<ResourceManagement />} />
+                    <Route path="access" element={<AccessManagement />} />
+                    <Route path="settings" element={<SystemSettings />} />
+                    {/* Fallback for admin pages */}
+                    <Route path="*" element={<Navigate to="/admin" replace />} />
+                </Route>
+
                 <Route path="/dashboard"       element={renderPrivateRoute(<DashboardPage />, [1, 2])} />
                 <Route path="/tts"             element={renderPrivateRoute(<TTSPage />, [1, 2])} />
                 <Route path="/image"           element={<ImagePage />} />

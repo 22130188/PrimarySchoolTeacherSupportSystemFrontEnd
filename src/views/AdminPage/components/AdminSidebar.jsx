@@ -1,7 +1,7 @@
 import { BookOpen, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 import { ADMIN_MENU } from '../../../data/adminDashboardData';
 import { useAdminStore } from '../../../stores/adminStore';
-
 export default function AdminSidebar() {
   const {
     activePage, setActivePage,
@@ -34,15 +34,15 @@ export default function AdminSidebar() {
       <nav className="flex-1 px-3 space-y-1">
         {ADMIN_MENU.map((item) => {
           const Icon = item.icon;
-          const isActive = activePage === item.key;
+          const routePath = item.key === 'dashboard' ? '/admin' : `/admin/${item.key}`;
+          
           return (
-            <button
+            <NavLink
               key={item.key}
-              onClick={() => {
-                setActivePage(item.key);
-                setMobileSidebarOpen(false);
-              }}
-              className={`
+              to={routePath}
+              end={item.key === 'dashboard'}
+              onClick={() => setMobileSidebarOpen(false)}
+              className={({ isActive }) => `
                 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                 ${sidebarCollapsed ? 'justify-center px-2' : ''}
                 ${isActive
@@ -52,9 +52,13 @@ export default function AdminSidebar() {
               `}
               title={sidebarCollapsed ? item.label : undefined}
             >
-              <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
-              {!sidebarCollapsed && <span>{item.label}</span>}
-            </button>
+              {({ isActive }) => (
+                <>
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                  {!sidebarCollapsed && <span>{item.label}</span>}
+                </>
+              )}
+            </NavLink>
           );
         })}
       </nav>

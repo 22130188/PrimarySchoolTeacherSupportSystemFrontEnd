@@ -1046,7 +1046,7 @@ export default function CreateTestPage() {
 
         {/* Modal: Chọn nguồn câu hỏi */}
         {showQuestionSourceModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Chọn nguồn câu hỏi</h2>
@@ -1068,7 +1068,7 @@ export default function CreateTestPage() {
 
         {/* Modal: Chọn loại câu hỏi */}
         {showQuestionTypeModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Chọn loại câu hỏi</h2>
@@ -1102,7 +1102,7 @@ export default function CreateTestPage() {
 
         {/* Modal: Câu hỏi cũ */}
         {showExistingQuestionsModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
               <div className="bg-white rounded-xl p-6 max-w-5xl w-full shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -1212,7 +1212,7 @@ export default function CreateTestPage() {
 
         {/* Modal: Xem chi tiết câu hỏi */}
         {showQuestionDetailModal && selectedQuestionDetail && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
               <div className="bg-white rounded-xl p-6 max-w-2xl w-full shadow-xl overflow-y-auto max-h-[90vh]">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-gray-900">Xem chi tiết câu hỏi</h2>
@@ -1292,7 +1292,7 @@ export default function CreateTestPage() {
 
         {/* Modal: Lưu bài kiểm tra */}
         {showSaveModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Chọn cách lưu bài kiểm tra</h2>
@@ -1314,7 +1314,7 @@ export default function CreateTestPage() {
 
         {/* Modal: Tải xuống */}
         {showDownloadModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
               <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <div>
@@ -1339,7 +1339,7 @@ export default function CreateTestPage() {
 
         {/* Modal: Thư viện ảnh */}
         {showImageLibraryModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
               <div className="bg-white rounded-xl p-6 max-w-4xl w-full shadow-xl overflow-hidden">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -1379,7 +1379,7 @@ export default function CreateTestPage() {
 
         {/* Modal: Thư viện audio */}
         {showAudioLibraryModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
               <div className="bg-white rounded-xl p-6 max-w-4xl w-full shadow-xl overflow-hidden">
                 <div className="flex items-center justify-between mb-4">
                   <div>

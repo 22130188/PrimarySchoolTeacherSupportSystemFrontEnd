@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useCategories } from '../../../hooks/useCategories';
 import {
   useReactTable,
@@ -12,7 +13,7 @@ import {
   Search, MoreHorizontal, Eye, Edit3, Trash2, RotateCcw,
   ChevronLeft, ChevronRight, Loader2, School, Users,
   Hash, AlertTriangle, Archive, CheckCircle2, XCircle,
-  GraduationCap, BookOpen,
+  GraduationCap, BookOpen, Plus,
 } from 'lucide-react';
 import SortIcon from '../../../components/SortIcon';
 import { useAdminClassrooms } from '../../../hooks/useAdminClassrooms';
@@ -28,6 +29,9 @@ const CLASSROOM_TABS = [
 ];
 
 export default function ClassroomManagement() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const { subjects, grades } = useCategories();
   const [activeTab, setActiveTab] = useState('active');
   const [globalFilter, setGlobalFilter] = useState('');
@@ -52,8 +56,37 @@ export default function ClassroomManagement() {
   const includeDeleted = activeTab === 'all';
   const { classrooms, loading, error, refetch } = useAdminClassrooms(includeDeleted);
 
-  const [editOpen, setEditOpen] = useState(false);
+  const isCreateRoute = location.pathname.endsWith('/create');
+  const isEditRoute = location.pathname.includes('/edit');
+
+  const [editOpen, setEditOpen] = useState(isCreateRoute || isEditRoute);
   const [editClassroom, setEditClassroom] = useState(null);
+
+  useEffect(() => {
+    if (isCreateRoute) {
+      setEditClassroom(null);
+      setEditOpen(true);
+    } else if (isEditRoute) {
+      const match = location.pathname.match(/\/admin\/classrooms\/([^/]+)\/edit/);
+      if (match && classrooms.length > 0) {
+        const id = match[1];
+        const cls = classrooms.find(c => String(c.id) === id);
+        if (cls) {
+          setEditClassroom(cls);
+          setEditOpen(true);
+        }
+      }
+    } else {
+      setEditOpen(false);
+      setEditClassroom(null);
+    }
+  }, [isCreateRoute, isEditRoute, location.pathname, classrooms]);
+
+  const handleCloseEdit = () => {
+    setEditOpen(false);
+    setEditClassroom(null);
+    if (isCreateRoute || isEditRoute) navigate('/admin/classrooms');
+  };
 
   const [detailClassroom, setDetailClassroom] = useState(null);
 
@@ -64,9 +97,15 @@ export default function ClassroomManagement() {
 
   const data = useMemo(() => classrooms, [classrooms]);
 
+  const handleCreate = async (payload) => {
+    // API logic for create missing, so just close for now
+    handleCloseEdit();
+  };
+
   const handleEdit = async (payload) => {
     await adminClassroomApi.updateAdminClassroom(editClassroom.id, payload);
     refetch();
+    handleCloseEdit();
   };
 
   const handleConfirm = async () => {
@@ -90,9 +129,12 @@ export default function ClassroomManagement() {
     }
   };
 
+  const openCreateForm = () => {
+    navigate('/admin/classrooms/create');
+  };
+
   const openEditModal = (cls) => {
-    setEditClassroom(cls);
-    setEditOpen(true);
+    navigate(`/admin/classrooms/${cls.id}/edit`);
     setOpenMenuId(null);
   };
 
@@ -333,6 +375,13 @@ export default function ClassroomManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Quản lý lớp học</h2>
           <p className="text-sm text-gray-500 mt-1">{classrooms.length} lớp học{includeDeleted ? ' (bao gồm đã xóa)' : ''}</p>
         </div>
+        <button
+          onClick={openCreateForm}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 hover:-translate-y-0.5 transition-all duration-200"
+        >
+          <Plus className="w-4 h-4" />
+          Tạo lớp học
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -443,7 +492,7 @@ export default function ClassroomManagement() {
               / {filteredCount}
             </p>
             <div className="flex items-center gap-1">
-              <button
+               <button
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
                 className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -477,8 +526,8 @@ export default function ClassroomManagement() {
 
       <ClassroomEditModal
         isOpen={editOpen}
-        onClose={() => { setEditOpen(false); setEditClassroom(null); }}
-        onSubmit={handleEdit}
+        onClose={handleCloseEdit}
+        onSubmit={editClassroom ? handleEdit : handleCreate}
         classroom={editClassroom}
         subjects={subjects}
         grades={grades}
