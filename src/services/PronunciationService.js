@@ -10,12 +10,14 @@ class PronunciationService {
       formData.append('target_text', targetText);
       formData.append('audio_file', audioFile, audioFile.name || 'recorded.wav');
 
+      const token = localStorage.getItem('token');
       const response = await axios.post(
         `${PRONUNCIATION_SERVICE_URL}/check`,
         formData,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         }
       );

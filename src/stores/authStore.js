@@ -60,6 +60,14 @@ export const useAuthStore = create((set) => ({
     },
 
     logout: () => {
+        const token = normalizeToken(localStorage.getItem('token'));
+        if (token) {
+            fetch('http://localhost:8080/api/auth/logout', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                keepalive: true,
+            }).catch(() => {});
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('roleId');
         localStorage.removeItem('roleName');
