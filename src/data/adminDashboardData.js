@@ -21,7 +21,7 @@ export const ADMIN_MENU = [
   { key: 'resources', label: 'Tài nguyên', icon: FolderOpen },
   { key: 'feedback', label: 'Phản hồi & báo lỗi', icon: MessageSquareWarning },
   { key: 'guides', label: 'Quản lý hướng dẫn', icon: BookMarked },
-  { key: 'access', label: 'Quản lý truy cập', icon: ShieldCheck },
+  { key: 'access', label: 'Nhật ký hệ thống', icon: ShieldCheck },
   { key: 'settings', label: 'Cài đặt', icon: Settings },
 ];
 

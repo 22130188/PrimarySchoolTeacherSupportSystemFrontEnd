@@ -4,6 +4,13 @@ import { API_CONFIG } from '../../config/api.config.js';
 const CANVAS_API_URL = API_CONFIG.CANVAS_API_URL;
 const IMAGE_API_URL = API_CONFIG.IMAGE_API_URL;
 
+const authHeaders = (extra = {}) => {
+  const token = localStorage.getItem('token');
+  return token
+    ? { Authorization: `Bearer ${token}`, ...extra }
+    : { ...extra };
+};
+
 export async function processImage(source, operations = [], options = {}) {
   if (!source) return null;
   const {
@@ -55,7 +62,7 @@ export async function uploadCanvasImage(dataUrl) {
   const formData = new FormData();
   formData.append('file', new File([blob], `edited_${Date.now()}.${ext}`, { type: blob.type }));
   const response = await axios.post(`${CANVAS_API_URL}/api/canvas/upload-image`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: authHeaders({ 'Content-Type': 'multipart/form-data' }),
   });
   if (response.data?.success) return response.data.image_url;
   return null;
@@ -68,7 +75,7 @@ export async function saveToLibrary({ description, subject, imageUrl, user }) {
     imageUrl,
     userId: user?.id || 0,
     userName: user?.fullName || user?.name || user?.username || 'Unknown',
-  });
+  }, { headers: authHeaders() });
   return response.data;
 }
 

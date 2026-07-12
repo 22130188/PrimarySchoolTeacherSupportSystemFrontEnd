@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,29 +8,43 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import { Search, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
-import { MOCK_ACCESS_LOGS, ACCESS_ACTION_LABELS, ACCESS_FILTER_TABS } from '../../../data/adminDashboardData';
+import { ACCESS_ACTION_LABELS, ACCESS_FILTER_TABS } from '../../../data/adminDashboardData';
+import { getAccessLogs } from '../../../services/adminDashboardApi';
 import SortIcon from '../../../components/SortIcon';
 
 export default function AccessManagement() {
+  const [accessLogs, setAccessLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([{ id: 'createdAt', desc: true }]);
 
-  const data = useMemo(() => {
-    if (activeTab === 'all') return MOCK_ACCESS_LOGS;
-    return MOCK_ACCESS_LOGS.filter((l) => l.status === activeTab);
-  }, [activeTab]);
+  useEffect(() => {
+    let active = true;
+    getAccessLogs()
+      .then((logs) => { if (active) setAccessLogs(logs); })
+      .catch((err) => { if (active) setError(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
-  const successCount = MOCK_ACCESS_LOGS.filter((l) => l.status === 'success').length;
-  const failedCount = MOCK_ACCESS_LOGS.filter((l) => l.status === 'failed').length;
+  const data = useMemo(() => {
+    if (activeTab === 'all') return accessLogs;
+    return accessLogs.filter((log) => log.status === activeTab);
+  }, [accessLogs, activeTab]);
+
+  const successCount = accessLogs.filter((log) => log.status === 'success').length;
+  const failedCount = accessLogs.filter((log) => log.status === 'failed').length;
 
   const columns = useMemo(() => [
     {
       accessorKey: 'createdAt',
       header: 'Thời gian',
       cell: ({ getValue }) => {
-        const dt = getValue();
-        const [date, time] = dt.split(' ');
+        const dt = new Date(getValue());
+        const date = Number.isNaN(dt.getTime()) ? '-' : dt.toLocaleDateString('vi-VN');
+        const time = Number.isNaN(dt.getTime()) ? '-' : dt.toLocaleTimeString('vi-VN');
         return (
           <div>
             <p className="text-sm font-medium text-gray-900">{time}</p>
@@ -110,6 +124,8 @@ export default function AccessManagement() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      {error && <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Quản lý truy cập</h2>
@@ -203,12 +219,15 @@ export default function AccessManagement() {
                   ))}
                 </tr>
               ))}
-              {table.getRowModel().rows.length === 0 && (
+              {!loading && table.getRowModel().rows.length === 0 && (
                 <tr>
                   <td colSpan={columns.length} className="px-5 py-12 text-center text-gray-400 text-sm">
                     Không có bản ghi nào
                   </td>
                 </tr>
+              )}
+              {loading && (
+                <tr><td colSpan={columns.length} className="px-5 py-12 text-center text-gray-400 text-sm">Đang tải nhật ký truy cập...</td></tr>
               )}
             </tbody>
           </table>

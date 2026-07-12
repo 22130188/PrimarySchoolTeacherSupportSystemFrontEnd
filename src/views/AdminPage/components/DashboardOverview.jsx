@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Users, School, GraduationCap, FolderOpen } from 'lucide-react';
-import { MONTHLY_DATA, RECENT_ACTIVITIES } from '../../../data/adminDashboardData';
+import { getAdminActivity } from '../../../services/adminDashboardApi';
 import { getUsers } from '../../../services/userApi';
 import { getAdminDashboardStats } from '../../../services/adminClassroomApi';
 import resourceService from '../../../services/resourceService';
-import { useAdminStore } from '../../../stores/adminStore';
+import { getActionLabel } from '../../../utils/actionLogLabels';
 
 const normalizeArray = (value) => {
   if (Array.isArray(value)) return value;
@@ -19,6 +19,8 @@ const formatCount = (value) => new Intl.NumberFormat('en-US').format(Number(valu
 
 export default function DashboardOverview() {
   const navigate = useNavigate();
+  const [monthlyData, setMonthlyData] = useState(Array.from({ length: 12 }, (_, index) => ({ month: `T${index + 1}`, sessions: 0, users: 0 })));
+  const [recentActivities, setRecentActivities] = useState([]);
   const [overviewStats, setOverviewStats] = useState({
     teachers: 0,
     students: 0,
@@ -26,7 +28,19 @@ export default function DashboardOverview() {
     resources: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
-  const maxSessions = Math.max(...MONTHLY_DATA.map((d) => d.sessions));
+  const maxSessions = Math.max(1, ...monthlyData.map((d) => d.sessions));
+  const maxUsers = Math.max(1, ...monthlyData.map((d) => d.users));
+  const chartMax = Math.max(maxSessions, maxUsers);
+
+  useEffect(() => {
+    let active = true;
+    getAdminActivity().then((response) => {
+      if (!active) return;
+      setMonthlyData((response.monthlyActivity || []).map((item) => ({ month: `T${item.month}`, sessions: item.sessions, users: item.newUsers })));
+      setRecentActivities(response.recentActivities || []);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -131,27 +145,37 @@ export default function DashboardOverview() {
           </div>
 
 
-          <div className="flex items-end gap-2 sm:gap-3 h-48">
-            {MONTHLY_DATA.map((d) => (
-              <div key={d.month} className="flex-1 flex flex-col items-center gap-1 group/bar">
-                <span className="text-[10px] font-semibold text-gray-500 opacity-0 group-hover/bar:opacity-100 transition-opacity">
-                  {d.sessions}
+          <div className="flex items-end gap-2 sm:gap-3 h-72 pt-2">
+            {monthlyData.map((d) => {
+              const sessionsPct = Math.max(d.sessions > 0 ? (d.sessions / chartMax) * 100 : 0, d.sessions > 0 ? 8 : 0);
+              const usersPct = Math.max(d.users > 0 ? (d.users / chartMax) * 100 : 0, d.users > 0 ? 8 : 0);
+              return (
+              <div key={d.month} className="flex-1 flex flex-col items-center gap-1 group/bar h-full">
+                <span className="text-[10px] font-semibold text-gray-600 opacity-0 group-hover/bar:opacity-100 transition-opacity h-4">
+                  {d.sessions > 0 || d.users > 0 ? `${d.sessions}/${d.users}` : ''}
                 </span>
-                <div className="w-full flex gap-0.5 items-end" style={{ height: '100%' }}>
-
+                <div className="w-full flex gap-0.5 items-end flex-1 min-h-0">
                   <div
-                    className="flex-1 bg-gradient-to-t from-violet-500 to-indigo-400 rounded-t-md hover:from-violet-600 hover:to-indigo-500 transition-all duration-200"
-                    style={{ height: `${(d.sessions / maxSessions) * 100}%`, minHeight: '4px' }}
-                  />
-
+                    className="flex-1 bg-gradient-to-t from-violet-500 to-indigo-400 rounded-t-md hover:from-violet-600 hover:to-indigo-500 transition-all duration-200 relative"
+                    style={{ height: `${sessionsPct}%`, minHeight: d.sessions > 0 ? '12px' : '3px' }}
+                    title={`Lượt truy cập: ${d.sessions}`}
+                  >
+                    {d.sessions > 0 && sessionsPct >= 20 && (
+                      <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-bold text-violet-600 whitespace-nowrap">
+                        {d.sessions}
+                      </span>
+                    )}
+                  </div>
                   <div
-                    className="flex-1 bg-gradient-to-t from-teal-400 to-cyan-300 rounded-t-md hover:from-teal-500 hover:to-cyan-400 transition-all duration-200"
-                    style={{ height: `${(d.users / maxSessions) * 100}%`, minHeight: '4px' }}
+                    className="flex-1 bg-gradient-to-t from-teal-400 to-cyan-300 rounded-t-md hover:from-teal-500 hover:to-cyan-400 transition-all duration-200 relative"
+                    style={{ height: `${usersPct}%`, minHeight: d.users > 0 ? '12px' : '3px' }}
+                    title={`Người dùng mới: ${d.users}`}
                   />
                 </div>
                 <span className="text-[10px] text-gray-400 font-medium">{d.month}</span>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -190,26 +214,38 @@ export default function DashboardOverview() {
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-gray-900">Hoạt động gần đây</h3>
-          <button className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/access')}
+            className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors"
+          >
             Xem tất cả
           </button>
         </div>
         <div className="space-y-4">
-          {RECENT_ACTIVITIES.map((act) => (
+          {recentActivities.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">Chưa có hoạt động đáng chú ý</p>
+          )}
+          {recentActivities.map((act) => (
             <div
-              key={act.id}
+              key={act.resourceId}
               className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200"
             >
-              <div className={`w-10 h-10 rounded-full ${act.color} flex items-center justify-center text-lg flex-shrink-0`}>
-                {act.avatar}
+              <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                {(act.actor || '?').charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-800">
-                  <span className="font-semibold">{act.user}</span>{' '}
-                  <span className="text-gray-500">{act.action}</span>{' '}
-                  {act.subject && <span className="font-medium text-violet-600">{act.subject}</span>}
+                  <span className="font-semibold">{act.actor}</span>{' '}
+                  <span className="text-gray-600">
+                    {(() => {
+                      const code = act.type || act.action || '';
+                      const label = getActionLabel(code, act.description || act.subject);
+                      return `đã ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+                    })()}
+                  </span>
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">{act.time}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{new Date(act.createdAt).toLocaleString('vi-VN')}</p>
               </div>
             </div>
           ))}

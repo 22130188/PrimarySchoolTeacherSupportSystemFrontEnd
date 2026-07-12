@@ -1,6 +1,4 @@
-// Endpoint này thuộc user-service; gọi trực tiếp trong môi trường phát triển vì
-// gateway cũ chưa khai báo route /api/admin/dashboard/**.
-const BASE = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:8082';
+const BASE = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api';
 
 const headers = () => ({
   'Content-Type': 'application/json',
@@ -8,8 +6,22 @@ const headers = () => ({
 });
 
 export async function getAdminOverview() {
-  const response = await fetch(`${BASE}/api/admin/dashboard/overview`, { headers: headers() });
+  const response = await fetch(`${BASE}/admin/dashboard/overview`, { headers: headers() });
   const body = await response.json().catch(() => null);
   if (!response.ok) throw new Error(body?.message || 'Không tải được dữ liệu tổng quan');
+  return body;
+}
+
+export async function getAccessLogs() {
+  const response = await fetch(`${BASE}/admin/access-logs`, { headers: headers() });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(body?.message || 'Không tải được nhật ký truy cập');
+  return Array.isArray(body) ? body : [];
+}
+
+export async function getAdminActivity() {
+  const response = await fetch(`${BASE}/admin/dashboard/activity`, { headers: headers() });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(body?.message || 'Không tải được dữ liệu hoạt động');
   return body;
 }
