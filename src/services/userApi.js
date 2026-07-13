@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api').replace(/\/$/, '');
 
 const normalizeToken = (token) => {
   if (!token) return null;
@@ -101,7 +101,7 @@ export async function changePasswordAPI(payload) {
   }
   return await res.text();
 }
-const ADMIN_BASE_URL = 'http://localhost:8080/api/admin/users';
+const ADMIN_BASE_URL = BASE_URL + '/admin/users';
 
 async function handleResponse(res) {
   if (!res.ok) {

@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8080/api/auth';
+const BASE_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api').replace(/\/$/, '') + '/auth';
 
 // GỬI OTP
 export async function sendOtpAPI(email) {

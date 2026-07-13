@@ -62,7 +62,7 @@ export const useAuthStore = create((set) => ({
     logout: () => {
         const token = normalizeToken(localStorage.getItem('token'));
         if (token) {
-            fetch('http://localhost:8080/api/auth/logout', {
+            fetch(((import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api').replace(/\/$/, '') + '/auth/logout'), {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 keepalive: true,

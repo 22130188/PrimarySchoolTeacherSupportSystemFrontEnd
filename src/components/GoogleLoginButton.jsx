@@ -1,4 +1,4 @@
-const GOOGLE_AUTH_URL = 'http://localhost:8080/oauth2/authorize/google';
+const GOOGLE_AUTH_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api').replace(/\/$/, '').replace(/\/api$/, '') + '/oauth2/authorize/google';
 
 const GoogleIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">

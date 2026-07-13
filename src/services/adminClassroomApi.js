@@ -1,4 +1,4 @@
-const BASE = 'http://localhost:8080';
+const BASE = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api').replace(/\/$/, '').replace(/\/api$/, '');
 
 const authHeaders = () => ({
   'Content-Type': 'application/json',
