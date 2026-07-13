@@ -8,6 +8,7 @@ const SERIALIZE_PROPS = [
   'sliceCount', 'clockRole', 'fracRole', 'selectable', 'evented', 'subTargetCheck',
   'thermoRole', 'thermoValue', 'scaleRole', 'scaleLeft', 'scaleRight',
   'stickerKind', 'stickerSource', 'stickerColor',
+  'stickOnes', 'stickTens', 'stickColor',
 ];
 
 if (fabric?.FabricObject) {

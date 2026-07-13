@@ -66,10 +66,12 @@ export async function saveImageToLibrary({ blob, description, subject, user }) {
   const formData = new FormData();
   formData.append('file', blob, 'ai_image.png');
 
+  const token = localStorage.getItem('token');
+  const auth = token ? { Authorization: `Bearer ${token}` } : {};
   const uploadRes = await axios.post(
     `${API_CONFIG.CANVAS_API_URL}/api/canvas/save-blob`,
     formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } }
+    { headers: { 'Content-Type': 'multipart/form-data', ...auth } }
   );
 
   if (!uploadRes.data?.success) throw new Error('Lỗi tải ảnh lên máy chủ');
@@ -81,7 +83,7 @@ export async function saveImageToLibrary({ blob, description, subject, user }) {
     imageUrl: imagePath,
     userId: user.id,
     userName: user?.fullName || user?.name || user?.username || 'Unknown',
-  });
+  }, { headers: auth });
 
   return imagePath;
 }

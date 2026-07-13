@@ -11,7 +11,11 @@ const normalizeToken = (token) => {
 };
 
 const authHeaders = () => {
-  const token = normalizeToken(localStorage.getItem('token'));
+  const token = normalizeToken(
+    localStorage.getItem('token')
+      || localStorage.getItem('accessToken')
+      || sessionStorage.getItem('token')
+  );
   const headers = {
     'Content-Type': 'application/json',
   };

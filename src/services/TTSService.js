@@ -4,12 +4,12 @@ import { API_CONFIG } from '../config/api.config.js';
 const TTS_SERVICE_URL = API_CONFIG.TTS_API_URL;
 
 class TTSService {
-  static async convertTextToSpeech(text) {
+  static async convertTextToSpeech(text, language = 'vi', slow = false) {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
         `${TTS_SERVICE_URL}/convert`,
-        { text },
+        { text, language, slow },
         {
           headers: {
             'Authorization': `Bearer ${token}`,

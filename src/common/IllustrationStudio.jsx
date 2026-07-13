@@ -254,8 +254,10 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
           try {
             const formData = new FormData();
             formData.append('file', blob, 'canvas.png');
+            const token = localStorage.getItem('token');
+            const auth = token ? { Authorization: `Bearer ${token}` } : {};
             const response = await axios.post(`${CANVAS_API_URL}/api/canvas/save-blob`, formData, {
-              headers: { 'Content-Type': 'multipart/form-data' },
+              headers: { 'Content-Type': 'multipart/form-data', ...auth },
             });
             if (response.data.success) {
               const imagePath = response.data.image_path;
@@ -265,7 +267,7 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
                 imageUrl: imagePath,
                 userId: user.id,
                 userName: user?.fullName || user?.name || user?.username || 'Unknown',
-              });
+              }, { headers: auth });
               alert('Lưu ảnh thành công!');
               setPlacedItems([]);
               setSelectedIconId(null);
@@ -304,10 +306,12 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
     try {
       const formData = new FormData();
       formData.append('file', file);
+      const token = localStorage.getItem('token');
+      const auth = token ? { Authorization: `Bearer ${token}` } : {};
       const cloudinaryResponse = await axios.post(
         `${CANVAS_API_URL}/api/canvas/upload-image`,
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        { headers: { 'Content-Type': 'multipart/form-data', ...auth } }
       );
       if (cloudinaryResponse.data.success) {
         await axios.post(`${IMAGE_API_URL}/save`, {
@@ -316,7 +320,7 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
           imageUrl: cloudinaryResponse.data.image_url,
           userId: user?.id || 0,
           userName: user?.fullName || user?.name || user?.username || 'Unknown',
-        });
+        }, { headers: auth });
         alert('Tải ảnh thành công!');
         loadSavedImages();
       }

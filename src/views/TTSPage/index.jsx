@@ -9,6 +9,8 @@ export default function TTSPage() {
   const { user } = useAuthStore();
   const { subjects } = useCategories();
   const [text, setText] = useState('');
+  const [language, setLanguage] = useState('vi');
+  const [slow, setSlow] = useState(false);
   const [convertedText, setConvertedText] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +20,11 @@ export default function TTSPage() {
   const [audioSaveForm, setAudioSaveForm] = useState({ audioName: '', subject: '' });
   const [savedAudios, setSavedAudios] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  const TTS_LANGUAGES = [
+    { code: 'vi', label: 'Tiếng Việt' },
+    { code: 'en', label: 'English' },
+  ];
 
   const validateInput = () => {
     if (!text || text.trim() === '') {
@@ -41,7 +48,7 @@ export default function TTSPage() {
 
     setIsLoading(true);
     try {
-      const response = await TTSService.convertTextToSpeech(text);
+      const response = await TTSService.convertTextToSpeech(text, language, slow);
       
       if (response && response.audioUrl) {
         setAudioUrl(response.audioUrl);
@@ -139,7 +146,7 @@ export default function TTSPage() {
       iconBgClass="bg-violet-100"
       iconTextClass="text-violet-600"
       title="Chuyển Text thành Giọng nói"
-      description="Nhập văn bản tiếng Việt & nghe giọng đọc tự nhiên, lưu lại lịch sử audio."
+      description="Nhập văn bản tiếng Việt hoặc English, nghe giọng đọc tự nhiên và lưu lịch sử audio."
     >
       <div className="grid gap-6 xl:grid-cols-[1.8fr_1fr]">
         <div>
@@ -157,8 +164,35 @@ export default function TTSPage() {
           )}
 
           <div className="space-y-6">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Ngôn ngữ</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                >
+                  {TTS_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code}>{lang.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <label className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={slow}
+                    onChange={(e) => setSlow(e.target.checked)}
+                    disabled={isLoading}
+                    className="rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                  Đọc chậm (dành cho học sinh)
+                </label>
+              </div>
+            </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Nhập văn bản tiếng Việt</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Nhập văn bản</label>
               <textarea
                 className="min-h-[180px] w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-900 shadow-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
                 value={text}
@@ -166,7 +200,7 @@ export default function TTSPage() {
                   setText(e.target.value);
                   setError('');
                 }}
-                placeholder="Ví dụ: Đây là một quả táo đỏ..."
+                placeholder={language === 'vi' ? 'Ví dụ: Đây là một quả táo đỏ...' : 'Example: This is a red apple...'}
                 disabled={isLoading}
               />
               <div className="mt-2 text-right text-xs text-slate-500">{text.length} / 5000 ký tự</div>

@@ -141,6 +141,7 @@ export default function TranslateLessonModal({ lesson, onClose, onTranslated }) 
         book: draft.book,
         type: originalType,
         canvasJson: JSON.stringify(translatedCanvas),
+        actionPurpose: 'bilingual-lesson',
       });
 
       setCreatedDraft({ ...newDraft, type: newDraft?.type || originalType });

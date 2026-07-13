@@ -18,6 +18,8 @@ const SERVER_CATEGORY_LABELS = {
   money: '💵 Tiền Việt Nam',
   nature: '🌿 Thiên nhiên',
   shape: '🔷 Hình học',
+  material: '📐 Material Icons',
+  school: '🏫 Học tập',
 };
 
 const CATEGORY_ALIASES = {
@@ -26,6 +28,8 @@ const CATEGORY_ALIASES = {
   money: ['money', 'tien', 'tien_vietnam'],
   nature: ['nature', 'thien_nhien'],
   shape: ['shape', 'shapes', 'hinh_khoi'],
+  material: ['material', 'material_icons', 'md'],
+  school: ['school', 'hoc_tap', 'education'],
 };
 
 function normalizeCategory(value) {

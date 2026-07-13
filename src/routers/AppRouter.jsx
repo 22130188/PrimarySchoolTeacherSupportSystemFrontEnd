@@ -41,7 +41,7 @@ import LessonTemplateManagement from '../views/AdminPage/components/LessonTempla
 import LessonContentManagement from '../views/AdminPage/components/LessonContentManagement';
 import ResourceManagement from '../views/AdminPage/components/ResourceManagement';
 import CategoryManagement from '../views/AdminPage/components/CategoryManagement';
-import AccessManagement from '../views/AdminPage/components/AccessManagement';
+import ActionLogManagement from '../views/AdminPage/components/ActionLogManagement';
 import SystemSettings from '../views/AdminPage/components/SystemSettings';
 import FeedbackManagement from '../views/AdminPage/components/FeedbackManagement';
 import GuideManagement from '../views/AdminPage/components/GuideManagement';
@@ -108,7 +108,7 @@ export default function AppRouter() {
                     <Route path="resources" element={<ResourceManagement />} />
                     <Route path="feedback" element={<FeedbackManagement />} />
                     <Route path="guides" element={<GuideManagement />} />
-                    <Route path="access" element={<AccessManagement />} />
+                    <Route path="access" element={<ActionLogManagement />} />
                     <Route path="settings" element={<SystemSettings />} />
                     {/* Fallback for admin pages */}
                     <Route path="*" element={<Navigate to="/admin" replace />} />
