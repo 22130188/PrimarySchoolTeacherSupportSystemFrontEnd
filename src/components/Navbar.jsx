@@ -30,16 +30,27 @@ export default function Navbar() {
     let cancelled = false;
     getMeAPI()
       .then((profile) => {
-        if (!cancelled) setUser(profile);
+        if (cancelled) return;
+        if (profile?.isActive === false) {
+          logout();
+          navigate('/login?error=' + encodeURIComponent('Tài khoản đã bị khóa'), { replace: true });
+          return;
+        }
+        setUser(profile);
       })
-      .catch(() => {
-        // Keep navbar usable even when profile API is temporarily unavailable.
+      .catch((err) => {
+        if (cancelled) return;
+        const msg = err?.message || '';
+        if (msg.toLowerCase().includes('khóa') || msg.toLowerCase().includes('locked')) {
+          logout();
+          navigate('/login?error=' + encodeURIComponent(msg || 'Tài khoản đã bị khóa'), { replace: true });
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [token, roleId, user, setUser]);
+  }, [token, roleId, user, setUser, logout, navigate]);
 
   const isAuthenticatedUser = Boolean(token && (roleId === 1 || roleId === 2));
   const roleLabel = roleId === 2 ? 'Giáo viên' : 'Học sinh';

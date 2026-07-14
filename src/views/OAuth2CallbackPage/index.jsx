@@ -21,7 +21,9 @@ export default function OAuth2CallbackPage() {
                 try {
                     // Lấy dữ liệu người dùng để xác định vai trò và chuyển hướng tương ứng
                     const user = await getMeAPI();
-                    // Phân tích vai trò từ phản hồi của người dùng
+                    if (user?.isActive === false) {
+                        throw new Error('Tài khoản đã bị khóa');
+                    }
                     const roleName = user.role?.toUpperCase();
                     let roleId;
                     
@@ -40,12 +42,14 @@ export default function OAuth2CallbackPage() {
                     }
                 } catch (error) {
                     console.error('Error fetching user data:', error);
-                    // Nếu getMeAPI thất bại, hãy chuyển hướng đến trang dashboard và để trang đó xử lý xác thực.
-                    navigate('/dashboard', { replace: true });
+                    useAuthStore.getState().logout();
+                    const msg = error?.message || 'Đăng nhập thất bại';
+                    navigate(`/login?error=${encodeURIComponent(msg)}`, { replace: true });
                 }
             })();
         } else {
-            navigate('/login', { replace: true });
+            const oauthError = params.get('error');
+            navigate(oauthError ? `/login?error=${encodeURIComponent(oauthError)}` : '/login', { replace: true });
         }
     }, [navigate, setToken, setRole, setUser]);
 

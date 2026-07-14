@@ -1,8 +1,16 @@
-import { MoreVertical, Users, Copy, Link2, GraduationCap, BookOpen } from 'lucide-react';
+import { MoreVertical, Users, Copy, Link2, GraduationCap, BookOpen, RotateCcw, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 
-export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCopyLink, onCopyCode }) {
+export default function ClassroomCard({
+  classroom,
+  isTeacher,
+  onViewDetail,
+  onCopyLink,
+  onCopyCode,
+  onRestore,
+  onPermanentDelete,
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const user = useAuthStore(s => s.user);
@@ -15,6 +23,9 @@ export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCo
 
   const teacherAvatar = classroom.teacherAvatarUrl
     || (isTeacher && user?.avatarUrl ? user.avatarUrl : null);
+  const isWritable = (classroom.status || 'ACTIVE') === 'ACTIVE';
+  const isArchived = classroom.status === 'ARCHIVED';
+  const showMenu = isTeacher && (isWritable || isArchived);
 
   return (
     <div
@@ -46,7 +57,7 @@ export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCo
               <span className="text-gray-500">Giáo viên:</span> {classroom.teacherName}
             </p>
           </div>
-          {isTeacher && (
+          {showMenu && (
             <div ref={menuRef} className="absolute top-3 right-3">
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
@@ -55,15 +66,30 @@ export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCo
                 <MoreVertical className="w-5 h-5 text-gray-400" />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-10 w-52 max-h-[120px] overflow-y-auto bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 animate-in fade-in slide-in-from-top-2">
-                  <button onClick={(e) => { e.stopPropagation(); onCopyLink?.(classroom); setMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    <Link2 className="w-4 h-6 text-gray-400" /> Sao chép link mời
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); onCopyCode?.(classroom); setMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    <Copy className="w-4 h-6 text-gray-400" /> Sao chép mã lớp
-                  </button>
+                <div className="absolute right-0 top-10 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 animate-in fade-in slide-in-from-top-2">
+                  {isWritable ? (
+                    <>
+                      <button onClick={(e) => { e.stopPropagation(); onCopyLink?.(classroom); setMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Link2 className="w-4 h-6 text-gray-400" /> Sao chép link mời
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); onCopyCode?.(classroom); setMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Copy className="w-4 h-6 text-gray-400" /> Sao chép mã lớp
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={(e) => { e.stopPropagation(); onRestore?.(classroom); setMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <RotateCcw className="w-4 h-4 text-teal-500" /> Khôi phục lớp học
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); onPermanentDelete?.(classroom); setMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                        <Trash2 className="w-4 h-4" /> Xóa vĩnh viễn
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -93,7 +119,7 @@ export default function ClassroomCard({ classroom, isTeacher, onViewDetail, onCo
             <Users className="w-4 h-4 text-violet-500" />
             {classroom.studentCount} học sinh
           </span>
-          {isTeacher && (
+          {isTeacher && isWritable && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 border border-black/15">
               <span className="text-xs font-mono font-bold text-gray-700 tracking-wider">{classroom.classCode}</span>
             </div>

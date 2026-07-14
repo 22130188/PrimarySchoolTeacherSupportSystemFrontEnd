@@ -9,10 +9,30 @@ const INITIAL_FORM = {
 };
 
 
-export default function UserFormModal({ isOpen, onClose, onSubmit, initialData, isEdit }) {
+export default function UserFormModal({ isOpen, onClose, onSubmit, initialData, isEdit, currentUser }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const originalRole = (initialData?.role || '').toUpperCase();
+  const isTargetAdmin = isEdit && originalRole === 'ADMIN';
+  const isSelf = Boolean(
+    isEdit &&
+    currentUser &&
+    (
+      (currentUser.id != null && String(currentUser.id) === String(initialData?.id)) ||
+      (currentUser.username && initialData?.username &&
+        String(currentUser.username).toLowerCase() === String(initialData.username).toLowerCase()) ||
+      (currentUser.email && initialData?.email &&
+        String(currentUser.email).toLowerCase() === String(initialData.email).toLowerCase())
+    ),
+  );
+  const roleLocked = isTargetAdmin || isSelf;
+  const roleLockReason = isSelf
+    ? 'Bạn không thể thay đổi vai trò của chính mình'
+    : isTargetAdmin
+      ? 'Không được hạ quyền tài khoản Admin'
+      : '';
 
   useEffect(() => {
     if (isOpen) {
@@ -39,6 +59,13 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, initialData, 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'role') {
+      if (roleLocked) return;
+      if (String(value).toUpperCase() === 'ADMIN') {
+        setError('Không được đổi người dùng thành Admin');
+        return;
+      }
+    }
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -70,6 +97,21 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, initialData, 
     setError('');
     try {
       const payload = { ...form };
+      const nextRole = String(payload.role || '').toUpperCase();
+
+      if (nextRole === 'ADMIN' && (!isEdit || originalRole !== 'ADMIN')) {
+        throw new Error('Không được đổi người dùng thành Admin');
+      }
+      if (isEdit && isTargetAdmin && nextRole !== 'ADMIN') {
+        throw new Error('Không được hạ quyền một tài khoản Admin');
+      }
+      if (isEdit && isSelf && nextRole !== originalRole) {
+        throw new Error('Bạn không thể thay đổi vai trò của chính mình');
+      }
+      if (isEdit && roleLocked) {
+        payload.role = originalRole;
+      }
+
       if (payload.role !== 'STUDENT') delete payload.grade;
       if (payload.role !== 'TEACHER') delete payload.teacherClasses;
       else {
@@ -136,12 +178,28 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, initialData, 
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vai trò <span className="text-red-500">*</span></label>
-              <select name="role" value={form.role} onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all bg-white">
-                <option value="TEACHER">Giáo viên</option>
-                <option value="STUDENT">Học sinh</option>
-                <option value="ADMIN">Admin</option>
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                disabled={roleLocked}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+              >
+                {isTargetAdmin ? (
+                  <option value="ADMIN">Admin</option>
+                ) : (
+                  <>
+                    <option value="TEACHER">Giáo viên</option>
+                    <option value="STUDENT">Học sinh</option>
+                  </>
+                )}
               </select>
+              {roleLockReason && (
+                <p className="mt-1 text-xs text-amber-600">{roleLockReason}</p>
+              )}
+              {!roleLocked && (
+                <p className="mt-1 text-xs text-gray-400">Không thể gán quyền Admin từ form này</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Điện thoại</label>

@@ -92,7 +92,6 @@ export default function AppRouter() {
 
                     {/* Classrooms CRUD */}
                     <Route path="classrooms" element={<ClassroomManagement />} />
-                    <Route path="classrooms/create" element={<ClassroomManagement />} />
                     <Route path="classrooms/:id/edit" element={<ClassroomManagement />} />
 
                     {/* Subjects CRUD */}
