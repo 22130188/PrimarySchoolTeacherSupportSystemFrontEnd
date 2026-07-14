@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import * as adminClassroomApi from '../services/adminClassroomApi';
 
-export function useAdminClassrooms(includeDeleted) {
+export function useAdminClassrooms() {
   const [classrooms, setClassrooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -10,7 +10,7 @@ export function useAdminClassrooms(includeDeleted) {
     setLoading(true);
     setError('');
     try {
-      const data = await adminClassroomApi.getAdminClassrooms(includeDeleted);
+      const data = await adminClassroomApi.getAdminClassrooms();
       setClassrooms(data);
     } catch (err) {
       setError(err.message);
@@ -18,7 +18,7 @@ export function useAdminClassrooms(includeDeleted) {
     } finally {
       setLoading(false);
     }
-  }, [includeDeleted]);
+  }, []);
 
   useEffect(() => {
     fetchClassrooms();

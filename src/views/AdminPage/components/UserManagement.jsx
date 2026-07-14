@@ -17,10 +17,12 @@ import UserFormModal from './UserFormModal';
 import UserDetailModal from './UserDetailModal';
 import ConfirmModal from '../../../common/ConfirmModal';
 import { formatDate } from '../../../helpers/formatDate';
+import { useAuthStore } from '../../../stores/authStore';
 
 export default function UserManagement() {
   const location = useLocation();
   const navigate = useNavigate();
+  const currentUser = useAuthStore((s) => s.user);
   
   const [activeTab, setActiveTab] = useState('all');
   const [globalFilter, setGlobalFilter] = useState('');
@@ -72,12 +74,33 @@ export default function UserManagement() {
   const data = useMemo(() => users, [users]);
 
   const handleCreate = async (payload) => {
+    if (String(payload.role || '').toUpperCase() === 'ADMIN') {
+      throw new Error('Không được tạo người dùng với vai trò Admin');
+    }
     await userApi.createUser(payload);
     refetch();
     handleCloseForm();
   };
 
   const handleUpdate = async (payload) => {
+    const nextRole = String(payload.role || '').toUpperCase();
+    const oldRole = String(editUser?.role || '').toUpperCase();
+    const isSelf = currentUser && (
+      (currentUser.id != null && String(currentUser.id) === String(editUser?.id)) ||
+      (currentUser.username && editUser?.username &&
+        String(currentUser.username).toLowerCase() === String(editUser.username).toLowerCase())
+    );
+
+    if (nextRole === 'ADMIN' && oldRole !== 'ADMIN') {
+      throw new Error('Không được đổi người dùng thành Admin');
+    }
+    if (oldRole === 'ADMIN' && nextRole && nextRole !== 'ADMIN') {
+      throw new Error('Không được hạ quyền một tài khoản Admin');
+    }
+    if (isSelf && nextRole && nextRole !== oldRole) {
+      throw new Error('Bạn không thể thay đổi vai trò của chính mình');
+    }
+
     await userApi.updateUser(editUser.id, payload);
     refetch();
     handleCloseForm();
@@ -426,6 +449,7 @@ export default function UserManagement() {
         onSubmit={editUser ? handleUpdate : handleCreate}
         initialData={editUser}
         isEdit={!!editUser}
+        currentUser={currentUser}
       />
 
       <UserDetailModal

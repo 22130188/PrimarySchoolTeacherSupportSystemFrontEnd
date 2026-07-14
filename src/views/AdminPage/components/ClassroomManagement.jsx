@@ -10,22 +10,24 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import {
-  Search, MoreHorizontal, Eye, Edit3, Trash2, RotateCcw,
+  Search, MoreHorizontal, Eye, Edit3, LockKeyhole, UnlockKeyhole,
   ChevronLeft, ChevronRight, Loader2, School, Users,
-  Hash, AlertTriangle, Archive, CheckCircle2, XCircle,
-  GraduationCap, BookOpen, Plus,
+  Hash, Archive, CheckCircle2, XCircle, ScrollText,
+  GraduationCap, BookOpen,
 } from 'lucide-react';
 import SortIcon from '../../../components/SortIcon';
 import { useAdminClassrooms } from '../../../hooks/useAdminClassrooms';
 import * as adminClassroomApi from '../../../services/adminClassroomApi';
 import ClassroomEditModal from './ClassroomEditModal';
 import ClassroomDetailModal from './ClassroomDetailModal';
-import ConfirmModal from '../../../common/ConfirmModal';
+import ClassroomStatusModal from './ClassroomStatusModal';
 import { formatDate } from '../../../helpers/formatDate';
 
 const CLASSROOM_TABS = [
-  { key: 'active', label: 'Hoạt động' },
-  { key: 'all', label: 'Tất cả' },
+  { key: 'ACTIVE', label: 'Hoạt động' },
+  { key: 'ARCHIVED', label: 'Đã lưu trữ' },
+  { key: 'LOCKED', label: 'Bị khóa' },
+  { key: 'ALL', label: 'Tất cả' },
 ];
 
 export default function ClassroomManagement() {
@@ -33,7 +35,7 @@ export default function ClassroomManagement() {
   const navigate = useNavigate();
 
   const { subjects, grades } = useCategories();
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState('ACTIVE');
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -53,20 +55,15 @@ export default function ClassroomManagement() {
     };
   }, []);
 
-  const includeDeleted = activeTab === 'all';
-  const { classrooms, loading, error, refetch } = useAdminClassrooms(includeDeleted);
+  const { classrooms, loading, error, refetch } = useAdminClassrooms();
 
-  const isCreateRoute = location.pathname.endsWith('/create');
   const isEditRoute = location.pathname.includes('/edit');
 
-  const [editOpen, setEditOpen] = useState(isCreateRoute || isEditRoute);
+  const [editOpen, setEditOpen] = useState(isEditRoute);
   const [editClassroom, setEditClassroom] = useState(null);
 
   useEffect(() => {
-    if (isCreateRoute) {
-      setEditClassroom(null);
-      setEditOpen(true);
-    } else if (isEditRoute) {
+    if (isEditRoute) {
       const match = location.pathname.match(/\/admin\/classrooms\/([^/]+)\/edit/);
       if (match && classrooms.length > 0) {
         const id = match[1];
@@ -80,27 +77,24 @@ export default function ClassroomManagement() {
       setEditOpen(false);
       setEditClassroom(null);
     }
-  }, [isCreateRoute, isEditRoute, location.pathname, classrooms]);
+  }, [isEditRoute, location.pathname, classrooms]);
 
   const handleCloseEdit = () => {
     setEditOpen(false);
     setEditClassroom(null);
-    if (isCreateRoute || isEditRoute) navigate('/admin/classrooms');
+    if (isEditRoute) navigate('/admin/classrooms');
   };
 
   const [detailClassroom, setDetailClassroom] = useState(null);
+  const [detailTab, setDetailTab] = useState('info');
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusAction, setStatusAction] = useState('lock');
+  const [statusLoading, setStatusLoading] = useState(false);
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmTarget, setConfirmTarget] = useState(null);
-  const [confirmAction, setConfirmAction] = useState('softDelete');
-  const [confirmLoading, setConfirmLoading] = useState(false);
-
-  const data = useMemo(() => classrooms, [classrooms]);
-
-  const handleCreate = async (payload) => {
-    // API logic for create missing, so just close for now
-    handleCloseEdit();
-  };
+  const data = useMemo(
+    () => activeTab === 'ALL' ? classrooms : classrooms.filter((classroom) => (classroom.status || 'ACTIVE') === activeTab),
+    [activeTab, classrooms]
+  );
 
   const handleEdit = async (payload) => {
     await adminClassroomApi.updateAdminClassroom(editClassroom.id, payload);
@@ -108,29 +102,20 @@ export default function ClassroomManagement() {
     handleCloseEdit();
   };
 
-  const handleConfirm = async () => {
-    if (!confirmTarget) return;
-    setConfirmLoading(true);
+  const handleStatusConfirm = async (reason) => {
+    if (!statusTarget) return;
+    setStatusLoading(true);
     try {
-      if (confirmAction === 'softDelete') {
-        await adminClassroomApi.softDeleteClassroom(confirmTarget.id);
-      } else if (confirmAction === 'hardDelete') {
-        await adminClassroomApi.hardDeleteClassroom(confirmTarget.id);
-      } else if (confirmAction === 'restore') {
-        await adminClassroomApi.restoreClassroom(confirmTarget.id);
-      }
-      refetch();
-      setConfirmOpen(false);
-      setConfirmTarget(null);
+      if (statusAction === 'lock') await adminClassroomApi.lockClassroom(statusTarget.id, reason);
+      else await adminClassroomApi.unlockClassroom(statusTarget.id, reason);
+      await refetch();
+      setStatusTarget(null);
     } catch (err) {
       alert(err.message);
+      throw err;
     } finally {
-      setConfirmLoading(false);
+      setStatusLoading(false);
     }
-  };
-
-  const openCreateForm = () => {
-    navigate('/admin/classrooms/create');
   };
 
   const openEditModal = (cls) => {
@@ -138,29 +123,15 @@ export default function ClassroomManagement() {
     setOpenMenuId(null);
   };
 
-  const openDetail = (cls) => {
+  const openDetail = (cls, tab = 'info') => {
     setDetailClassroom(cls);
+    setDetailTab(tab);
     setOpenMenuId(null);
   };
 
-  const openSoftDeleteConfirm = (cls) => {
-    setConfirmTarget(cls);
-    setConfirmAction('softDelete');
-    setConfirmOpen(true);
-    setOpenMenuId(null);
-  };
-
-  const openHardDeleteConfirm = (cls) => {
-    setConfirmTarget(cls);
-    setConfirmAction('hardDelete');
-    setConfirmOpen(true);
-    setOpenMenuId(null);
-  };
-
-  const openRestoreConfirm = (cls) => {
-    setConfirmTarget(cls);
-    setConfirmAction('restore');
-    setConfirmOpen(true);
+  const openStatusConfirm = (cls, action) => {
+    setStatusTarget(cls);
+    setStatusAction(action);
     setOpenMenuId(null);
   };
 
@@ -251,13 +222,14 @@ export default function ClassroomManagement() {
       cell: ({ getValue }) => <span className="text-sm text-gray-500">{formatDate(getValue())}</span>,
     },
     {
-      accessorKey: 'isDeleted',
+      accessorKey: 'status',
       header: 'Trạng thái',
-      cell: ({ getValue }) => (
-        getValue()
-          ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 whitespace-nowrap"><XCircle className="w-3 h-3" />Đã xóa</span>
-          : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 whitespace-nowrap"><CheckCircle2 className="w-3 h-3" />Hoạt động</span>
-      ),
+      cell: ({ getValue }) => {
+        const status = getValue() || 'ACTIVE';
+        if (status === 'ARCHIVED') return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 whitespace-nowrap"><Archive className="w-3 h-3" />Đã lưu trữ</span>;
+        if (status === 'LOCKED') return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 whitespace-nowrap"><XCircle className="w-3 h-3" />Bị khóa</span>;
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 whitespace-nowrap"><CheckCircle2 className="w-3 h-3" />Hoạt động</span>;
+      },
     },
     {
       id: 'actions',
@@ -284,48 +256,30 @@ export default function ClassroomManagement() {
             </button>
             {openMenuId === cls.id && (
               <div className={`absolute right-0 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20 ${menuDirection === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                <button
-                  onClick={() => openDetail(cls)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                >
-                  <Eye className="w-4 h-4" />
-                  Xem chi tiết
+                <button onClick={() => openDetail(cls, 'info')} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+                  <Eye className="w-4 h-4" /> Xem chi tiết
                 </button>
-                {!cls.isDeleted && (
-                  <>
-                    <button
-                      onClick={() => openEditModal(cls)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Chỉnh sửa
-                    </button>
-                    <button
-                      onClick={() => openSoftDeleteConfirm(cls)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 hover:text-amber-700 transition-colors"
-                    >
-                      <Archive className="w-4 h-4" />
-                      Xóa tạm thời
-                    </button>
-                  </>
-                )}
-                {cls.isDeleted && (
-                  <button
-                    onClick={() => openRestoreConfirm(cls)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Khôi phục
+                <button onClick={() => openDetail(cls, 'members')} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+                  <Users className="w-4 h-4" /> Xem thành viên
+                </button>
+                <button onClick={() => openDetail(cls, 'activity')} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+                  <ScrollText className="w-4 h-4" /> Xem nhật ký
+                </button>
+                {cls.status !== 'ARCHIVED' && (
+                  <button onClick={() => openEditModal(cls)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+                    <Edit3 className="w-4 h-4" /> Chỉnh sửa
                   </button>
                 )}
-                <div className="my-1 border-t border-gray-100" />
-                <button
-                  onClick={() => openHardDeleteConfirm(cls)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Xóa vĩnh viễn
-                </button>
+                {cls.status === 'ACTIVE' && (
+                  <button onClick={() => openStatusConfirm(cls, 'lock')} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-amber-700 hover:bg-amber-50 transition-colors">
+                    <LockKeyhole className="w-4 h-4" /> Khóa lớp
+                  </button>
+                )}
+                {cls.status === 'LOCKED' && (
+                  <button onClick={() => openStatusConfirm(cls, 'unlock')} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 transition-colors">
+                    <UnlockKeyhole className="w-4 h-4" /> Mở khóa lớp
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -349,21 +303,6 @@ export default function ClassroomManagement() {
     },
   });
 
-  const getConfirmTitle = () => {
-    if (confirmAction === 'softDelete') return 'Xóa tạm thời lớp học';
-    if (confirmAction === 'hardDelete') return 'Xóa vĩnh viễn lớp học';
-    return 'Khôi phục lớp học';
-  };
-
-  const getConfirmMessage = () => {
-    const name = confirmTarget?.name || '';
-    if (confirmAction === 'softDelete')
-      return `Bạn có chắc muốn xóa tạm thời lớp "${name}"? Lớp có thể được khôi phục sau.`;
-    if (confirmAction === 'hardDelete')
-      return `Bạn có chắc muốn xóa vĩnh viễn lớp "${name}"? Hành động này KHÔNG thể hoàn tác!`;
-    return `Bạn có chắc muốn khôi phục lớp "${name}"?`;
-  };
-
   const filteredCount = table.getFilteredRowModel().rows.length;
   const pageState = table.getState().pagination;
 
@@ -372,16 +311,10 @@ export default function ClassroomManagement() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Quản lý lớp học</h2>
-          <p className="text-sm text-gray-500 mt-1">{classrooms.length} lớp học{includeDeleted ? ' (bao gồm đã xóa)' : ''}</p>
+          <p className="text-sm text-gray-400 mb-1">Admin <span className="mx-1">›</span> Lớp học</p>
+          <h2 className="text-2xl font-bold text-gray-900">Lớp học</h2>
+          <p className="text-sm text-gray-500 mt-1">{classrooms.length} lớp học</p>
         </div>
-        <button
-          onClick={openCreateForm}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 hover:-translate-y-0.5 transition-all duration-200"
-        >
-          <Plus className="w-4 h-4" />
-          Tạo lớp học
-        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -457,7 +390,7 @@ export default function ClassroomManagement() {
                   {table.getRowModel().rows.map((row) => (
                     <tr
                       key={row.id}
-                      className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150 ${row.original.isDeleted ? 'opacity-60' : ''}`}
+                      className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors duration-150 ${row.original.status === 'ARCHIVED' ? 'opacity-70' : ''}`}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id} className="px-5 py-4">
@@ -527,26 +460,29 @@ export default function ClassroomManagement() {
       <ClassroomEditModal
         isOpen={editOpen}
         onClose={handleCloseEdit}
-        onSubmit={editClassroom ? handleEdit : handleCreate}
+        onSubmit={handleEdit}
         classroom={editClassroom}
         subjects={subjects}
         grades={grades}
       />
 
       <ClassroomDetailModal
+        key={`${detailClassroom?.id || 'none'}-${detailTab}`}
         isOpen={!!detailClassroom}
         onClose={() => setDetailClassroom(null)}
         classroom={detailClassroom}
+        initialTab={detailTab}
         onRefresh={refetch}
       />
 
-      <ConfirmModal
-        isOpen={confirmOpen}
-        onClose={() => { setConfirmOpen(false); setConfirmTarget(null); }}
-        onConfirm={handleConfirm}
-        title={getConfirmTitle()}
-        message={getConfirmMessage()}
-        loading={confirmLoading}
+      <ClassroomStatusModal
+        key={`${statusAction}-${statusTarget?.id || 'none'}`}
+        isOpen={!!statusTarget}
+        onClose={() => setStatusTarget(null)}
+        onConfirm={handleStatusConfirm}
+        classroom={statusTarget}
+        action={statusAction}
+        loading={statusLoading}
       />
     </div>
   );

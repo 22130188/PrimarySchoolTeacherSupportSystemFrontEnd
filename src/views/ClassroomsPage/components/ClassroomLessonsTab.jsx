@@ -35,7 +35,7 @@ const getInitials = (name) => {
   return name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase();
 };
 
-export default function ClassroomLessonsTab({ classroomId, isTeacher, teacherName, teacherAvatarUrl }) {
+export default function ClassroomLessonsTab({ classroomId, isTeacher, readOnly = false, teacherName, teacherAvatarUrl }) {
   const navigate = useNavigate();
   const currentUser = useAuthStore(state => state.user);
   const [lessons, setLessons] = useState([]);
@@ -84,13 +84,13 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher, teacherNam
     const isCollabora = lesson.type === 'COLLABORA_DOCX' || lesson.type === 'COLLABORA_PPTX';
     const isPptx = lesson.type === 'PPTX' || lesson.type === 'COLLABORA_PPTX';
     const editorPath = isCollabora ? '/lessons/collabora-editor' : (isPptx ? '/lessons/pptx-editor' : '/lessons/docx-editor');
-    const mode = isCollabora ? (isTeacher ? 'edit' : 'view') : (isTeacher ? 'edit' : (lesson.permission === 'COPY' ? 'copy' : 'view'));
+    const mode = readOnly ? 'view' : (isCollabora ? (isTeacher ? 'edit' : 'view') : (isTeacher ? 'edit' : (lesson.permission === 'COPY' ? 'copy' : 'view')));
     navigate(`${editorPath}?draftId=${lesson.id}&mode=${mode}&classroomId=${classroomId}`);
   };
 
   return (
     <div className="space-y-5">
-      {isTeacher && (
+      {isTeacher && !readOnly && (
         <button type="button" onClick={() => setIsSelectModalOpen(true)} className="group w-full flex items-center gap-3 rounded-2xl border border-slate-200 bg-white shadow-sm px-5 py-4 hover:shadow-md hover:border-blue-200 transition-all duration-200 text-left">
           <span className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all shrink-0">
             <Plus className="w-5 h-5 text-white" />
@@ -147,7 +147,7 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher, teacherNam
                     <p className="text-xs text-slate-500">{formatDate(lesson.updatedAt)}</p>
                   </div>
                 </div>
-                {isTeacher && (
+                {isTeacher && !readOnly && (
                   <button type="button" onClick={(e) => handleRevokeShare(lesson.id, e)} disabled={revokingId === lesson.id} className="p-2 rounded-full text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-50 shrink-0" title="Ngừng chia sẻ" aria-label={`Ngừng chia sẻ ${lesson.title}`}>
                     {revokingId === lesson.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   </button>
@@ -166,15 +166,15 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher, teacherNam
                     <span className="block text-sm font-medium text-slate-800 truncate">{lesson.title}</span>
                     <span className="block text-xs text-slate-500 mt-0.5">{getLessonTypeLabel(lesson.type)}</span>
                   </span>
-                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 shrink-0 ${isTeacher ? 'bg-teal-100 text-teal-700' : (PERMISSION_STYLE[lesson.permission] || PERMISSION_STYLE.VIEW)}`}>
-                    {isTeacher ? <Edit2 className="w-3 h-3" /> : (lesson.permission === 'COPY' ? <Copy className="w-3 h-3" /> : <Eye className="w-3 h-3" />)}
-                    {isTeacher ? 'Chỉnh sửa' : (PERMISSION_LABELS[lesson.permission] || PERMISSION_LABELS.VIEW)}
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 shrink-0 ${isTeacher && !readOnly ? 'bg-teal-100 text-teal-700' : PERMISSION_STYLE.VIEW}`}>
+                    {isTeacher && !readOnly ? <Edit2 className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    {isTeacher && !readOnly ? 'Chỉnh sửa' : PERMISSION_LABELS.VIEW}
                   </span>
                 </div>
 
                 <span className="mt-4 flex justify-end">
                   <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-semibold group-hover:shadow-lg transition-all">
-                    {isTeacher ? 'Mở bài giảng' : 'Xem bài giảng'}
+                    {isTeacher && !readOnly ? 'Mở bài giảng' : 'Xem bài giảng'}
                     <ArrowRight className="w-4 h-4" />
                   </span>
                 </span>
@@ -185,6 +185,7 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher, teacherNam
                 postId={lesson.id}
                 initialCommentCount={lesson.commentCount || lesson.commentsCount || 0}
                 isTeacher={isTeacher}
+                readOnly={readOnly}
                 getComments={lessonDraftApi.getClassroomLessonComments}
                 createComment={lessonDraftApi.createClassroomLessonComment}
                 deleteComment={lessonDraftApi.deleteClassroomLessonComment}
@@ -194,7 +195,7 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher, teacherNam
         </div>
       )}
 
-      {isSelectModalOpen && (
+      {isSelectModalOpen && !readOnly && (
         <SelectLessonModal
           classroomId={classroomId}
           onClose={() => setIsSelectModalOpen(false)}

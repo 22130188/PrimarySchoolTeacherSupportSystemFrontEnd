@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Copy, RefreshCw, Link2, Keyboard, CheckCircle2, Save, Trash2, GraduationCap, BookOpen } from 'lucide-react';
+import { Copy, RefreshCw, Link2, Keyboard, CheckCircle2, Save, Archive, GraduationCap, BookOpen, X } from 'lucide-react';
 import { resetInviteLink, resetClassCode, updateClassroom } from '../../../services/classroomApi';
 import { GRADE_LEVELS, SUBJECTS } from '../../../data/classroomData';
 
-export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
+export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
   const [loading, setLoading] = useState(null);
   const [copied, setCopied] = useState('');
   const [name, setName] = useState('');
@@ -11,6 +11,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
   const [gradeLevel, setGradeLevel] = useState('');
   const [subject, setSubject] = useState('');
   const [error, setError] = useState('');
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
 
   useEffect(() => {
     setName(classroom?.name || '');
@@ -88,10 +89,11 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
     || String(gradeLevel) !== String(classroom?.gradeLevel || '')
     || subject !== (classroom?.subject || '');
 
-  const handleDeleteClassroom = async () => {
-    setLoading('delete');
+  const handleArchiveClassroom = async () => {
+    setLoading('archive');
     try {
-      await onDelete?.();
+      await onArchive?.();
+      setArchiveConfirmOpen(false);
     } finally {
       setLoading(null);
     }
@@ -234,20 +236,55 @@ export default function ClassroomSettings({ classroom, onUpdate, onDelete }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-red-200 p-5 space-y-3">
-        <div className="text-sm font-semibold text-red-600">XÓA LỚP HỌC</div>
+      <div className="bg-white rounded-xl border border-amber-200 p-5 space-y-3">
+        <div className="text-sm font-semibold text-amber-700">LƯU TRỮ LỚP HỌC</div>
         <p className="text-xs text-gray-500">
-          Xóa lớp học sẽ xóa toàn bộ dữ liệu liên quan và không thể hoàn tác.
+          Lớp học sẽ được chuyển vào danh sách đã lưu trữ. Toàn bộ bài giảng, bài tập, bài kiểm tra, thành viên và kết quả học tập vẫn được giữ nguyên.
         </p>
         <button
-          onClick={handleDeleteClassroom}
-          disabled={loading === 'delete'}
-          className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold flex items-center gap-1 transition-all disabled:opacity-50"
+          onClick={() => setArchiveConfirmOpen(true)}
+          disabled={loading === 'archive'}
+          className="px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold flex items-center gap-1 transition-all disabled:opacity-50"
         >
-          <Trash2 className={`w-3.5 h-3.5 ${loading === 'delete' ? 'animate-pulse' : ''}`} />
-          {loading === 'delete' ? 'Đang xóa...' : 'Xóa lớp học'}
+          <Archive className={`w-3.5 h-3.5 ${loading === 'archive' ? 'animate-pulse' : ''}`} />
+          {loading === 'archive' ? 'Đang lưu trữ...' : 'Lưu trữ lớp học'}
         </button>
       </div>
+
+      {archiveConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setArchiveConfirmOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <Archive className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Lưu trữ lớp học?</h3>
+                  <p className="text-xs text-gray-500">{classroom?.name}</p>
+                </div>
+              </div>
+              <button onClick={() => setArchiveConfirmOpen(false)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-5">
+              <p className="text-sm text-gray-600">
+                Lớp sẽ chuyển sang danh sách đã lưu trữ. Mọi nội dung, thành viên và kết quả học tập vẫn được giữ nguyên.
+              </p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setArchiveConfirmOpen(false)} disabled={loading === 'archive'} className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-600 disabled:opacity-50">
+                  Hủy
+                </button>
+                <button type="button" onClick={handleArchiveClassroom} disabled={loading === 'archive'} className="flex-1 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50">
+                  <Archive className={`w-4 h-4 ${loading === 'archive' ? 'animate-pulse' : ''}`} />
+                  {loading === 'archive' ? 'Đang lưu trữ...' : 'Lưu trữ lớp học'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

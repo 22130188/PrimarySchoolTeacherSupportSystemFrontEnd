@@ -14,11 +14,8 @@ async function handleRes(res) {
   return res.json();
 }
 
-export async function getAdminClassrooms(includeDeleted = false) {
-  const res = await fetch(
-    `${BASE}/api/admin/classrooms?includeDeleted=${includeDeleted}`,
-    { headers: authHeaders() }
-  );
+export async function getAdminClassrooms() {
+  const res = await fetch(`${BASE}/api/admin/classrooms`, { headers: authHeaders() });
   return handleRes(res);
 }
 
@@ -45,26 +42,20 @@ export async function updateAdminClassroom(id, data) {
   return handleRes(res);
 }
 
-export async function softDeleteClassroom(id) {
-  const res = await fetch(`${BASE}/api/admin/classrooms/${id}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-  return handleRes(res);
-}
-
-export async function restoreClassroom(id) {
-  const res = await fetch(`${BASE}/api/admin/classrooms/${id}/restore`, {
+export async function lockClassroom(id, reason) {
+  const res = await fetch(`${BASE}/api/admin/classrooms/${id}/lock`, {
     method: 'POST',
     headers: authHeaders(),
+    body: JSON.stringify({ reason }),
   });
   return handleRes(res);
 }
 
-export async function hardDeleteClassroom(id) {
-  const res = await fetch(`${BASE}/api/admin/classrooms/${id}/permanent`, {
-    method: 'DELETE',
+export async function unlockClassroom(id, reason) {
+  const res = await fetch(`${BASE}/api/admin/classrooms/${id}/unlock`, {
+    method: 'POST',
     headers: authHeaders(),
+    body: JSON.stringify({ reason }),
   });
   return handleRes(res);
 }
@@ -73,16 +64,5 @@ export async function getClassroomMembers(id) {
   const res = await fetch(`${BASE}/api/admin/classrooms/${id}/members`, {
     headers: authHeaders(),
   });
-  return handleRes(res);
-}
-
-export async function removeMember(classroomId, memberId) {
-  const res = await fetch(
-    `${BASE}/api/admin/classrooms/${classroomId}/members/${memberId}`,
-    {
-      method: 'DELETE',
-      headers: authHeaders(),
-    }
-  );
   return handleRes(res);
 }

@@ -1,24 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, School, Loader2, Search, Mail, CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, School, Loader2, Search, Mail, CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle, Archive } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import ClassroomCard from './components/ClassroomCard';
 import CreateClassroomDialog from './components/CreateClassroomDialog';
 import JoinClassroomDialog from './components/JoinClassroomDialog';
+import ArchivedClassroomActionDialog from './components/ArchivedClassroomActionDialog';
+import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
 import { useCategories } from '../../hooks/useCategories';
 import {
   getMyClassrooms, createClassroom,
   getMyJoinedClassrooms, joinByClassCode,
   getMyInvitations, acceptInvitation, rejectInvitation,
+  restoreClassroom, permanentlyDeleteClassroom,
 } from '../../services/classroomApi';
 
 export default function ClassroomsPage() {
   const navigate = useNavigate();
   const roleId = useAuthStore(s => s.roleId);
-  const user = useAuthStore(s => s.user);
   const isTeacher = roleId === 2;
   const { subjects, grades } = useCategories();
 
@@ -30,8 +32,10 @@ export default function ClassroomsPage() {
   const [filterGrade, setFilterGrade] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [statusTab, setStatusTab] = useState('ACTIVE');
   const [invLoading, setInvLoading] = useState(null);
   const [fetchError, setFetchError] = useState(false);
+  const [archivedAction, setArchivedAction] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -90,6 +94,20 @@ export default function ClassroomsPage() {
     navigator.clipboard.writeText(cls.classCode);
   };
 
+  const handleArchivedAction = async () => {
+    if (!archivedAction?.classroom) return;
+
+    if (archivedAction.action === 'restore') {
+      await restoreClassroom(archivedAction.classroom.id);
+      toast.success('Đã khôi phục lớp học');
+    } else {
+      await permanentlyDeleteClassroom(archivedAction.classroom.id);
+      toast.success('Đã xóa vĩnh viễn lớp học');
+    }
+
+    await fetchData();
+  };
+
   const handleAcceptInvite = async (inv) => {
     setInvLoading(`accept-${inv.id}`);
     try {
@@ -120,7 +138,10 @@ export default function ClassroomsPage() {
       c.teacherName?.toLowerCase().includes(search.toLowerCase());
     const matchSubject = !filterSubject || c.subject === filterSubject;
     const matchGrade = !filterGrade || c.gradeLevel === parseInt(filterGrade);
-    return matchText && matchSubject && matchGrade;
+    const classroomStatus = c.status || 'ACTIVE';
+    const matchStatus = statusTab === 'ARCHIVED'
+      ? classroomStatus === 'ARCHIVED' : classroomStatus !== 'ARCHIVED';
+    return matchText && matchSubject && matchGrade && matchStatus;
   });
 
   return (
@@ -197,8 +218,17 @@ export default function ClassroomsPage() {
               )}
 
               {classrooms.length > 0 && (
-                <div className="flex items-center gap-3 mb-6 flex-wrap">
-                  <div className="flex-1 min-w-[200px] relative">
+                <>
+                  <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-4">
+                    <button onClick={() => setStatusTab('ACTIVE')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${statusTab === 'ACTIVE' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                      Hoạt động
+                    </button>
+                    <button onClick={() => setStatusTab('ARCHIVED')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-1.5 ${statusTab === 'ARCHIVED' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                      <Archive className="w-3.5 h-3.5" /> Đã lưu trữ
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 mb-6 flex-wrap">
+                    <div className="flex-1 min-w-[200px] relative">
                     <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
@@ -229,6 +259,7 @@ export default function ClassroomsPage() {
                     ))}
                   </select>
                 </div>
+                </>
               )}
 
               {loading && !fetchError && (
@@ -299,14 +330,18 @@ export default function ClassroomsPage() {
                       onViewDetail={(id) => navigate(`/classrooms/${id}`)}
                       onCopyLink={handleCopyLink}
                       onCopyCode={handleCopyCode}
+                      onRestore={(classroom) => setArchivedAction({ action: 'restore', classroom })}
+                      onPermanentDelete={(classroom) => setArchivedAction({ action: 'delete', classroom })}
                     />
                   ))}
                 </div>
               )}
 
-              {!loading && classrooms.length > 0 && filtered.length === 0 && (search || filterSubject || filterGrade) && (
+              {!loading && classrooms.length > 0 && filtered.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-sm text-gray-400">Không tìm thấy lớp học nào phù hợp</p>
+                  <p className="text-sm text-gray-400">
+                    {statusTab === 'ARCHIVED' ? 'Chưa có lớp học nào được lưu trữ' : 'Không tìm thấy lớp học nào phù hợp'}
+                  </p>
                 </div>
               )}
             </div>
@@ -326,6 +361,13 @@ export default function ClassroomsPage() {
         open={showJoin}
         onClose={() => setShowJoin(false)}
         onJoin={handleJoin}
+      />
+      <ArchivedClassroomActionDialog
+        open={Boolean(archivedAction)}
+        action={archivedAction?.action}
+        classroom={archivedAction?.classroom}
+        onClose={() => setArchivedAction(null)}
+        onConfirm={handleArchivedAction}
       />
     </div>
   );

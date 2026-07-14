@@ -25,7 +25,7 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, onInvite }) {
+export default function PeopleTab({ roster, classroomId, isTeacher, readOnly = false, onRefresh, onInvite }) {
   const [searchStudent, setSearchStudent] = useState('');
   const [searchInvite, setSearchInvite] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
@@ -71,7 +71,7 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
         return <span className="text-xs text-gray-400">{d ? new Date(d).toLocaleDateString('vi-VN') : '-'}</span>;
       },
     },
-    ...(isTeacher ? [{
+    ...(isTeacher && !readOnly ? [{
       id: 'actions',
       header: '',
       size: 40,
@@ -86,7 +86,7 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
         </button>
       ),
     }] : []),
-  ], [isTeacher, actionLoading]);
+  ], [isTeacher, readOnly, actionLoading]);
 
   const studentData = useMemo(() => roster?.students || [], [roster]);
 
@@ -147,7 +147,7 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
         );
       },
     },
-    ...(isTeacher ? [{
+    ...(isTeacher && !readOnly ? [{
       id: 'actions',
       header: '',
       size: 80,
@@ -172,7 +172,7 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
         </div>
       ),
     }] : []),
-  ], [isTeacher, actionLoading]);
+  ], [isTeacher, readOnly, actionLoading]);
 
   const inviteTable = useReactTable({
     data: allInvitations,
@@ -256,7 +256,7 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
             <span className="text-sm text-gray-400 font-medium">{studentData.length} học sinh</span>
           </div>
           <div className="flex items-center gap-2">
-            {isTeacher && (
+            {isTeacher && !readOnly && (
               <button onClick={onInvite}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
                 <UserPlus className="w-4 h-4" /> Mời
@@ -284,7 +284,7 @@ export default function PeopleTab({ roster, classroomId, isTeacher, onRefresh, o
               <UserPlus className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm text-gray-400">Chưa có học sinh nào</p>
-            {isTeacher && (
+            {isTeacher && !readOnly && (
               <button onClick={onInvite} className="mt-1 text-sm font-semibold text-teal-600 hover:text-teal-700 hover:underline transition-colors">
                 Mời học sinh ngay
               </button>

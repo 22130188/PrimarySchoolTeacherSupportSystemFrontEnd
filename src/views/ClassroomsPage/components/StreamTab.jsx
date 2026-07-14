@@ -677,6 +677,7 @@ export default function StreamTab({
   onDeletePost,
   onUpdatePost,
   onCommentCountChange,
+  readOnly = false,
   tabType = 'ANNOUNCEMENT',
 }) {
   const teacherName = classroom?.teacherName;
@@ -702,6 +703,7 @@ export default function StreamTab({
   }, [posts, tabType]);
 
   const handleSubmit = async (data, postId) => {
+    if (readOnly) return;
     if (postId && onUpdatePost) {
       await onUpdatePost(postId, data);
       setEditingPost(null);
@@ -711,11 +713,13 @@ export default function StreamTab({
   };
 
   const handleStartCreate = () => {
+    if (readOnly) return;
     setEditingPost(null);
     setShowModal(true);
   };
 
   const handleStartEdit = (post) => {
+    if (readOnly) return;
     setEditingPost(post);
     setShowModal(true);
     setOpenMenuPostId(null);
@@ -777,7 +781,7 @@ export default function StreamTab({
     setIsTakingTest(true);
     setTestModalOpen(false);
     
-    if (!isTeacher && selectedTest?.id && !selectedTest?.id.toString().startsWith('post-')) {
+    if (!isTeacher && !readOnly && selectedTest?.id && !selectedTest?.id.toString().startsWith('post-')) {
       try {
         const attempt = await testApi.createAttempt(selectedTest.id);
         setAttemptMeta(attempt);
@@ -820,7 +824,7 @@ export default function StreamTab({
   };
 
   const handleSubmitTest = async (payloadOrAnswers) => {
-    if (isTeacher) {
+    if (isTeacher || readOnly) {
       console.log('✓ Teacher viewing test - not saving to history');
       setIsTakingTest(false);
       setSelectedPost(null);
@@ -886,7 +890,7 @@ export default function StreamTab({
 
   return (
     <div className="space-y-5">
-      {(isTeacher || tabType === 'ANNOUNCEMENT') && (
+      {!readOnly && (isTeacher || tabType === 'ANNOUNCEMENT') && (
         <button
           type="button"
           onClick={handleStartCreate}
@@ -922,7 +926,7 @@ export default function StreamTab({
           onStartTest={handleStartTest}
           loading={loadingTestDetails}
           attemptHistory={attemptHistory}
-          isTeacher={isTeacher}
+          isTeacher={isTeacher || readOnly}
         />
       )}
 
@@ -933,7 +937,7 @@ export default function StreamTab({
           onSubmit={handleSubmitTest}
           submitting={submittingTest}
           classroom={classroom}
-          previewMode={isTeacher}
+          previewMode={isTeacher || readOnly}
         />
       )}
 
@@ -994,7 +998,7 @@ export default function StreamTab({
                 {post.title && (
                   <p className="mt-3 text-base font-semibold text-slate-900">{post.title}</p>
                 )}
-                {canDeletePost({ post, isTeacher, teacherName }) && (
+                {!readOnly && canDeletePost({ post, isTeacher, teacherName }) && (
                     <div className="relative">
                       <button
                         type="button"
@@ -1087,7 +1091,7 @@ export default function StreamTab({
                     {loadingTestDetails && selectedPost?.id === post.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : null}
-                    {isTeacher ? 'Xem bài' : 'Làm bài'}
+                    {isTeacher || readOnly ? 'Xem bài' : 'Làm bài'}
                   </button>
                 </div>
               )}
@@ -1097,6 +1101,7 @@ export default function StreamTab({
                 postId={post.id}
                 initialCommentCount={post.commentCount || 0}
                 isTeacher={isTeacher}
+                readOnly={readOnly}
                 onCommentCountChange={onCommentCountChange}
               />
             </article>
