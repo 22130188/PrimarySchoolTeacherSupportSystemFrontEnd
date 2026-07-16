@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Upload, Loader, AlertCircle, CheckCircle, Play, Trash2 } from 'lucide-react';
+import { Mic, MicOff, Upload, Loader, AlertCircle, CheckCircle, Play, Trash2, Cpu, Sparkles } from 'lucide-react';
 import AIToolPageLayout from '../../components/AIToolPageLayout';
 import PronunciationService from '../../services/PronunciationService';
 
@@ -12,6 +12,7 @@ export default function PronunciationPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [recognitionModel, setRecognitionModel] = useState('whisper');
   
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -114,9 +115,13 @@ export default function PronunciationPage() {
     setSuccess('');
     
     try {
-      const pronunciationResult = await PronunciationService.checkPronunciation(targetText, audioBlob);
+      const pronunciationResult = await PronunciationService.checkPronunciation(
+        targetText,
+        audioBlob,
+        recognitionModel
+      );
       setResult(pronunciationResult);
-      setSuccess('Kiểm tra phát âm thành công!');
+      setSuccess(`Kiểm tra phát âm bằng ${recognitionModel === 'vosk' ? 'Vosk' : 'Faster-Whisper'} thành công!`);
     } catch (err) {
       setError(err.message || 'Lỗi kết nối đến server');
     } finally {
@@ -166,6 +171,53 @@ export default function PronunciationPage() {
       )}
 
       <div className="space-y-6">
+        <div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <label className="text-sm font-medium text-slate-700">Mô hình nhận dạng</label>
+            <div className="inline-flex self-end rounded-2xl border border-slate-200 bg-slate-50 p-1 sm:self-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setRecognitionModel('whisper');
+                setResult(null);
+                setError('');
+                setSuccess('');
+              }}
+              disabled={isProcessing || isRecording}
+              aria-pressed={recognitionModel === 'whisper'}
+              className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                recognitionModel === 'whisper'
+                  ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-200'
+                  : 'text-slate-500 hover:bg-white'
+              } disabled:cursor-not-allowed disabled:opacity-60`}
+            >
+              <Sparkles className="h-4 w-4" />
+              Mô hình hiện tại
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setRecognitionModel('vosk');
+                setResult(null);
+                setError('');
+                setSuccess('');
+              }}
+              disabled={isProcessing || isRecording}
+              aria-pressed={recognitionModel === 'vosk'}
+              className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                recognitionModel === 'vosk'
+                  ? 'bg-white text-teal-700 shadow-sm ring-1 ring-teal-200'
+                  : 'text-slate-500 hover:bg-white'
+              } disabled:cursor-not-allowed disabled:opacity-60`}
+            >
+              <Cpu className="h-4 w-4" />
+              Vosk
+            </button>
+            </div>
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">Từ/Câu mẫu (Target Text)</label>
           <input
@@ -277,7 +329,12 @@ export default function PronunciationPage() {
 
       {result && (
         <div className="mt-8 rounded-[24px] border border-emerald-100 bg-emerald-50/80 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Kết quả kiểm tra phát âm</h2>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-slate-900">Kết quả kiểm tra phát âm</h2>
+            <span className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
+              {result.model_used === 'vosk' ? 'Vosk' : 'Faster-Whisper'}
+            </span>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl border border-slate-200 bg-white p-4">
