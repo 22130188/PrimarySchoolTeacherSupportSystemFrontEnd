@@ -108,9 +108,9 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex justify-end mb-6">
-                    <button className="text-sm text-gray-500 underline hover:text-violet-600 transition">
+                    <Link to="/forgot-password" className="text-sm text-gray-500 underline hover:text-violet-600 transition">
                         Quên mật khẩu?
-                    </button>
+                    </Link>
                 </div>
 
                 <button onClick={handleLogin} disabled={!isValid || loading}
