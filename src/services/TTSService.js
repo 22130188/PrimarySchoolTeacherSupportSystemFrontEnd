@@ -1,7 +1,18 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config.js';
 
-const TTS_SERVICE_URL = API_CONFIG.TTS_API_URL;
+function ttsServiceUrl() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return `${window.location.origin}/api/tts`;
+    }
+  }
+  const raw = (API_CONFIG.TTS_API_URL || `${API_CONFIG.GATEWAY_URL}/api/tts`).replace(/\/$/, '');
+  return raw;
+}
+
+const TTS_SERVICE_URL = ttsServiceUrl();
 
 class TTSService {
   static async convertTextToSpeech(text, language = 'vi', slow = false) {
