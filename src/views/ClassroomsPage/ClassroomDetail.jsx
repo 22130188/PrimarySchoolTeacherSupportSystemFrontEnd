@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard, GraduationCap, BookOpen, FileText, Presentation } from 'lucide-react';
+import { ArrowLeft, Users, MessageSquare, Settings, Loader2, Copy, CheckCircle2, Keyboard, GraduationCap, BookOpen, FileText, Presentation, Archive, LockKeyhole } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import PeopleTab from './components/PeopleTab';
@@ -8,6 +8,7 @@ import InviteDialog from './components/InviteDialog';
 import ClassroomSettings from './components/ClassroomSettings';
 import StreamTab from './components/StreamTab';
 import ClassroomListSidebar from './components/ClassroomListSidebar';
+import { toast } from 'sonner';
 import ClassroomLessonsTab from './components/ClassroomLessonsTab';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -15,7 +16,7 @@ import {
   getRoster,
   getStudentClassroom,
   getStudentRoster,
-  deleteClassroom,
+  archiveClassroom,
   getClassroomPosts,
   createClassroomPost,
   updateClassroomPost,
@@ -30,6 +31,8 @@ export default function ClassroomDetail() {
   const isTeacher = roleId === 2;
 
   const [classroom, setClassroom] = useState(null);
+  const classroomStatus = classroom?.status || 'ACTIVE';
+  const isReadOnly = classroomStatus !== 'ACTIVE';
   const [roster, setRoster] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'stream');
@@ -92,13 +95,14 @@ export default function ClassroomDetail() {
     setClassroom(updated);
   };
 
-  const handleClassroomDelete = async () => {
-    if (!confirm(`Xóa lớp "${classroom?.name}"? Thao tác này không thể hoàn tác.`)) return;
+  const handleClassroomArchive = async () => {
     try {
-      await deleteClassroom(classroom.id);
+      await archiveClassroom(classroom.id);
+      toast.success('Đã lưu trữ lớp học');
       navigate('/classrooms');
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Không thể lưu trữ lớp học');
+      throw err;
     }
   };
 
@@ -109,6 +113,10 @@ export default function ClassroomDetail() {
   };
 
   const handleCreatePost = async (payload) => {
+    if (isReadOnly) {
+      toast.error('Lớp học hiện chỉ có thể xem nội dung');
+      return;
+    }
     setPostSubmitting(true);
     try {
       await createClassroomPost(id, payload);
@@ -122,6 +130,10 @@ export default function ClassroomDetail() {
   };
 
   const handleUpdatePost = async (postId, payload) => {
+    if (isReadOnly) {
+      toast.error('Lớp học hiện chỉ có thể xem nội dung');
+      return;
+    }
     setPostSubmitting(true);
     try {
       await updateClassroomPost(id, postId, payload);
@@ -135,6 +147,10 @@ export default function ClassroomDetail() {
   };
 
   const handleDeletePost = async (postId) => {
+    if (isReadOnly) {
+      toast.error('Lớp học hiện chỉ có thể xem nội dung');
+      return;
+    }
     const postToDelete = posts.find((post) => post.id === postId);
     const normalizedTeacherName = (classroom?.teacherName || '').trim().toLowerCase();
     const normalizedAuthorName = (postToDelete?.authorName || '').trim().toLowerCase();
@@ -168,7 +184,7 @@ export default function ClassroomDetail() {
     { id: 'tests', label: 'Bài kiểm tra', icon: <FileText className="w-4 h-4" /> },
     { id: 'lessons', label: 'Bài giảng', icon: <Presentation className="w-4 h-4" /> },
     { id: 'people', label: 'Thành viên', icon: <Users className="w-4 h-4" /> },
-    ...(isTeacher ? [{ id: 'settings', label: 'Cài đặt', icon: <Settings className="w-4 h-4" /> }] : []),
+    ...(isTeacher && !isReadOnly ? [{ id: 'settings', label: 'Cài đặt', icon: <Settings className="w-4 h-4" /> }] : []),
   ];
 
   if (loading) {
@@ -286,6 +302,20 @@ export default function ClassroomDetail() {
                     ))}
                   </div>
                 </div>
+                {isReadOnly && (
+                  <div className="bg-blue-50 border-b border-blue-200 px-6 py-4 text-blue-800">
+                    <div className="max-w-5xl mx-auto flex items-center gap-3 text-sm font-medium">
+                      {classroomStatus === 'ARCHIVED' ? <Archive className="w-5 h-5 shrink-0" /> : <LockKeyhole className="w-5 h-5 shrink-0" />}
+                      <span>
+                        {classroomStatus === 'ARCHIVED'
+                          ? (isTeacher
+                            ? 'Bạn đã lưu trữ lớp học này. Bạn không thể thêm, chỉnh sửa hoặc xóa bất kỳ nội dung nào.'
+                            : 'Lớp học đã được giáo viên lưu trữ. Bạn không thể thêm, chỉnh sửa hoặc xóa bất kỳ nội dung nào.')
+                          : 'Lớp học đang bị khóa. Bạn chỉ có thể xem các nội dung đã có.'}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="max-w-5xl mx-auto p-6">
@@ -301,6 +331,7 @@ export default function ClassroomDetail() {
                     onUpdatePost={handleUpdatePost}
                     onDeletePost={handleDeletePost}
                     onCommentCountChange={handlePostCommentCountChange}
+                    readOnly={isReadOnly}
                     tabType="ANNOUNCEMENT"
                   />
                 )}
@@ -317,6 +348,7 @@ export default function ClassroomDetail() {
                     onUpdatePost={handleUpdatePost}
                     onDeletePost={handleDeletePost}
                     onCommentCountChange={handlePostCommentCountChange}
+                    readOnly={isReadOnly}
                     tabType="ASSIGNMENT"
                   />
                 )}
@@ -333,6 +365,7 @@ export default function ClassroomDetail() {
                     onUpdatePost={handleUpdatePost}
                     onDeletePost={handleDeletePost}
                     onCommentCountChange={handlePostCommentCountChange}
+                    readOnly={isReadOnly}
                     tabType="TEST"
                   />
                 )}
@@ -341,6 +374,7 @@ export default function ClassroomDetail() {
                   <ClassroomLessonsTab
                     classroomId={classroom.id}
                     isTeacher={isTeacher}
+                    readOnly={isReadOnly}
                     teacherName={roster?.teacher?.name || classroom.teacherName}
                     teacherAvatarUrl={roster?.teacher?.avatarUrl || classroom.teacherAvatarUrl}
                   />
@@ -351,16 +385,17 @@ export default function ClassroomDetail() {
                     roster={roster}
                     classroomId={classroom.id}
                     isTeacher={isTeacher}
+                    readOnly={isReadOnly}
                     onRefresh={handleRefreshRoster}
                     onInvite={() => setShowInvite(true)}
                   />
                 )}
 
-                {activeTab === 'settings' && isTeacher && (
+                {activeTab === 'settings' && isTeacher && !isReadOnly && (
                   <ClassroomSettings
                     classroom={classroom}
                     onUpdate={handleClassroomUpdate}
-                    onDelete={handleClassroomDelete}
+                    onArchive={handleClassroomArchive}
                   />
                 )}
               </div>
@@ -370,7 +405,7 @@ export default function ClassroomDetail() {
         </div>
       </div>
 
-      <InviteDialog
+      {!isReadOnly && <InviteDialog
         open={showInvite}
         onClose={() => setShowInvite(false)}
         classroom={classroom}
@@ -378,7 +413,7 @@ export default function ClassroomDetail() {
           fetchRoster();
           fetchClassroom();
         }}
-      />
+      />}
     </div>
   );
 }

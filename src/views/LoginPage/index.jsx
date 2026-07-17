@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { loginAPI } from '../../services/authApi';
 import { getMeAPI } from '../../services/userApi';
@@ -11,11 +11,21 @@ export default function LoginPage() {
     const setToken = useAuthStore((s) => s.setToken);
     const setRole = useAuthStore((s) => s.setRole);
     const setUser = useAuthStore((s) => s.setUser);
+    const logout = useAuthStore((s) => s.logout);
+    const [searchParams] = useSearchParams();
     const [account, setAccount] = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        const oauthError = searchParams.get('error');
+        if (oauthError) {
+            setError(oauthError);
+            logout();
+        }
+    }, [searchParams, logout]);
 
     const isValid = account.trim() && password.trim();
 
@@ -28,20 +38,19 @@ export default function LoginPage() {
             const { token, roleId, roleName } = loginResult;
             const normalizedRoleId = Number(roleId);
 
-            // lưu token  role
             setToken(token);
             setRole(normalizedRoleId, roleName);
 
-            try {
-                const userProfile = await getMeAPI();
-                setUser(userProfile);
-            } catch {
-                setUser(null);
+            const userProfile = await getMeAPI();
+            if (userProfile?.isActive === false) {
+                logout();
+                throw new Error('Tài khoản đã bị khóa');
             }
+            setUser(userProfile);
 
             window.location.replace(normalizedRoleId === 3 ? '/admin' : '/dashboard');
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Đăng nhập thất bại');
         } finally {
             setLoading(false);
         }
@@ -99,9 +108,9 @@ export default function LoginPage() {
                 </div>
 
                 <div className="flex justify-end mb-6">
-                    <button className="text-sm text-gray-500 underline hover:text-violet-600 transition">
+                    <Link to="/forgot-password" className="text-sm text-gray-500 underline hover:text-violet-600 transition">
                         Quên mật khẩu?
-                    </button>
+                    </Link>
                 </div>
 
                 <button onClick={handleLogin} disabled={!isValid || loading}

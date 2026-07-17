@@ -55,8 +55,24 @@ export async function updateClassroom(id, data) {
   return handleRes(res);
 }
 
-export async function deleteClassroom(id) {
-  const res = await fetch(`${BASE}/api/classrooms/${id}`, {
+export async function archiveClassroom(id) {
+  const res = await fetch(`${BASE}/api/classrooms/${id}/archive`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+}
+
+export async function restoreClassroom(id) {
+  const res = await fetch(`${BASE}/api/classrooms/${id}/restore`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+}
+
+export async function permanentlyDeleteClassroom(id) {
+  const res = await fetch(`${BASE}/api/classrooms/${id}/permanent`, {
     method: 'DELETE',
     headers: authHeaders(),
   });

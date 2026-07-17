@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import HomePage           from '../views/HomePage';
 import LoginPage          from '../views/LoginPage';
+import ForgotPasswordPage from '../views/ForgotPasswordPage';
 import RegisterPage       from '../views/RegisterPage';
 import OAuth2CallbackPage from '../views/OAuth2CallbackPage';
 import ProfilePage        from '../views/ProfilePage';
@@ -76,6 +77,7 @@ export default function AppRouter() {
                 <Route path="/"                element={renderPublicRoute(<HomePage />)} />
                 <Route path="/help"            element={<HelpPage />} />
                 <Route path="/login"           element={renderPublicRoute(<LoginPage />)} />
+                <Route path="/forgot-password" element={renderPublicRoute(<ForgotPasswordPage />)} />
                 <Route path="/register"        element={renderPublicRoute(<RegisterPage />)} />
                 <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
                 <Route path="/profile"         element={renderPrivateRoute(<ProfilePage />, [1, 2])} />
@@ -92,7 +94,6 @@ export default function AppRouter() {
 
                     {/* Classrooms CRUD */}
                     <Route path="classrooms" element={<ClassroomManagement />} />
-                    <Route path="classrooms/create" element={<ClassroomManagement />} />
                     <Route path="classrooms/:id/edit" element={<ClassroomManagement />} />
 
                     {/* Subjects CRUD */}

@@ -46,6 +46,7 @@ export default function PostComments({
   createComment = createPostComment,
   deleteComment = deletePostComment,
   onCommentCountChange,
+  readOnly = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [comments, setComments] = useState([]);
@@ -90,6 +91,7 @@ export default function PostComments({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     if (!newComment.trim() || submitting) return;
     setSubmitting(true);
     try {
@@ -106,6 +108,7 @@ export default function PostComments({
   };
 
   const handleDelete = async (commentId) => {
+    if (readOnly) return;
     if (!confirm('Bạn có chắc muốn xóa nhận xét này?')) return;
     setDeletingId(commentId);
     try {
@@ -130,7 +133,7 @@ export default function PostComments({
         {commentCount > 0 ? (
           <span>{commentCount} nhận xét về lớp học</span>
         ) : (
-          <span>Thêm nhận xét</span>
+          <span>{readOnly ? 'Xem nhận xét' : 'Thêm nhận xét'}</span>
         )}
       </button>
 
@@ -166,7 +169,7 @@ export default function PostComments({
                     </div>
 
                     {/* Delete Button */}
-                    {(comment.canDelete || isTeacher) && (
+                    {!readOnly && (comment.canDelete || isTeacher) && (
                       <button
                         onClick={() => handleDelete(comment.id)}
                         disabled={deletingId === comment.id}
@@ -183,6 +186,7 @@ export default function PostComments({
           ) : null}
 
           {/* Comment Input */}
+          {!readOnly && (
           <div className="flex items-start gap-3 mt-4 pt-2">
             {currentUser?.avatarUrl ? (
               <img src={currentUser.avatarUrl} alt={currentUser.fullName || currentUser.username} className="w-8 h-8 rounded-full object-cover shrink-0" />
@@ -219,6 +223,7 @@ export default function PostComments({
               </button>
             </form>
           </div>
+          )}
         </div>
       )}
     </div>

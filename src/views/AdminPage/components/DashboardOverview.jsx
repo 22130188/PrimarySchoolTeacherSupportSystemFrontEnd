@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Users, School, GraduationCap, FolderOpen } from 'lucide-react';
 import { getAdminActivity } from '../../../services/adminDashboardApi';
+import { getActionLogs } from '../../../services/actionLogApi';
 import { getUsers } from '../../../services/userApi';
 import { getAdminDashboardStats } from '../../../services/adminClassroomApi';
 import resourceService from '../../../services/resourceService';
@@ -15,11 +16,69 @@ const normalizeArray = (value) => {
   return [];
 };
 
+const emptyMonthly = () => Array.from({ length: 12 }, (_, index) => ({
+  month: `T${index + 1}`,
+  sessions: 0,
+  users: 0,
+}));
+
 const formatCount = (value) => new Intl.NumberFormat('en-US').format(Number(value || 0));
+
+const mapMonthlyFromApi = (items = []) => {
+  const base = emptyMonthly();
+  items.forEach((item) => {
+    const monthIndex = Number(item.month || item.monthIndex || 0) - 1;
+    if (monthIndex < 0 || monthIndex > 11) return;
+    base[monthIndex] = {
+      month: `T${monthIndex + 1}`,
+      sessions: Number(item.sessions ?? item.accessCount ?? item.visits ?? 0),
+      users: Number(item.newUsers ?? item.users ?? item.userCount ?? 0),
+    };
+  });
+  return base;
+};
+
+const mapRecentFromApi = (items = []) => items.map((act, index) => ({
+  resourceId: act.resourceId ?? act.id ?? `act-${index}`,
+  actor: act.actor || act.username || act.userName || act.clientIdentifier || 'Hệ thống',
+  type: act.type || act.action || '',
+  description: act.description || act.subject || '',
+  createdAt: act.createdAt || act.timestamp || act.time,
+}));
+
+const buildMonthlyFromLogs = (logs = [], users = []) => {
+  const year = new Date().getFullYear();
+  const base = emptyMonthly();
+
+  logs.forEach((log) => {
+    const date = new Date(log.createdAt);
+    if (Number.isNaN(date.getTime()) || date.getFullYear() !== year) return;
+    base[date.getMonth()].sessions += 1;
+  });
+
+  users.forEach((user) => {
+    const raw = user.createdAt || user.created_at || user.joinedAt || user.registeredAt;
+    if (!raw) return;
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime()) || date.getFullYear() !== year) return;
+    base[date.getMonth()].users += 1;
+  });
+
+  return base;
+};
+
+const fetchRecentActionLogs = async (limit = 8) => {
+  const response = await getActionLogs({ page: 0, size: Math.max(limit, 50), sort: 'createdAt,desc' });
+  const content = normalizeArray(response?.content ?? response);
+  return content
+    .slice()
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .slice(0, limit);
+};
 
 export default function DashboardOverview() {
   const navigate = useNavigate();
-  const [monthlyData, setMonthlyData] = useState(Array.from({ length: 12 }, (_, index) => ({ month: `T${index + 1}`, sessions: 0, users: 0 })));
+  const [monthlyData, setMonthlyData] = useState(emptyMonthly());
   const [recentActivities, setRecentActivities] = useState([]);
   const [overviewStats, setOverviewStats] = useState({
     teachers: 0,
@@ -34,11 +93,51 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     let active = true;
-    getAdminActivity().then((response) => {
-      if (!active) return;
-      setMonthlyData((response.monthlyActivity || []).map((item) => ({ month: `T${item.month}`, sessions: item.sessions, users: item.newUsers })));
-      setRecentActivities(response.recentActivities || []);
-    }).catch(() => {});
+
+    const loadActivity = async () => {
+      let hasMonthly = false;
+      let hasRecent = false;
+
+      try {
+        const response = await getAdminActivity();
+        if (!active) return;
+
+        const monthlySource = response?.monthlyActivity || response?.monthly || response?.months || [];
+        const recentSource = response?.recentActivities || response?.activities || response?.recent || [];
+        const mappedMonthly = mapMonthlyFromApi(monthlySource);
+        const mappedRecent = mapRecentFromApi(recentSource);
+        hasMonthly = mappedMonthly.some((d) => d.sessions > 0 || d.users > 0);
+        hasRecent = mappedRecent.length > 0;
+
+        if (hasMonthly) setMonthlyData(mappedMonthly);
+        if (hasRecent) setRecentActivities(mappedRecent);
+        if (hasMonthly && hasRecent) return;
+      } catch {
+        // fallback below
+      }
+
+      try {
+        const needUsers = !hasMonthly;
+        const [logs, teachers, students] = await Promise.all([
+          fetchRecentActionLogs(hasMonthly ? 20 : 200),
+          needUsers ? getUsers(null, 'TEACHER').catch(() => []) : Promise.resolve([]),
+          needUsers ? getUsers(null, 'STUDENT').catch(() => []) : Promise.resolve([]),
+        ]);
+        if (!active) return;
+
+        if (!hasMonthly) {
+          const allUsers = [...normalizeArray(teachers), ...normalizeArray(students)];
+          setMonthlyData(buildMonthlyFromLogs(logs, allUsers));
+        }
+        if (!hasRecent) {
+          setRecentActivities(mapRecentFromApi(logs.slice(0, 8)));
+        }
+      } catch {
+        // keep empty state
+      }
+    };
+
+    loadActivity();
     return () => { active = false; };
   }, []);
 
@@ -151,16 +250,13 @@ export default function DashboardOverview() {
               const usersPct = Math.max(d.users > 0 ? (d.users / chartMax) * 100 : 0, d.users > 0 ? 8 : 0);
               return (
               <div key={d.month} className="flex-1 flex flex-col items-center gap-1 group/bar h-full">
-                <span className="text-[10px] font-semibold text-gray-600 opacity-0 group-hover/bar:opacity-100 transition-opacity h-4">
-                  {d.sessions > 0 || d.users > 0 ? `${d.sessions}/${d.users}` : ''}
-                </span>
                 <div className="w-full flex gap-0.5 items-end flex-1 min-h-0">
                   <div
                     className="flex-1 bg-gradient-to-t from-violet-500 to-indigo-400 rounded-t-md hover:from-violet-600 hover:to-indigo-500 transition-all duration-200 relative"
                     style={{ height: `${sessionsPct}%`, minHeight: d.sessions > 0 ? '12px' : '3px' }}
                     title={`Lượt truy cập: ${d.sessions}`}
                   >
-                    {d.sessions > 0 && sessionsPct >= 20 && (
+                    {d.sessions > 0 && (
                       <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-bold text-violet-600 whitespace-nowrap">
                         {d.sessions}
                       </span>
@@ -170,7 +266,13 @@ export default function DashboardOverview() {
                     className="flex-1 bg-gradient-to-t from-teal-400 to-cyan-300 rounded-t-md hover:from-teal-500 hover:to-cyan-400 transition-all duration-200 relative"
                     style={{ height: `${usersPct}%`, minHeight: d.users > 0 ? '12px' : '3px' }}
                     title={`Người dùng mới: ${d.users}`}
-                  />
+                  >
+                    {d.users > 0 && (
+                      <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-bold text-teal-600 whitespace-nowrap">
+                        {d.users}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <span className="text-[10px] text-gray-400 font-medium">{d.month}</span>
               </div>
@@ -226,29 +328,37 @@ export default function DashboardOverview() {
           {recentActivities.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-6">Chưa có hoạt động đáng chú ý</p>
           )}
-          {recentActivities.map((act) => (
-            <div
-              key={act.resourceId}
-              className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200"
-            >
-              <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                {(act.actor || '?').charAt(0).toUpperCase()}
+          {recentActivities.map((act) => {
+            const when = act.createdAt ? new Date(act.createdAt) : null;
+            const timeLabel = when && !Number.isNaN(when.getTime())
+              ? when.toLocaleString('vi-VN')
+              : '';
+            return (
+              <div
+                key={act.resourceId}
+                className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+              >
+                <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {(act.actor || '?').charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800">
+                    <span className="font-semibold">{act.actor}</span>{' '}
+                    <span className="text-gray-600">
+                      {(() => {
+                        const code = act.type || act.action || '';
+                        const label = getActionLabel(code, act.description || act.subject);
+                        return `đã ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+                      })()}
+                    </span>
+                  </p>
+                  {timeLabel && (
+                    <p className="text-xs text-gray-400 mt-0.5">{timeLabel}</p>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800">
-                  <span className="font-semibold">{act.actor}</span>{' '}
-                  <span className="text-gray-600">
-                    {(() => {
-                      const code = act.type || act.action || '';
-                      const label = getActionLabel(code, act.description || act.subject);
-                      return `đã ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
-                    })()}
-                  </span>
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">{new Date(act.createdAt).toLocaleString('vi-VN')}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
