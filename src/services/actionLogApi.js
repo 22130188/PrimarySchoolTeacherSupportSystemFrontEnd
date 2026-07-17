@@ -1,5 +1,15 @@
-const GATEWAY = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080').replace(/\/$/, '');
-const BASE = GATEWAY.endsWith('/api') ? GATEWAY : `${GATEWAY}/api`;
+function apiBase() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return `${window.location.origin}/api`;
+    }
+  }
+  const gateway = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080')
+    .replace(/\/$/, '')
+    .replace(/\/api$/, '');
+  return `${gateway}/api`;
+}
 
 const authHeaders = () => {
   const raw = localStorage.getItem('token') || '';
@@ -20,11 +30,14 @@ export async function getActionLogs(filters = {}) {
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') params.set(key, value);
   });
-  const response = await fetch(`${BASE}/action-logs?${params.toString()}`, { headers: authHeaders() });
+  // no trailing slash — Spring Boot 3 rejects /api/action-logs/
+  const qs = params.toString();
+  const url = `${apiBase()}/action-logs${qs ? `?${qs}` : ''}`;
+  const response = await fetch(url, { headers: authHeaders() });
   return parseResponse(response, 'Không tải được nhật ký hành động');
 }
 
 export async function getActionLogDetail(id) {
-  const response = await fetch(`${BASE}/action-logs/${id}`, { headers: authHeaders() });
+  const response = await fetch(`${apiBase()}/action-logs/${id}`, { headers: authHeaders() });
   return parseResponse(response, 'Không tải được chi tiết nhật ký');
 }
