@@ -18,8 +18,14 @@ async function handleRes(res) {
 }
 
 export async function getAdminClassrooms() {
-  // no trailing slash — nginx ^~ /api/admin/classrooms matches both
-  const res = await fetch(`${BASE}/api/admin/classrooms`, { headers: authHeaders() });
+  // no trailing slash (avoid redirect that drops Authorization)
+  const res = await fetch(`${BASE}/api/admin/classrooms`, {
+    headers: authHeaders(),
+    redirect: 'manual',
+  });
+  if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
+    throw new Error(`API redirect ${res.status} — kiểm tra nginx/URL (không được redirect mất token)`);
+  }
   return handleRes(res);
 }
 
