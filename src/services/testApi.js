@@ -2,7 +2,17 @@ import axios from 'axios';
 import { API_CONFIG } from '../config/api.config';
 import { useAuthStore } from '../stores/authStore';
 
-const API_BASE_URL = (API_CONFIG.GATEWAY_URL || 'http://localhost:8080').replace(/\/$/, '').replace(/\/api$/, '');
+const resolveGatewayOrigin = () => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return window.location.origin;
+    }
+  }
+  return (API_CONFIG.GATEWAY_URL || 'http://localhost:8080').replace(/\/$/, '').replace(/\/api$/, '');
+};
+
+const API_BASE_URL = resolveGatewayOrigin();
 
 const normalizeToken = (token) => {
   if (!token) return null;
@@ -26,10 +36,10 @@ api.interceptors.request.use((config) => {
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
-      const masked = token.length > 12 ? `${token.substring(0,6)}...${token.substring(token.length-6)}` : token;
-      console.debug('[testApi] Interceptor set Authorization header, token mask:', masked);
-    } else {
-      console.debug('[testApi] Interceptor: no token found');
+    }
+    // avoid trailing slash on collection endpoints (Spring Boot 3)
+    if (typeof config.url === 'string' && config.url.length > 1 && config.url.endsWith('/')) {
+      config.url = config.url.replace(/\/+$/, '');
     }
   } catch (e) {
     console.warn('[testApi] Interceptor error:', e?.message || e);

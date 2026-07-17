@@ -1,12 +1,22 @@
 import axios from 'axios';
 
-const GATEWAY_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080')
-  .replace(/\/$/, '')
-  .replace(/\/api$/, '');
+function gatewayOrigin() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return window.location.origin;
+    }
+  }
+  return (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080')
+    .replace(/\/$/, '')
+    .replace(/\/api$/, '');
+}
+const GATEWAY_URL = gatewayOrigin();
 const BASE_URL = `${GATEWAY_URL}/api/lessons/drafts`;
 
 const getAuthHeader = () => {
-  const token = localStorage.getItem('token');
+  const raw = localStorage.getItem('token') || '';
+  const token = raw.toLowerCase().startsWith('bearer ') ? raw.slice(7).trim() : raw.trim();
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
