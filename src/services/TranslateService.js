@@ -1,15 +1,20 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config.js';
 
-const TRANSLATE_SERVICE_URL = (import.meta.env.VITE_TRANSLATE_API_URL || 'http://localhost:8080/api/translate').replace(/\/$/, '');
+function translateServiceUrl() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return `${window.location.origin}/api/translate`;
+    }
+  }
+  return (import.meta.env.VITE_TRANSLATE_API_URL || API_CONFIG.TRANSLATE_API_URL || 'http://localhost:8080/api/translate')
+    .replace(/\/$/, '');
+}
+
+const TRANSLATE_SERVICE_URL = translateServiceUrl();
 
 class TranslateService {
-  /**
-   * @param {string} text 
-   * @param {string} sourceLang 
-   * @param {string} targetLang 
-   * @returns {Promise<Object>}
-   */
   static async translateText(text, sourceLang = 'vi', targetLang = 'en') {
     try {
       const token = localStorage.getItem('token');
@@ -22,7 +27,7 @@ class TranslateService {
         },
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }
@@ -37,12 +42,6 @@ class TranslateService {
     }
   }
 
-  /**
-   * @param {string} text 
-   * @param {string} sourceLang 
-   * @param {string} targetLang 
-   * @returns {Promise<Object>} 
-   */
   static async translateDocument(text, sourceLang = 'vi', targetLang = 'en') {
     try {
       const token = localStorage.getItem('token');
@@ -55,7 +54,7 @@ class TranslateService {
         },
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }
@@ -70,9 +69,6 @@ class TranslateService {
     }
   }
 
-  /**
-   * @returns {Promise<Object>} 
-   */
   static async getLanguages() {
     try {
       const response = await axios.get(`${TRANSLATE_SERVICE_URL}/languages`);
@@ -85,12 +81,6 @@ class TranslateService {
     }
   }
 
-  /**
-    * @param {File} file 
-    * @param {string} sourceLang 
-    * @param {string} targetLang 
-    * @returns {Promise<Blob>} 
-    */
   static async translateDocumentFile(file, sourceLang = 'vi', targetLang = 'en') {
     try {
       const token = localStorage.getItem('token');
@@ -104,26 +94,31 @@ class TranslateService {
         formData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
           },
           responseType: 'blob',
+          timeout: 180000,
         }
       );
       return response.data;
     } catch (error) {
-      throw new Error(
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        'Lỗi dịch file tài liệu'
-      );
+      let message = 'Lỗi dịch file tài liệu';
+      const data = error.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const text = await data.text();
+          const json = JSON.parse(text);
+          message = json.message || json.error || message;
+        } catch {
+          /* ignore */
+        }
+      } else if (data?.message || data?.error) {
+        message = data.message || data.error;
+      }
+      throw new Error(message);
     }
   }
 
-  /**
-    * @param {File} file 
-    * @returns {Promise<Object>} 
-    */
   static async extractTextFromFile(file) {
     try {
       const token = localStorage.getItem('token');
@@ -135,8 +130,7 @@ class TranslateService {
         formData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
           },
         }
       );
