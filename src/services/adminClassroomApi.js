@@ -1,4 +1,7 @@
-const BASE = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api').replace(/\/$/, '').replace(/\/api$/, '');
+// VITE_GATEWAY_URL may be https://teachprimary.dev or .../api — normalize to origin only
+const BASE = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api')
+  .replace(/\/$/, '')
+  .replace(/\/api$/, '');
 
 const authHeaders = () => ({
   'Content-Type': 'application/json',
@@ -8,13 +11,14 @@ const authHeaders = () => ({
 async function handleRes(res) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: 'Có lỗi xảy ra' }));
-    throw new Error(err.message || JSON.stringify(err));
+    throw new Error(err.message || err.error || JSON.stringify(err) || `HTTP ${res.status}`);
   }
   if (res.status === 204) return null;
   return res.json();
 }
 
 export async function getAdminClassrooms() {
+  // no trailing slash — nginx ^~ /api/admin/classrooms matches both
   const res = await fetch(`${BASE}/api/admin/classrooms`, { headers: authHeaders() });
   return handleRes(res);
 }
