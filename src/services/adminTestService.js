@@ -2,7 +2,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../config/api.config.js';
 import { useAuthStore } from '../stores/authStore';
 
-const GATEWAY_URL = API_CONFIG.GATEWAY_URL;
+const GATEWAY_URL = (API_CONFIG.GATEWAY_URL || 'http://localhost:8080').replace(/\/$/, '').replace(/\/api$/, '');
 
 class AdminTestService {
   async getAllTests() {

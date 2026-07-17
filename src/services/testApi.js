@@ -2,7 +2,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../config/api.config';
 import { useAuthStore } from '../stores/authStore';
 
-const API_BASE_URL = API_CONFIG.GATEWAY_URL || 'http://localhost:8080/api';
+const API_BASE_URL = (API_CONFIG.GATEWAY_URL || 'http://localhost:8080').replace(/\/$/, '').replace(/\/api$/, '');
 
 const normalizeToken = (token) => {
   if (!token) return null;

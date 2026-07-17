@@ -1,7 +1,19 @@
 import axios from 'axios';
 
-const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080';
-const BASE_URL = `${GATEWAY_URL}/api/lessons/catalog`;
+/** Strip trailing /api so paths can safely start with /api/... */
+function gatewayOrigin() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return window.location.origin;
+    }
+  }
+  return (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080')
+    .replace(/\/$/, '')
+    .replace(/\/api$/, '');
+}
+
+const BASE_URL = `${gatewayOrigin()}/api/lessons/catalog`;
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');

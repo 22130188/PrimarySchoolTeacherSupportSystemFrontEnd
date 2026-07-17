@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080';
+const GATEWAY_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080')
+  .replace(/\/$/, '')
+  .replace(/\/api$/, '');
 const BASE_URL = `${GATEWAY_URL}/api/lessons/templates`;
 
 const getAuthHeader = () => {
