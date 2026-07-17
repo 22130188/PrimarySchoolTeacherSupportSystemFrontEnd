@@ -1,12 +1,32 @@
-// VITE_GATEWAY_URL may be https://teachprimary.dev or .../api — normalize to origin only
-const BASE = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api')
-  .replace(/\/$/, '')
-  .replace(/\/api$/, '');
+/**
+ * Admin classrooms → classroom-service via nginx /api/admin/classrooms
+ *
+ * On production (teachprimary.dev) always use same-origin /api so Cloudflare
+ * and nginx keep Authorization (no HTTP IP redirect).
+ */
+function gatewayOrigin() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return window.location.origin;
+    }
+  }
+  const raw = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api')
+    .replace(/\/$/, '')
+    .replace(/\/api$/, '');
+  return raw;
+}
 
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-});
+const BASE = gatewayOrigin();
+
+const authHeaders = () => {
+  const raw = localStorage.getItem('token') || '';
+  const token = raw.toLowerCase().startsWith('bearer ') ? raw.slice(7).trim() : raw.trim();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
 async function handleRes(res) {
   if (!res.ok) {
@@ -18,14 +38,7 @@ async function handleRes(res) {
 }
 
 export async function getAdminClassrooms() {
-  // no trailing slash (avoid redirect that drops Authorization)
-  const res = await fetch(`${BASE}/api/admin/classrooms`, {
-    headers: authHeaders(),
-    redirect: 'manual',
-  });
-  if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
-    throw new Error(`API redirect ${res.status} — kiểm tra nginx/URL (không được redirect mất token)`);
-  }
+  const res = await fetch(`${BASE}/api/admin/classrooms`, { headers: authHeaders() });
   return handleRes(res);
 }
 
