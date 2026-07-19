@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit3, Trash2, Search } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, Edit3, Trash2, Search, BookOpen, Layers, School } from 'lucide-react';
 import {
   getCategories,
   createCategory,
@@ -171,8 +171,8 @@ export default function CategoryManagement() {
             <div className="space-y-2">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#6E7BA3]">Danh mục</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <div className="grid h-14 w-14 place-items-center rounded-[18px] bg-gradient-to-br from-[#3D6BFF] to-[#8A5CF6] text-white text-2xl shadow-lg">
-                  📘
+                <div className="grid h-14 w-14 place-items-center rounded-[18px] bg-gradient-to-br from-[#3D6BFF] to-[#8A5CF6] text-white shadow-lg">
+                  <BookOpen className="w-6 h-6" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-semibold text-[#1E2A3C]">Quản lý khối & lớp</h1>
@@ -197,7 +197,9 @@ export default function CategoryManagement() {
                   <p className="text-sm text-[#6E7BA3]">Tổng số khối</p>
                   <p className="mt-2 text-3xl font-semibold text-[#1E2A3C]">{gradeCategories.length}</p>
                 </div>
-                <div className="rounded-3xl bg-[#E9EFFF] p-3 text-[#3D6BFF] text-xl">🗂️</div>
+                <div className="rounded-3xl bg-[#E9EFFF] p-3 text-[#3D6BFF]">
+                  <Layers className="w-6 h-6" />
+                </div>
               </div>
             </div>
             <div className="rounded-[22px] bg-white border border-[#E5EAF2] p-5 shadow-sm">
@@ -206,7 +208,9 @@ export default function CategoryManagement() {
                   <p className="text-sm text-[#6E7BA3]">Tổng số lớp</p>
                   <p className="mt-2 text-3xl font-semibold text-[#1E2A3C]">{classCategories.length}</p>
                 </div>
-                <div className="rounded-3xl bg-[#E2F8EF] p-3 text-[#1FAE76] text-xl">🏫</div>
+                <div className="rounded-3xl bg-[#E2F8EF] p-3 text-[#1FAE76]">
+                  <School className="w-6 h-6" />
+                </div>
               </div>
             </div>
           </div>
@@ -222,7 +226,7 @@ export default function CategoryManagement() {
                   onClick={() => openForm('grade')}
                   className="inline-flex items-center gap-2 rounded-3xl bg-[#3D6BFF] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2F5CE0] transition"
                 >
-                  <Plus className="w-4 h-4" /> ＋ Thêm khối
+                  <Plus className="w-4 h-4" /> Thêm khối
                 </button>
               </div>
 
@@ -304,7 +308,7 @@ export default function CategoryManagement() {
                   onClick={() => openForm('class')}
                   className="inline-flex items-center gap-2 rounded-3xl bg-[#3D6BFF] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2F5CE0] transition"
                 >
-                  <Plus className="w-4 h-4" /> ＋ Thêm lớp
+                  <Plus className="w-4 h-4" /> Thêm lớp
                 </button>
               </div>
 

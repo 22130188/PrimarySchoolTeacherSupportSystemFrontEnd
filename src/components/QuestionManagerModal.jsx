@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Edit2, Trash2, Plus, Share2, Search, Filter, ArrowUpDown } from 'lucide-react';
+import { X, Edit2, Trash2, Plus, Share2, Search, Filter, ArrowUpDown, ClipboardList } from 'lucide-react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 const QUESTION_TYPE_CONFIG = {
@@ -150,7 +150,7 @@ const QuestionManagerModal = ({
           <div className="relative flex items-center justify-between px-6 py-5">
             <div className="flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <span className="text-xl">📝</span>
+                <ClipboardList className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white tracking-tight">Quản lý câu hỏi</h2>
@@ -251,7 +251,7 @@ const QuestionManagerModal = ({
             <div className="flex items-center justify-center h-full p-12">
               <div className="text-center">
                 <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">📋</span>
+                  <ClipboardList className="w-9 h-9 text-gray-400" />
                 </div>
                 <p className="text-gray-800 text-lg font-semibold">Không tìm thấy câu hỏi</p>
                 <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">

@@ -29,6 +29,7 @@ import ComposePanel from './panels/ComposePanel.jsx';
 import IconsPanel from './panels/IconsPanel.jsx';
 import TeachPanel from './panels/TeachPanel.jsx';
 import CropPanel from './panels/CropPanel.jsx';
+import DrawPanel from './panels/DrawPanel.jsx';
 import PropertiesPanel from './panels/PropertiesPanel.jsx';
 
 export default function ImageEditor({
@@ -150,6 +151,11 @@ export default function ImageEditor({
       }
       setTool('select');
       return;
+    }
+    if (t === 'pencil' || t === 'brush' || t === 'eraser') {
+      setPanel('draw');
+    } else if (t === 'select' || t === 'pan') {
+      setPanel((cur) => (cur === 'draw' ? 'source' : cur));
     }
     setTool(t);
   }, [fabricRef, strokeColor, saveHistory]);
@@ -546,6 +552,16 @@ export default function ImageEditor({
                 portalTarget={wrapperElement}
                 hasSelectedImage={selectedObject?.type === 'image'}
                 isProcessing={isProcessing}
+              />
+            )}
+            {panel === 'draw' && (
+              <DrawPanel
+                tool={tool}
+                onSelectTool={handleSelectTool}
+                strokeColor={strokeColor}
+                setStrokeColor={setStrokeColor}
+                strokeWidth={strokeWidth}
+                setStrokeWidth={setStrokeWidth}
               />
             )}
           </div>

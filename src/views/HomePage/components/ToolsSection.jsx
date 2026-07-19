@@ -1,5 +1,57 @@
+import {
+  BookOpen,
+  ClipboardCheck,
+  Sparkles,
+  Music,
+  School,
+  Pencil,
+  Image,
+  Upload,
+  Library,
+  CircleHelp,
+  CheckCircle2,
+  Target,
+  ClipboardList,
+  Volume2,
+  Languages,
+  Mic,
+  Headphones,
+  Megaphone,
+  Mail,
+  BarChart3,
+  Settings,
+} from 'lucide-react';
 import { TOOL_CATEGORIES, TOOL_CARDS } from '../../../data/homePageData';
 import { useUIStore } from '../../../stores/uiStore';
+
+const ICONS = {
+  BookOpen,
+  ClipboardCheck,
+  Sparkles,
+  Music,
+  School,
+  Pencil,
+  Image,
+  Upload,
+  Library,
+  CircleHelp,
+  CheckCircle2,
+  Target,
+  ClipboardList,
+  Volume2,
+  Languages,
+  Mic,
+  Headphones,
+  Megaphone,
+  Mail,
+  BarChart3,
+  Settings,
+};
+
+function ToolIcon({ name, className }) {
+  const Icon = ICONS[name] || Sparkles;
+  return <Icon className={className} />;
+}
 
 export default function ToolsSection() {
   const { activeToolCategory, setActiveToolCategory } = useUIStore();
@@ -32,7 +84,7 @@ export default function ToolsSection() {
                   : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:text-violet-600'
                 }`}
             >
-              <span>{cat.icon}</span>
+              <ToolIcon name={cat.icon} className="w-4 h-4" />
               {cat.label}
             </button>
           ))}
@@ -46,7 +98,9 @@ export default function ToolsSection() {
               className={`group relative rounded-2xl p-6 bg-gradient-to-br ${card.gradient} border border-white hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer overflow-hidden`}
             >
               <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-white/40 blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
-              <div className="text-4xl mb-4">{card.icon}</div>
+              <div className="mb-4">
+                <ToolIcon name={card.icon} className="w-9 h-9 text-gray-700" strokeWidth={1.75} />
+              </div>
               <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full mb-3 ${card.tagColor}`}>
                 {card.tag}
               </span>

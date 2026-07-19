@@ -193,7 +193,6 @@ export default function SubjectManagement() {
                 subject.isActive ? 'border-gray-100' : 'border-gray-200 opacity-70'
               }`}
             >
-              <div className={`h-2 bg-gradient-to-r ${subject.isActive ? 'from-violet-500 to-indigo-600' : 'from-gray-300 to-gray-400'}`} />
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>

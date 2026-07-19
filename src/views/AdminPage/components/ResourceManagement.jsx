@@ -80,8 +80,8 @@ export default function ResourceManagement() {
         header: 'Tên file',
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-              <Image className="w-5 h-5 text-indigo-500" />
+            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm">
+              <Image className="w-5 h-5 text-gray-800" />
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{row.original.fileName}</p>
@@ -94,13 +94,7 @@ export default function ResourceManagement() {
         accessorKey: 'subject',
         header: 'Môn học',
         cell: ({ getValue }) => {
-          const colors = {
-            'Toán': 'bg-rose-100 text-rose-600',
-            'Tiếng Anh': 'bg-indigo-100 text-indigo-600',
-            'Tiếng Việt': 'bg-amber-100 text-amber-600',
-          };
-          const color = colors[getValue()] || 'bg-gray-100 text-gray-600';
-          return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${color}`}>{getValue()}</span>;
+          return <span className="text-xs font-semibold text-gray-900">{getValue()}</span>;
         },
       },
       {
@@ -155,8 +149,8 @@ export default function ResourceManagement() {
         header: 'Tên file',
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
-              <Volume2 className="w-5 h-5 text-teal-500" />
+            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm">
+              <Volume2 className="w-5 h-5 text-gray-800" />
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{row.original.fileName}</p>
@@ -169,13 +163,7 @@ export default function ResourceManagement() {
         accessorKey: 'subject',
         header: 'Môn học',
         cell: ({ getValue }) => {
-          const colors = {
-            'Toán': 'bg-rose-100 text-rose-600',
-            'Tiếng Anh': 'bg-indigo-100 text-indigo-600',
-            'Tiếng Việt': 'bg-amber-100 text-amber-600',
-          };
-          const color = colors[getValue()] || 'bg-gray-100 text-gray-600';
-          return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${color}`}>{getValue()}</span>;
+          return <span className="text-xs font-semibold text-gray-900">{getValue()}</span>;
         },
       },
       {

@@ -122,9 +122,9 @@ export default function AppRouter() {
                 <Route path="/pronunciation"   element={renderPrivateRoute(<PronunciationPage />, [1, 2])} />
                 <Route path="/translate"       element={renderPrivateRoute(<TranslatePage />, [1, 2])} />
                 <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [2])} />
-                <Route path="/lessons/docx-editor" element={renderPrivateRoute(<DocxEditorPage />, [1, 2])} />
-                <Route path="/lessons/pptx-editor" element={renderPrivateRoute(<PptxEditorPage />, [1, 2])} />
-                <Route path="/lessons/collabora-editor" element={renderPrivateRoute(<CollaboraEditorPage />, [1, 2])} />
+                <Route path="/lessons/docx-editor" element={renderPrivateRoute(<DocxEditorPage />, [1, 2, 3])} />
+                <Route path="/lessons/pptx-editor" element={renderPrivateRoute(<PptxEditorPage />, [1, 2, 3])} />
+                <Route path="/lessons/collabora-editor" element={renderPrivateRoute(<CollaboraEditorPage />, [1, 2, 3])} />
                 <Route path="/tests"           element={renderPrivateRoute(<TestsPage />, [2])} />
                 <Route path="/tests/create"    element={renderPrivateRoute(<CreateTestPage />, [2])} />
                 <Route path="/tests/:id/edit"  element={renderPrivateRoute(<CreateTestPage />, [2])} />
