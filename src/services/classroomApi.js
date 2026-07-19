@@ -1,9 +1,25 @@
-const BASE = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080/api').replace(/\/$/, '').replace(/\/api$/, '');
+function gatewayOrigin() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return window.location.origin;
+    }
+  }
+  return (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080')
+    .replace(/\/$/, '')
+    .replace(/\/api$/, '');
+}
 
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-});
+const BASE = gatewayOrigin();
+
+const authHeaders = () => {
+  const raw = localStorage.getItem('token') || '';
+  const token = raw.toLowerCase().startsWith('bearer ') ? raw.slice(7).trim() : raw.trim();
+  return {
+    'Content-Type': 'application/json',
+    Authorization: token ? `Bearer ${token}` : '',
+  };
+};
 
 async function handleRes(res) {
   const rawBody = await res.text();
@@ -22,6 +38,10 @@ async function handleRes(res) {
       ? body
       : body?.message || body?.error || `Yêu cầu thất bại (${res.status})`;
     throw new Error(message);
+  }
+
+  if (typeof body === 'string' && body.trimStart().toLowerCase().startsWith('<!')) {
+    throw new Error('API classrooms trả về HTML (sai route nginx /api/classrooms).');
   }
 
   return body;

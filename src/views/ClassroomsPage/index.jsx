@@ -77,8 +77,10 @@ export default function ClassroomsPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleCreate = async (name, desc, gradeLevel, subject) => {
-    await createClassroom(name, desc, gradeLevel, subject);
-    fetchData();
+    const created = await createClassroom(name, desc, gradeLevel, subject);
+    toast.success('Đã tạo lớp học thành công');
+    await fetchData();
+    return created;
   };
 
   const handleJoin = async (classCode) => {
