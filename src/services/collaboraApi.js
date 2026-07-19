@@ -1,35 +1,48 @@
 import axios from 'axios';
 
-const GATEWAY_URL = (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080')
-  .replace(/\/$/, '')
-  .replace(/\/api$/, '');
+function gatewayOrigin() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return window.location.origin;
+    }
+  }
+  return (import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080')
+    .replace(/\/$/, '')
+    .replace(/\/api$/, '');
+}
+
+const GATEWAY_URL = gatewayOrigin();
 const BASE_URL = `${GATEWAY_URL}/api/lessons/drafts/collabora`;
 
 const getAuthHeader = () => {
-  const token = localStorage.getItem('token');
+  const raw = localStorage.getItem('token') || '';
+  const token = raw.toLowerCase().startsWith('bearer ') ? raw.slice(7).trim() : raw.trim();
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 const collaboraApi = {
   createDraft: async ({ title, subject, grade, volume, book, type }) => {
-    const response = await axios.post(`${BASE_URL}/drafts`, {
-      title,
-      subject,
-      grade,
-      volume,
-      book,
-      type,
-    }, { headers: getAuthHeader() });
+    const response = await axios.post(
+      `${BASE_URL}/drafts`,
+      { title, subject, grade, volume, book, type },
+      { headers: getAuthHeader() }
+    );
     return response.data;
   },
+
   translateDraft: async (draftId, { sourceLang, targetLang, title }) => {
-    const response = await axios.post(`${BASE_URL}/drafts/${draftId}/translate`, {
-      sourceLang,
-      targetLang,
-      source_lang: sourceLang,
-      target_lang: targetLang,
-      title,
-    }, { headers: getAuthHeader() });
+    const response = await axios.post(
+      `${BASE_URL}/drafts/${draftId}/translate`,
+      {
+        sourceLang,
+        targetLang,
+        source_lang: sourceLang,
+        target_lang: targetLang,
+        title,
+      },
+      { headers: getAuthHeader() }
+    );
     return response.data;
   },
 
