@@ -144,8 +144,26 @@ export default function RecentItems({
     if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
     try {
       if (student) {
-        const classrooms = await getMyJoinedClassrooms();
-        const results = await Promise.allSettled((Array.isArray(classrooms) ? classrooms : []).map(async (classroom) => {
+        let classrooms = [];
+        try {
+          const raw = await getMyJoinedClassrooms();
+          classrooms = Array.isArray(raw) ? raw : [];
+        } catch (classErr) {
+          console.warn('Failed to load joined classrooms:', classErr);
+          setItems([]);
+          setError('Không tải được danh sách lớp. Vui lòng thử lại.');
+          setLoading(false);
+          return;
+        }
+
+        // Chưa vào lớp nào → empty state (không retry; [].every() === true gây spinner vĩnh viễn)
+        if (classrooms.length === 0) {
+          setItems([]);
+          setLoading(false);
+          return;
+        }
+
+        const results = await Promise.allSettled(classrooms.map(async (classroom) => {
           const [lessonsResult, postsResult] = await Promise.allSettled([
             lessonDraftApi.getLessonsSharedToClassroom(classroom.id),
             getClassroomPosts(classroom.id, 30),
@@ -153,40 +171,68 @@ export default function RecentItems({
           const lessons = lessonsResult.status === 'fulfilled' && Array.isArray(lessonsResult.value)
             ? lessonsResult.value.map((draft) => lessonFromClass(draft, classroom)) : [];
           const posts = postsResult.status === 'fulfilled' && Array.isArray(postsResult.value)
-            ? postsResult.value.filter((post) => post.postType === 'TEST' || post.postType === 'ASSIGNMENT').map((post) => postFromClass(post, classroom)) : [];
-          return { items: [...lessons, ...posts], partial: lessonsResult.status === 'rejected' || postsResult.status === 'rejected' };
+            ? postsResult.value
+              .filter((post) => post.postType === 'TEST' || post.postType === 'ASSIGNMENT')
+              .map((post) => postFromClass(post, classroom))
+            : [];
+          return {
+            items: [...lessons, ...posts],
+            partial: lessonsResult.status === 'rejected' || postsResult.status === 'rejected',
+          };
         }));
-        const allFailed = results.every((result) => result.status === 'rejected');
+
+        const allFailed = results.length > 0 && results.every((result) => result.status === 'rejected');
         if (allFailed) {
           console.warn('All classroom data failed to load, retrying...');
           scheduleRetry(load);
-          return; // keep loading=true, don't show error
+          return;
         }
-        setItems(results.flatMap((result) => result.status === 'fulfilled' ? result.value.items : []));
-        if (results.some((result) => result.status === 'rejected' || (result.status === 'fulfilled' && result.value.partial))) setError('Một số nội dung lớp học chưa tải được. Các mục còn lại vẫn được hiển thị.');
+
+        setItems(results.flatMap((result) => (result.status === 'fulfilled' ? result.value.items : [])));
+        if (
+          results.some(
+            (result) =>
+              result.status === 'rejected' ||
+              (result.status === 'fulfilled' && result.value.partial)
+          )
+        ) {
+          setError('Một số nội dung lớp học chưa tải được. Các mục còn lại vẫn được hiển thị.');
+        }
         setLoading(false);
       } else {
         const [mine, shared, tests] = await Promise.allSettled([
-          lessonDraftApi.getDrafts(), lessonDraftApi.getSharedWithMe(), testApi.getAllTests(),
+          lessonDraftApi.getDrafts(),
+          lessonDraftApi.getSharedWithMe(),
+          testApi.getAllTests(),
         ]);
-        const allFailed = [mine, shared, tests].every((result) => result.status === 'rejected');
+        const settled = [mine, shared, tests];
+        const allFailed = settled.every((result) => result.status === 'rejected');
         if (allFailed) {
           console.warn('All data sources failed to load, retrying...');
           scheduleRetry(load);
-          return; // keep loading=true, don't show error
+          return;
         }
         setItems([
-          ...(mine.status === 'fulfilled' && Array.isArray(mine.value) ? mine.value.map((draft) => lessonFromOwner(draft, userName)) : []),
-          ...(shared.status === 'fulfilled' && Array.isArray(shared.value) ? shared.value.map(lessonFromDirectShare) : []),
-          ...(tests.status === 'fulfilled' && Array.isArray(tests.value) ? tests.value.map((test) => testFromOwner(test, userName)) : []),
+          ...(mine.status === 'fulfilled' && Array.isArray(mine.value)
+            ? mine.value.map((draft) => lessonFromOwner(draft, userName))
+            : []),
+          ...(shared.status === 'fulfilled' && Array.isArray(shared.value)
+            ? shared.value.map(lessonFromDirectShare)
+            : []),
+          ...(tests.status === 'fulfilled' && Array.isArray(tests.value)
+            ? tests.value.map((test) => testFromOwner(test, userName))
+            : []),
         ]);
-        if ([mine, shared, tests].some((result) => result.status === 'rejected')) setError('Một phần dữ liệu chưa tải được. Vui lòng thử lại.');
+        if (settled.some((result) => result.status === 'rejected')) {
+          setError('Một phần dữ liệu chưa tải được. Vui lòng thử lại.');
+        }
         setLoading(false);
       }
     } catch (loadError) {
       console.error('Failed to load recent items:', loadError);
-      // Total failure — keep spinner and auto-retry
-      scheduleRetry(load);
+      setItems([]);
+      setError('Không tải được nội dung gần đây. Vui lòng thử lại.');
+      setLoading(false);
     }
   }, [student, userName, scheduleRetry]);
 
@@ -297,9 +343,15 @@ export default function RecentItems({
             <p className="mt-2 max-w-lg text-sm text-slate-500">
               {isFiltering
                 ? 'Hãy kiểm tra từ khóa, thử tìm không dấu hoặc xóa bớt bộ lọc.'
-                : student ? 'Nội dung giáo viên giao trong lớp sẽ xuất hiện tại đây.' : 'Bài giảng, bài tập và bài kiểm tra bạn tạo sẽ xuất hiện tại đây.'}
+                : student
+                  ? 'Bạn chưa có bài giảng/bài tập trong lớp. Hãy tham gia lớp học hoặc đợi giáo viên giao bài.'
+                  : 'Bài giảng, bài tập và bài kiểm tra bạn tạo sẽ xuất hiện tại đây.'}
             </p>
-            {isFiltering && <button type="button" onClick={onResetFilters} className="mt-5 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Xóa tìm kiếm và bộ lọc</button>}
+            {isFiltering ? (
+              <button type="button" onClick={onResetFilters} className="mt-5 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Xóa tìm kiếm và bộ lọc</button>
+            ) : student ? (
+              <button type="button" onClick={() => navigate('/classrooms')} className="mt-5 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Đến trang Lớp học</button>
+            ) : null}
           </div>
         ) : view === 'grid' ? (
           <div className="grid grid-cols-1 gap-x-5 gap-y-7 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
