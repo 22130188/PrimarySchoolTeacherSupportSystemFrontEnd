@@ -235,9 +235,9 @@ export default function LessonTemplatesTab() {
                     handleUseTemplate(template.id);
                   }}
                   disabled={usingId === template.id}
-                  className="absolute bottom-2 right-2 inline-flex h-8 items-center gap-1.5 rounded-lg bg-violet-600 px-3 text-xs font-semibold text-white shadow-sm transition-all hover:bg-violet-700 disabled:opacity-60"
+                  className="absolute bottom-2 right-2 inline-flex h-6 items-center gap-1 rounded-md bg-violet-600 px-2 text-[10px] font-semibold text-white shadow-sm transition-all hover:bg-violet-700 disabled:opacity-60"
                 >
-                  {usingId === template.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {usingId === template.id && <Loader2 className="w-3 h-3 animate-spin" />}
                   Dùng mẫu
                 </button>
               </div>

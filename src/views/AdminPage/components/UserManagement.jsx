@@ -159,8 +159,8 @@ export default function UserManagement() {
       header: 'Người dùng',
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
-            {row.original.username.charAt(0)}
+          <div className="w-9 h-9 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 text-sm font-semibold shadow-sm">
+            {row.original.username.charAt(0).toUpperCase()}
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-900">{row.original.username}</p>
@@ -178,8 +178,8 @@ export default function UserManagement() {
       cell: ({ getValue }) => {
         const role = USER_ROLE_BADGE[getValue()];
         return (
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${role.className}`}>
-            {role.label}
+          <span className="text-xs font-semibold text-gray-900 whitespace-nowrap">
+            {role?.label || getValue()}
           </span>
         );
       },
@@ -209,8 +209,8 @@ export default function UserManagement() {
       header: 'Trạng thái',
       cell: ({ getValue }) => (
         getValue()
-          ? <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Hoạt động</span>
-          : <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" />Ngừng HĐ</span>
+          ? <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-900 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Hoạt động</span>
+          : <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-900 whitespace-nowrap"><span className="w-1.5 h-1.5 rounded-full bg-gray-400" />Ngừng HĐ</span>
       ),
     },
     {

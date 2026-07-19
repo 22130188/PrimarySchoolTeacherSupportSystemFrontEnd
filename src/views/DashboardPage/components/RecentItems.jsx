@@ -71,7 +71,7 @@ function Preview({ item, compact = false }) {
   if (compact) {
     return (
       <div className="grid h-full place-items-center bg-white">
-        <span className={`grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br ${color} text-white`}>
+        <span className="grid h-7 w-7 place-items-center rounded-lg border border-gray-200 bg-white text-gray-900">
           <Icon className="h-4 w-4" />
         </span>
       </div>
@@ -80,11 +80,11 @@ function Preview({ item, compact = false }) {
 
   return (
     <div className="relative flex h-full flex-col bg-white p-4">
-      <span className={`mb-3 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${color} text-white shadow-sm`}>
+      <span className="mb-3 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm">
         <Icon className="h-5 w-5" />
       </span>
       <p className="line-clamp-3 text-sm font-bold text-slate-800">{item.title}</p>
-      <i className={`mt-2 block h-1 w-10 rounded-full bg-gradient-to-r ${color}`} />
+      <i className="mt-2 block h-1 w-10 rounded-full bg-gray-300" />
       {caption && (
         <small className="absolute bottom-3 left-4 right-4 truncate text-slate-500">{caption}</small>
       )}
@@ -145,7 +145,13 @@ export default function RecentItems({
     try {
       if (student) {
         const classrooms = await getMyJoinedClassrooms();
-        const results = await Promise.allSettled((Array.isArray(classrooms) ? classrooms : []).map(async (classroom) => {
+        const classroomList = Array.isArray(classrooms) ? classrooms : [];
+        if (classroomList.length === 0) {
+          setItems([]);
+          setLoading(false);
+          return;
+        }
+        const results = await Promise.allSettled(classroomList.map(async (classroom) => {
           const [lessonsResult, postsResult] = await Promise.allSettled([
             lessonDraftApi.getLessonsSharedToClassroom(classroom.id),
             getClassroomPosts(classroom.id, 30),
@@ -156,7 +162,7 @@ export default function RecentItems({
             ? postsResult.value.filter((post) => post.postType === 'TEST' || post.postType === 'ASSIGNMENT').map((post) => postFromClass(post, classroom)) : [];
           return { items: [...lessons, ...posts], partial: lessonsResult.status === 'rejected' || postsResult.status === 'rejected' };
         }));
-        const allFailed = results.every((result) => result.status === 'rejected');
+        const allFailed = results.length > 0 && results.every((result) => result.status === 'rejected');
         if (allFailed) {
           console.warn('All classroom data failed to load, retrying...');
           scheduleRetry(load);
@@ -293,13 +299,30 @@ export default function RecentItems({
         ) : visible.length === 0 ? (
           <div className="flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-violet-200 bg-gradient-to-b from-violet-50/70 to-white px-6 text-center">
             {isFiltering ? <SearchX className="mb-4 h-12 w-12 text-violet-500" /> : <School className="mb-4 h-12 w-12 text-violet-500" />}
-            <b className="text-lg text-slate-900">{isFiltering ? 'Không tìm thấy nội dung phù hợp' : 'Chưa có nội dung gần đây'}</b>
+            <b className="text-lg text-slate-900">
+              {isFiltering
+                ? 'Không tìm thấy nội dung phù hợp'
+                : student && items.length === 0
+                  ? 'Chưa tham gia lớp học'
+                  : 'Chưa có nội dung gần đây'}
+            </b>
             <p className="mt-2 max-w-lg text-sm text-slate-500">
               {isFiltering
                 ? 'Hãy kiểm tra từ khóa, thử tìm không dấu hoặc xóa bớt bộ lọc.'
-                : student ? 'Nội dung giáo viên giao trong lớp sẽ xuất hiện tại đây.' : 'Bài giảng, bài tập và bài kiểm tra bạn tạo sẽ xuất hiện tại đây.'}
+                : student && items.length === 0
+                  ? 'Vui lòng tham gia lớp học để cập nhật bài giảng, bài kiểm tra, bài tập.'
+                  : student
+                    ? 'Nội dung giáo viên giao trong lớp sẽ xuất hiện tại đây.'
+                    : 'Bài giảng, bài tập và bài kiểm tra bạn tạo sẽ xuất hiện tại đây.'}
             </p>
-            {isFiltering && <button type="button" onClick={onResetFilters} className="mt-5 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Xóa tìm kiếm và bộ lọc</button>}
+            {isFiltering ? (
+              <button type="button" onClick={onResetFilters} className="mt-5 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">Xóa tìm kiếm và bộ lọc</button>
+            ) : student && items.length === 0 ? (
+              <button type="button" onClick={() => navigate('/classrooms')} className="mt-5 inline-flex items-center gap-2 rounded-full bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700">
+                <School className="h-4 w-4" />
+                Tham gia lớp học
+              </button>
+            ) : null}
           </div>
         ) : view === 'grid' ? (
           <div className="grid grid-cols-1 gap-x-5 gap-y-7 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

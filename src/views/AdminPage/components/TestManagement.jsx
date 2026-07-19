@@ -88,8 +88,8 @@ export default function TestManagement() {
       header: 'Tên bài kiểm tra',
       cell: ({ row }) => (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
-              <ClipboardCheck className="w-5 h-5 text-orange-500" />
+            <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm">
+              <ClipboardCheck className="w-5 h-5 text-gray-800" />
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{row.original.name}</p>
@@ -101,16 +101,7 @@ export default function TestManagement() {
       accessorKey: 'subject',
       header: 'Môn học',
       cell: ({ getValue }) => {
-        const colors = {
-          'Toán': 'bg-rose-100 text-rose-600',
-          'Tiếng Anh': 'bg-indigo-100 text-indigo-600',
-          'Tiếng Việt': 'bg-amber-100 text-amber-600',
-          'Vật lý': 'bg-purple-100 text-purple-600',
-          'Hóa học': 'bg-green-100 text-green-600',
-          'Sinh học': 'bg-teal-100 text-teal-600',
-        };
-        const color = colors[getValue()] || 'bg-gray-100 text-gray-600';
-        return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${color}`}>{getValue()}</span>;
+        return <span className="text-xs font-semibold text-gray-900">{getValue()}</span>;
       },
     },
     {
@@ -133,9 +124,10 @@ export default function TestManagement() {
       cell: ({ getValue }) => {
         const status = STATUS_CONFIG[getValue()] || STATUS_CONFIG.DRAFT;
         const Icon = status.icon;
+        const iconColor = getValue() === 'PUBLISHED' ? 'text-emerald-500' : getValue() === 'DRAFT' ? 'text-amber-500' : 'text-gray-500';
         return (
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${status.color}`}>
-            <Icon className="w-3 h-3" />
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-900">
+            <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
               {status.label}
           </span>
         );
@@ -154,9 +146,7 @@ export default function TestManagement() {
       cell: ({ getValue }) => {
         const type = getValue();
         return (
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-            type === 'EXAM' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-          }`}>
+          <span className="text-xs font-semibold text-gray-900">
             {type === 'EXAM' ? 'Bài kiểm tra' : 'Bài tập'}
           </span>
         );

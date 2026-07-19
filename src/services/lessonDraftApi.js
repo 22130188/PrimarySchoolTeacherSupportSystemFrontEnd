@@ -41,6 +41,13 @@ const lessonDraftApi = {
     return response.data;
   },
 
+  getAdminDraft: async (id) => {
+    const response = await axios.get(`${BASE_URL}/admin/${id}`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  },
+
   getDrafts: async () => {
     if (isFresh(draftsCache)) return draftsCache.data;
     if (!draftsRequest) {
