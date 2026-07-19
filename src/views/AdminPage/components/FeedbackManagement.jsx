@@ -15,10 +15,10 @@ import SortIcon from '../../../components/SortIcon';
 import { getAdminFeedback, replyToFeedback, updateFeedbackStatus } from '../../../services/supportApi';
 
 const STATUS = {
-  NEW: { label: 'Mới', className: 'bg-rose-100 text-rose-700' },
-  IN_PROGRESS: { label: 'Đang xử lý', className: 'bg-amber-100 text-amber-700' },
-  RESOLVED: { label: 'Đã xử lý', className: 'bg-emerald-100 text-emerald-700' },
-  CLOSED: { label: 'Đã đóng', className: 'bg-slate-100 text-slate-600' },
+  NEW: { label: 'Mới', className: 'text-gray-900' },
+  IN_PROGRESS: { label: 'Đang xử lý', className: 'text-gray-900' },
+  RESOLVED: { label: 'Đã xử lý', className: 'text-gray-900' },
+  CLOSED: { label: 'Đã đóng', className: 'text-gray-900' },
 };
 
 const STATUS_TABS = [
@@ -118,7 +118,7 @@ export default function FeedbackManagement() {
         const TypeIcon = isBug ? Bug : Lightbulb;
         return (
           <div className="flex items-center gap-3">
-            <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${isBug ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white border border-gray-100 text-gray-800 shadow-sm">
               <TypeIcon className="h-4 w-4" />
             </span>
             <div className="min-w-0">
@@ -162,7 +162,7 @@ export default function FeedbackManagement() {
       cell: ({ getValue }) => {
         const status = STATUS[getValue()] || STATUS.NEW;
         return (
-          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}>
+          <span className="text-sm font-semibold text-gray-900">
             {status.label}
           </span>
         );
@@ -283,13 +283,13 @@ export default function FeedbackManagement() {
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: 'Tổng phản hồi', count: counts.total, Icon: MessageSquareReply, color: 'text-violet-600 bg-violet-100' },
-            { label: 'Mới', count: counts.fresh, Icon: AlertCircle, color: 'text-rose-600 bg-rose-100' },
-            { label: 'Đang xử lý', count: counts.processing, Icon: Clock3, color: 'text-amber-600 bg-amber-100' },
-            { label: 'Đã xử lý', count: counts.resolved, Icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-100' },
-          ].map(({ label, count, Icon, color }) => (
+            { label: 'Tổng phản hồi', count: counts.total, Icon: MessageSquareReply },
+            { label: 'Mới', count: counts.fresh, Icon: AlertCircle },
+            { label: 'Đang xử lý', count: counts.processing, Icon: Clock3 },
+            { label: 'Đã xử lý', count: counts.resolved, Icon: CheckCircle2 },
+          ].map(({ label, count, Icon }) => (
             <div key={label} className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <span className={`grid h-11 w-11 place-items-center rounded-xl ${color}`}>
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-white border border-gray-100 text-gray-800 shadow-sm">
                 <Icon className="h-5 w-5" />
               </span>
               <div>
@@ -444,7 +444,7 @@ export default function FeedbackManagement() {
               <div>
                 <p className="text-xs font-bold uppercase text-gray-400">Tiêu đề</p>
                 <h3 className="mt-2 text-xl font-bold text-gray-900">{selected.title}</h3>
-                <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${(STATUS[selected.status] || STATUS.NEW).className}`}>
+                <span className="mt-2 block text-sm font-semibold text-gray-900">
                   {(STATUS[selected.status] || STATUS.NEW).label}
                 </span>
               </div>

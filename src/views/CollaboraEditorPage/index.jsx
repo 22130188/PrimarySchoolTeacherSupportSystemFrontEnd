@@ -8,14 +8,23 @@ import { useAuthStore } from '../../stores/authStore';
 
 export default function CollaboraEditorPage() {
   const navigate = useNavigate();
-  const roleId = useAuthStore((state) => state.roleId);
+  const roleId = Number(useAuthStore((state) => state.roleId));
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get('draftId');
   const templateId = searchParams.get('templateId');
   const classroomId = searchParams.get('classroomId');
-  const isTemplatePreview = !!templateId;
+  const fromAdmin = searchParams.get('from') === 'admin';
+  const isTemplateMode = !!templateId;
+  const isAdmin = roleId === 3;
+  const isAdminTemplateEdit = isTemplateMode && isAdmin;
+  const isTemplatePreview = isTemplateMode && !isAdminTemplateEdit;
+  const isAdminLessonView = fromAdmin && isAdmin && !!draftId && !isTemplateMode;
   const isStudentClassroomView = classroomId && roleId === 1;
-  const mode = isTemplatePreview ? 'view' : (isStudentClassroomView ? 'view' : (searchParams.get('mode') || 'edit'));
+  const mode = isAdminTemplateEdit
+    ? 'edit'
+    : (isTemplatePreview || isStudentClassroomView || isAdminLessonView || searchParams.get('mode') === 'view'
+      ? 'view'
+      : (searchParams.get('mode') || 'edit'));
   const formRef = useRef(null);
   const imageToolsRef = useRef(null);
   const [session, setSession] = useState(null);
@@ -155,7 +164,7 @@ export default function CollaboraEditorPage() {
       setInsertStatus('Học sinh không được dùng thư viện ảnh trong bài giảng lớp.');
       return;
     }
-    if (session?.canWrite === false) {
+    if (!isAdminTemplateEdit && session?.canWrite === false) {
       setInsertStatus('Bạn không có quyền sửa bài giảng này.');
       return;
     }
@@ -189,7 +198,8 @@ export default function CollaboraEditorPage() {
     }
   };
 
-  const canUseImageTools = session && session.canWrite !== false && !isStudentClassroomView && !isTemplatePreview;
+  const canUseImageTools = session
+    && (isAdminTemplateEdit || (session.canWrite !== false && !isStudentClassroomView && !isTemplatePreview && !isAdminLessonView && mode !== 'view'));
 
   const handleImageTabClick = (tabId) => {
     if (activeImageTab === tabId && imagePanelExpanded) {
@@ -217,7 +227,21 @@ export default function CollaboraEditorPage() {
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             type="button"
-            onClick={() => navigate(classroomId ? `/classrooms/${classroomId}?tab=lessons` : '/lessons')}
+            onClick={() => {
+              if (classroomId) {
+                navigate(`/classrooms/${classroomId}?tab=lessons`);
+                return;
+              }
+              if (isTemplateMode && isAdmin) {
+                navigate('/admin/lesson_templates');
+                return;
+              }
+              if (fromAdmin || isAdminLessonView) {
+                navigate('/admin/lessons');
+                return;
+              }
+              navigate('/lessons');
+            }}
             className="w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             title="Quay lại"
           >
@@ -229,7 +253,13 @@ export default function CollaboraEditorPage() {
           <div className="min-w-0">
             <h1 className="text-sm font-semibold text-gray-900 truncate">{session?.fileName || 'Collabora Online'}</h1>
             <p className="text-xs text-gray-500 truncate">
-              {isTemplatePreview ? 'Xem mẫu bài giảng' : (session?.canWrite === false ? 'Xem bằng Collabora Online' : 'Soạn thảo bằng Collabora Online')}
+              {isAdminTemplateEdit
+                ? 'Chỉnh sửa mẫu bài giảng'
+                : isTemplatePreview
+                  ? 'Xem mẫu bài giảng'
+                  : isAdminLessonView || session?.canWrite === false || mode === 'view'
+                    ? 'Xem bằng Collabora Online'
+                    : 'Soạn thảo bằng Collabora Online'}
             </p>
           </div>
         </div>
@@ -312,7 +342,12 @@ export default function CollaboraEditorPage() {
                   readOnly
                   type="hidden"
                 />
-                <input name="permission" value={isTemplatePreview || isStudentClassroomView || mode === 'view' ? 'readonly' : 'edit'} readOnly type="hidden" />
+                <input
+                  name="permission"
+                  value={isAdminTemplateEdit || (!isTemplatePreview && !isStudentClassroomView && !isAdminLessonView && mode !== 'view') ? 'edit' : 'readonly'}
+                  readOnly
+                  type="hidden"
+                />
               </form>
               <iframe
                 id="collabora-editor-frame"

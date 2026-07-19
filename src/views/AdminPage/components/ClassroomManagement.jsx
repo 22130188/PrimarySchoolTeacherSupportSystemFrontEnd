@@ -141,7 +141,7 @@ export default function ClassroomManagement() {
       header: 'Lớp học',
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
+          <div className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-gray-800 text-sm font-bold shadow-sm">
             <School className="w-4 h-4" />
           </div>
           <div>
@@ -196,8 +196,8 @@ export default function ClassroomManagement() {
       cell: ({ getValue }) => {
         const val = getValue();
         return val ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 whitespace-nowrap">
-            <GraduationCap className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-900 whitespace-nowrap">
+            <GraduationCap className="w-3.5 h-3.5 text-gray-500" />
             Lớp {val}
           </span>
         ) : <span className="text-gray-300 text-xs">—</span>;
@@ -209,8 +209,8 @@ export default function ClassroomManagement() {
       cell: ({ getValue }) => {
         const val = getValue();
         return val ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-700 whitespace-nowrap">
-            <BookOpen className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-900 whitespace-nowrap">
+            <BookOpen className="w-3.5 h-3.5 text-gray-500" />
             {val}
           </span>
         ) : <span className="text-gray-300 text-xs">—</span>;
@@ -226,9 +226,9 @@ export default function ClassroomManagement() {
       header: 'Trạng thái',
       cell: ({ getValue }) => {
         const status = getValue() || 'ACTIVE';
-        if (status === 'ARCHIVED') return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 whitespace-nowrap"><Archive className="w-3 h-3" />Đã lưu trữ</span>;
-        if (status === 'LOCKED') return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 whitespace-nowrap"><XCircle className="w-3 h-3" />Bị khóa</span>;
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 whitespace-nowrap"><CheckCircle2 className="w-3 h-3" />Hoạt động</span>;
+        if (status === 'ARCHIVED') return <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-900 whitespace-nowrap"><Archive className="w-3.5 h-3.5 text-gray-500" />Đã lưu trữ</span>;
+        if (status === 'LOCKED') return <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-900 whitespace-nowrap"><XCircle className="w-3.5 h-3.5 text-red-500" />Bị khóa</span>;
+        return <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-900 whitespace-nowrap"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />Hoạt động</span>;
       },
     },
     {

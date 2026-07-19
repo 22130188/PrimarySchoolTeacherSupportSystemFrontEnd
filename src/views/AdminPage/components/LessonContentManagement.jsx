@@ -346,16 +346,15 @@ export default function LessonContentManagement() {
                 content.isActive ? 'border-gray-100' : 'border-gray-200 opacity-70'
               }`}
             >
-              <div className={`h-2 bg-gradient-to-r ${content.isActive ? 'from-blue-500 to-cyan-600' : 'from-gray-300 to-gray-400'}`} />
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="text-base font-bold text-gray-900">{content.name}</h3>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">{content.subject}</span>
-                      <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">Lớp {content.grade}</span>
-                      {getLessonVolume(content) && <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded">{getLessonVolume(content)}</span>}
-                      {content.book && <span className="text-xs px-2 py-1 bg-violet-100 text-violet-700 rounded">{content.book}</span>}
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
+                      <span className="text-xs font-semibold text-gray-900">{content.subject}</span>
+                      <span className="text-xs font-semibold text-gray-900">Lớp {content.grade}</span>
+                      {getLessonVolume(content) && <span className="text-xs font-semibold text-gray-900">{getLessonVolume(content)}</span>}
+                      {content.book && <span className="text-xs font-semibold text-gray-900">{content.book}</span>}
                     </div>
                   </div>
                   <button

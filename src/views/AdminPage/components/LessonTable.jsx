@@ -42,7 +42,7 @@ export default function LessonTable({ data, columns, globalFilter, onGlobalFilte
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className={`px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap ${getColumnPinClass(header.column.id, 'header')}`}
+                    className={`px-4 py-3 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap ${getColumnPinClass(header.column.id, 'header')}`}
                   >
                     {header.isPlaceholder ? null : (
                       <div
@@ -64,7 +64,7 @@ export default function LessonTable({ data, columns, globalFilter, onGlobalFilte
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className="group hover:bg-gray-50">
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className={`px-6 py-4 whitespace-nowrap ${getColumnPinClass(cell.column.id, 'cell', row.original.id === activeActionId)}`}>
+                  <td key={cell.id} className={`px-4 py-3 whitespace-nowrap text-xs ${getColumnPinClass(cell.column.id, 'cell', row.original.id === activeActionId)}`}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
@@ -75,7 +75,7 @@ export default function LessonTable({ data, columns, globalFilter, onGlobalFilte
       </div>
 
       <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-        <div className="text-sm text-gray-500">
+        <div className="text-xs text-gray-500">
           Hiển thị {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} đến{' '}
           {Math.min(
             (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
@@ -91,7 +91,7 @@ export default function LessonTable({ data, columns, globalFilter, onGlobalFilte
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-sm text-gray-600">
+          <span className="text-xs text-gray-600">
             Trang {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
           </span>
           <button

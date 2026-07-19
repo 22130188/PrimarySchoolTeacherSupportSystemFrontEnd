@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   ArrowDown,
@@ -77,6 +78,7 @@ const getSortValue = (template, key) => {
 };
 
 export default function LessonTemplateManagement() {
+  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -527,7 +529,7 @@ export default function LessonTemplateManagement() {
                     <tr key={template.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-500 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm text-gray-800">
                             <FileText className="w-5 h-5" />
                           </div>
                           <div className="min-w-0">
@@ -538,17 +540,17 @@ export default function LessonTemplateManagement() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{template.subject} / {template.grade}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${typeInfo.className}`}>
-                          <TypeIcon className="w-3.5 h-3.5" />
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-900">
+                          <TypeIcon className="w-3.5 h-3.5 text-gray-500" />
                           {typeInfo.label}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          className={`text-xs font-semibold ${
                             template.status === 'ACTIVE'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-gray-100 text-gray-600'
+                              ? 'text-emerald-600'
+                              : 'text-gray-500'
                           }`}
                         >
                           {STATUS_LABELS[template.status] || template.status}
@@ -559,9 +561,9 @@ export default function LessonTemplateManagement() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => alert(`${template.title}\n${template.fileName || ''}`)}
+                            onClick={() => navigate(`/lessons/collabora-editor?templateId=${template.id}&mode=edit`)}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50"
-                            title="Xem thông tin"
+                            title="Mở mẫu trong Collabora"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -569,7 +571,7 @@ export default function LessonTemplateManagement() {
                             type="button"
                             onClick={() => openEditModal(template)}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                            title="Chỉnh sửa"
+                            title="Sửa thông tin mẫu"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>

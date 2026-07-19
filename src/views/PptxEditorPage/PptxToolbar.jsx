@@ -18,6 +18,7 @@ export default function PptxToolbar({
   drawColor, drawWidth, onDrawColorChange, onDrawWidthChange,
   isImageSelected, onRemoveBackground, isProcessingImage,
   middleSlot,
+  readOnly = false,
 }) {
   const { subjects, grades } = useCategories();
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -134,7 +135,7 @@ export default function PptxToolbar({
         </div>
       </div>
 
-      <div className="h-11 min-h-[44px] bg-white border-b border-gray-200 flex items-center px-4 gap-0.5 z-[99] overflow-x-auto hide-scrollbar">
+      {!readOnly && <div className="h-11 min-h-[44px] bg-white border-b border-gray-200 flex items-center px-4 gap-0.5 z-[99] overflow-x-auto hide-scrollbar">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 shrink-0 mr-2">Thuộc tính</span>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -264,7 +265,7 @@ export default function PptxToolbar({
             <button className={`${EDITOR_BTN} ${textFormat.align === 'justify' ? EDITOR_BTN_ACTIVE : ''}`} onClick={() => onTextFormatChange('align', 'justify')} title="Đều hai bên" id="pptx-align-justify"><AlignJustify size={15} /></button>
           </>
         )}
-      </div>
+      </div>}
     </>
   );
 }

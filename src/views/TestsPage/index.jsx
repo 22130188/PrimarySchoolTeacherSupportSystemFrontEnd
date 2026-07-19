@@ -3,7 +3,7 @@ import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import TakeTestModal from './components/TakeTestModal';
 import TestTakingInterface from './components/TestTakingInterface';
-import { Plus, Search, CheckCircle, Clock, MoreHorizontal, Trash2, BookOpenCheck, NotebookPen, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, CheckCircle, Clock, MoreHorizontal, Trash2, BookOpenCheck, NotebookPen, GraduationCap, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '../../stores/authStore';
@@ -238,7 +238,8 @@ export default function TestsPage() {
                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200"
                     title="Quản lý các câu hỏi của bạn"
                   >
-                    📋 Quản lý Câu hỏi
+                    <ClipboardList className="w-4 h-4" />
+                    Quản lý Câu hỏi
                   </button>
                   <button
                     id="tests-create-btn"

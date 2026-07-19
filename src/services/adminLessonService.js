@@ -20,6 +20,21 @@ class AdminLessonService {
     }
   }
 
+  async getLesson(lessonId) {
+    try {
+      const token = useAuthStore.getState().token;
+      const response = await axios.get(`${GATEWAY_URL}/api/lessons/drafts/admin/${lessonId}`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching lesson:', error);
+      throw error;
+    }
+  }
+
   async deleteLesson(lessonId) {
     try {
       const token = useAuthStore.getState().token;

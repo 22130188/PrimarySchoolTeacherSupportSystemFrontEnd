@@ -32,7 +32,8 @@ export default function DocxEditorPage() {
   const draftIdRef = useRef(searchParams.get('draftId') ? Number(searchParams.get('draftId')) : null);
   const classroomId = searchParams.get('classroomId');
   const viewMode = searchParams.get('mode');
-  const isReadOnly = viewMode === 'view' || viewMode === 'copy';
+  const fromAdmin = searchParams.get('from') === 'admin';
+  const isReadOnly = viewMode === 'view' || viewMode === 'copy' || fromAdmin;
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
   const [duplicating, setDuplicating] = useState(false);
@@ -92,7 +93,9 @@ export default function DocxEditorPage() {
       try {
         setSaveStatus('Đang tải...');
         let draft;
-        if (classroomId) {
+        if (fromAdmin) {
+          draft = await lessonDraftApi.getAdminDraft(id);
+        } else if (classroomId) {
           draft = await lessonDraftApi.getClassroomSharedDraft(classroomId, id);
         } else if (isReadOnly) {
           draft = await lessonDraftApi.getSharedDraft(id);
@@ -517,6 +520,7 @@ export default function DocxEditorPage() {
         onExport={handleExport} onExportPdf={handleExportPdf} saveStatus={saveStatus}
         onBack={() => {
           if (classroomId) navigate(`/classrooms/${classroomId}?tab=lessons`);
+          else if (fromAdmin) navigate('/admin/lessons');
           else navigate('/lessons');
         }}
         hasSelection={!isReadOnly && !!selectedObject} selectionType={selectedObject?.type}
@@ -532,16 +536,16 @@ export default function DocxEditorPage() {
       />
 
       {isReadOnly && (
-        <div className="bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-4 py-2 flex items-center justify-between z-[200]">
+        <div className="bg-white border-b border-gray-200 text-gray-900 px-4 py-2 flex items-center justify-between z-[200]">
           <div className="flex items-center gap-2 text-sm">
-            <Eye className="w-4 h-4" />
-            <span className="font-medium">Bạn đang xem bài giảng được chia sẻ (chỉ đọc)</span>
+            <Eye className="w-4 h-4 text-gray-700" />
+            <span className="font-medium text-gray-900">Bạn đang xem bài giảng được chia sẻ (chỉ đọc)</span>
           </div>
           {viewMode === 'copy' && (
             <button
               onClick={handleDuplicate}
               disabled={duplicating}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
             >
               {duplicating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
               Tạo bản sao

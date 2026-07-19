@@ -28,51 +28,51 @@ export const HERO_ICONS = [
 
 export const TOOL_CATEGORIES = [
 
-  { id: 'baigiảng', icon: '📖', label: 'Bài giảng', color: 'from-rose-400 to-pink-500' },
-  { id: 'kiemtra', icon: '📝', label: 'Bài kiểm tra', color: 'from-orange-400 to-red-500' },
-  { id: 'ai', icon: '✨', label: 'AI thông minh', color: 'from-violet-500 to-purple-600' },
-  { id: 'audio', icon: '🎵', label: 'Audio & TTS', color: 'from-amber-400 to-yellow-500' },
-  { id: 'lopHoc', icon: '🏫', label: 'Lớp học', color: 'from-teal-400 to-cyan-500' },
+  { id: 'baigiảng', icon: 'BookOpen', label: 'Bài giảng', color: 'from-rose-400 to-pink-500' },
+  { id: 'kiemtra', icon: 'ClipboardCheck', label: 'Bài kiểm tra', color: 'from-orange-400 to-red-500' },
+  { id: 'ai', icon: 'Sparkles', label: 'AI thông minh', color: 'from-violet-500 to-purple-600' },
+  { id: 'audio', icon: 'Music', label: 'Audio & TTS', color: 'from-amber-400 to-yellow-500' },
+  { id: 'lopHoc', icon: 'School', label: 'Lớp học', color: 'from-teal-400 to-cyan-500' },
 ];
 
 export const TOOL_CARDS = {
 
   baigiảng: [
-    { icon: '✏️', title: 'Soạn bài giảng trực quan', desc: 'Editor dạng board — kéo thả như PowerPoint', tag: 'Editor', tagColor: 'bg-rose-100 text-rose-700', gradient: 'from-rose-100 to-pink-50', preview: '🖱️ Kéo thả khối nội dung...' },
-    { icon: '🖼️', title: 'Thiết kế hình minh họa', desc: 'Vẽ hình, chèn ảnh, tạo sơ đồ minh họa', tag: 'Thiết kế', tagColor: 'bg-pink-100 text-pink-700', gradient: 'from-pink-100 to-rose-50', preview: '🎨 Công cụ hỗ trợ vẽ hình' },
-    { icon: '📤', title: 'Xuất .docx / .pptx', desc: 'Xuất bài giảng ra Word và PowerPoint dễ dàng', tag: 'Xuất file', tagColor: 'bg-indigo-100 text-indigo-700', gradient: 'from-indigo-100 to-blue-50', preview: '⬇️ Tải xuống ngay' },
-    { icon: '📚', title: 'Thư viện bài giảng', desc: 'Lưu trữ, tìm kiếm và tái sử dụng bài giảng', tag: 'Thư viện', tagColor: 'bg-purple-100 text-purple-700', gradient: 'from-purple-100 to-violet-50', preview: '🔍 Tìm "Toán lớp 3"...' },
+    { icon: 'Pencil', title: 'Soạn bài giảng trực quan', desc: 'Editor dạng board — kéo thả như PowerPoint', tag: 'Editor', tagColor: 'bg-rose-100 text-rose-700', gradient: 'from-rose-100 to-pink-50', preview: 'Kéo thả khối nội dung...' },
+    { icon: 'Image', title: 'Thiết kế hình minh họa', desc: 'Vẽ hình, chèn ảnh, tạo sơ đồ minh họa', tag: 'Thiết kế', tagColor: 'bg-pink-100 text-pink-700', gradient: 'from-pink-100 to-rose-50', preview: 'Công cụ hỗ trợ vẽ hình' },
+    { icon: 'Upload', title: 'Xuất .docx / .pptx', desc: 'Xuất bài giảng ra Word và PowerPoint dễ dàng', tag: 'Xuất file', tagColor: 'bg-indigo-100 text-indigo-700', gradient: 'from-indigo-100 to-blue-50', preview: 'Tải xuống ngay' },
+    { icon: 'Library', title: 'Thư viện bài giảng', desc: 'Lưu trữ, tìm kiếm và tái sử dụng bài giảng', tag: 'Thư viện', tagColor: 'bg-purple-100 text-purple-700', gradient: 'from-purple-100 to-violet-50', preview: 'Tìm "Toán lớp 3"...' },
   ],
   kiemtra: [
-    { icon: '❓', title: 'Hỗ trợ tạo câu hỏi', desc: 'Hỗ trợ giáo viên tạo bộ câu hỏi bằng công cụ trực quan', tag: 'Editor', tagColor: 'bg-orange-100 text-orange-700', gradient: 'from-orange-100 to-amber-50', preview: '⚡ Tạo câu hỏi trắc nghiệm, phát âm,...' },
-    { icon: '✅', title: 'Trắc nghiệm tương tác', desc: 'Bài kiểm tra nhiều lựa chọn cho học sinh làm online', tag: 'Trắc nghiệm', tagColor: 'bg-green-100 text-green-700', gradient: 'from-green-100 to-emerald-50', preview: '🖱️ 4 lựa chọn A, B, C, D' },
-    { icon: '🎯', title: 'Chấm bài tự động', desc: 'Kết quả ngay lập tức sau khi nộp bài', tag: 'Chấm điểm', tagColor: 'bg-red-100 text-red-700', gradient: 'from-red-100 to-rose-50', preview: '⏱️ Kết quả trong 0.5s' },
-    { icon: '📋', title: 'Lịch sử làm bài', desc: 'Xem lại toàn bộ lịch sử bài làm của học sinh', tag: 'Báo cáo', tagColor: 'bg-blue-100 text-blue-700', gradient: 'from-blue-100 to-indigo-50', preview: '📅 30 ngày gần nhất' },
+    { icon: 'CircleHelp', title: 'Hỗ trợ tạo câu hỏi', desc: 'Hỗ trợ giáo viên tạo bộ câu hỏi bằng công cụ trực quan', tag: 'Editor', tagColor: 'bg-orange-100 text-orange-700', gradient: 'from-orange-100 to-amber-50', preview: 'Tạo câu hỏi trắc nghiệm, phát âm,...' },
+    { icon: 'CheckCircle2', title: 'Trắc nghiệm tương tác', desc: 'Bài kiểm tra nhiều lựa chọn cho học sinh làm online', tag: 'Trắc nghiệm', tagColor: 'bg-green-100 text-green-700', gradient: 'from-green-100 to-emerald-50', preview: '4 lựa chọn A, B, C, D' },
+    { icon: 'Target', title: 'Chấm bài tự động', desc: 'Kết quả ngay lập tức sau khi nộp bài', tag: 'Chấm điểm', tagColor: 'bg-red-100 text-red-700', gradient: 'from-red-100 to-rose-50', preview: 'Kết quả trong 0.5s' },
+    { icon: 'ClipboardList', title: 'Lịch sử làm bài', desc: 'Xem lại toàn bộ lịch sử bài làm của học sinh', tag: 'Báo cáo', tagColor: 'bg-blue-100 text-blue-700', gradient: 'from-blue-100 to-indigo-50', preview: '30 ngày gần nhất' },
   ],
   ai: [
-    { icon: '🔊', title: 'AI Đọc Văn Bản (TTS)', desc: 'Tự động chuyển văn bản thành giọng đọc bản xứ tự nhiên để luyện nghe', tag: 'TTS', tagColor: 'bg-violet-100 text-violet-700', gradient: 'from-violet-100 to-purple-50', preview: '▶️ Nghe giọng US/UK' },
-    { icon: '🌐', title: 'Dịch song ngữ Việt-Anh', desc: 'Dịch toàn bộ nội dung bài giảng tự động tức thì', tag: 'Dịch thuật', tagColor: 'bg-blue-100 text-blue-700', gradient: 'from-blue-100 to-cyan-50', preview: '"Cộng" → "Addition"' },
-    { icon: '🎤', title: 'Kiểm tra phát âm', desc: 'Học sinh đọc — hệ thống chấm điểm phát âm tự động', tag: 'Speech AI', tagColor: 'bg-green-100 text-green-700', gradient: 'from-green-100 to-teal-50', preview: '🔊 Độ chính xác: 94%' },
+    { icon: 'Volume2', title: 'AI Đọc Văn Bản (TTS)', desc: 'Tự động chuyển văn bản thành giọng đọc bản xứ tự nhiên để luyện nghe', tag: 'TTS', tagColor: 'bg-violet-100 text-violet-700', gradient: 'from-violet-100 to-purple-50', preview: 'Nghe giọng US/UK' },
+    { icon: 'Languages', title: 'Dịch song ngữ Việt-Anh', desc: 'Dịch toàn bộ nội dung bài giảng tự động tức thì', tag: 'Dịch thuật', tagColor: 'bg-blue-100 text-blue-700', gradient: 'from-blue-100 to-cyan-50', preview: '"Cộng" → "Addition"' },
+    { icon: 'Mic', title: 'Kiểm tra phát âm', desc: 'Học sinh đọc — hệ thống chấm điểm phát âm tự động', tag: 'Speech AI', tagColor: 'bg-green-100 text-green-700', gradient: 'from-green-100 to-teal-50', preview: 'Độ chính xác: 94%' },
 
   ],
   audio: [
-    { icon: '🔊', title: 'Text-to-Speech', desc: 'Đọc nội dung bài giảng thành giọng nói tự nhiên', tag: 'TTS', tagColor: 'bg-yellow-100 text-yellow-700', gradient: 'from-yellow-100 to-amber-50', preview: '🇻🇳 Tiếng Việt • 🇬🇧 English' },
-    { icon: '🎧', title: 'Luyện nghe', desc: 'Bài tập nghe với âm thanh chuẩn hai ngôn ngữ', tag: 'Luyện nghe', tagColor: 'bg-orange-100 text-orange-700', gradient: 'from-orange-100 to-yellow-50', preview: '🎵 Chơi → Ghi âm → So sánh' },
-    { icon: '📢', title: 'Phát âm mẫu', desc: 'Nghe phát âm chuẩn từng từ, từng câu', tag: 'Mẫu', tagColor: 'bg-teal-100 text-teal-700', gradient: 'from-teal-100 to-cyan-50', preview: '"apple" → /ˈæpəl/' },
-    { icon: '🎙️', title: 'Ghi âm & Đánh giá', desc: 'Học sinh tự ghi âm và nhận phản hồi ngay', tag: 'STT', tagColor: 'bg-pink-100 text-pink-700', gradient: 'from-pink-100 to-rose-50', preview: '🟢 Tốt lắm! 91 điểm' },
+    { icon: 'Volume2', title: 'Text-to-Speech', desc: 'Đọc nội dung bài giảng thành giọng nói tự nhiên', tag: 'TTS', tagColor: 'bg-yellow-100 text-yellow-700', gradient: 'from-yellow-100 to-amber-50', preview: 'Tiếng Việt • English' },
+    { icon: 'Headphones', title: 'Luyện nghe', desc: 'Bài tập nghe với âm thanh chuẩn hai ngôn ngữ', tag: 'Luyện nghe', tagColor: 'bg-orange-100 text-orange-700', gradient: 'from-orange-100 to-yellow-50', preview: 'Chơi → Ghi âm → So sánh' },
+    { icon: 'Megaphone', title: 'Phát âm mẫu', desc: 'Nghe phát âm chuẩn từng từ, từng câu', tag: 'Mẫu', tagColor: 'bg-teal-100 text-teal-700', gradient: 'from-teal-100 to-cyan-50', preview: '"apple" → /ˈæpəl/' },
+    { icon: 'Mic', title: 'Ghi âm & Đánh giá', desc: 'Học sinh tự ghi âm và nhận phản hồi ngay', tag: 'STT', tagColor: 'bg-pink-100 text-pink-700', gradient: 'from-pink-100 to-rose-50', preview: 'Tốt lắm! 91 điểm' },
   ],
   lopHoc: [
-    { icon: '🏫', title: 'Quản lý lớp học', desc: 'Tạo lớp, thêm học sinh, phân quyền dễ dàng', tag: 'Quản lý', tagColor: 'bg-teal-100 text-teal-700', gradient: 'from-teal-100 to-cyan-50', preview: '👩‍🎓 Lớp 3A — 28 học sinh' },
-    { icon: '📬', title: 'Giao bài online', desc: 'Gửi bài tập cho lớp và theo dõi tiến độ nộp', tag: 'Giao bài', tagColor: 'bg-cyan-100 text-cyan-700', gradient: 'from-cyan-100 to-blue-50', preview: '📤 25/28 đã nộp bài' },
-    { icon: '📊', title: 'Bảng điểm lớp', desc: 'Xem điểm số toàn lớp theo môn và theo bài', tag: 'Bảng điểm', tagColor: 'bg-indigo-100 text-indigo-700', gradient: 'from-indigo-100 to-violet-50', preview: '📈 Điểm trung bình: 8.2' },
-    { icon: '👨‍💼', title: 'Quản trị hệ thống', desc: 'Dành cho Admin — quản lý toàn bộ trường', tag: 'Admin', tagColor: 'bg-gray-100 text-gray-700', gradient: 'from-gray-100 to-slate-50', preview: '⚙️ Dashboard tổng quan' },
+    { icon: 'School', title: 'Quản lý lớp học', desc: 'Tạo lớp, thêm học sinh, phân quyền dễ dàng', tag: 'Quản lý', tagColor: 'bg-teal-100 text-teal-700', gradient: 'from-teal-100 to-cyan-50', preview: 'Lớp 3A — 28 học sinh' },
+    { icon: 'Mail', title: 'Giao bài online', desc: 'Gửi bài tập cho lớp và theo dõi tiến độ nộp', tag: 'Giao bài', tagColor: 'bg-cyan-100 text-cyan-700', gradient: 'from-cyan-100 to-blue-50', preview: '25/28 đã nộp bài' },
+    { icon: 'BarChart3', title: 'Bảng điểm lớp', desc: 'Xem điểm số toàn lớp theo môn và theo bài', tag: 'Bảng điểm', tagColor: 'bg-indigo-100 text-indigo-700', gradient: 'from-indigo-100 to-violet-50', preview: 'Điểm trung bình: 8.2' },
+    { icon: 'Settings', title: 'Quản trị hệ thống', desc: 'Dành cho Admin — quản lý toàn bộ trường', tag: 'Admin', tagColor: 'bg-gray-100 text-gray-700', gradient: 'from-gray-100 to-slate-50', preview: 'Dashboard tổng quan' },
   ],
 };
 
 
 export const FEATURES = [
   {
-    icon: '🎯',
+    icon: 'Target',
     title: 'Soạn bài nhanh gấp 3 lần',
     desc: 'Giao diện board kéo thả trực quan. Chèn nội dung, hình ảnh, câu hỏi chỉ trong vài cú click.',
     color: 'from-violet-500 to-purple-600',
@@ -80,7 +80,7 @@ export const FEATURES = [
     statLabel: 'Nhanh hơn',
   },
   {
-    icon: '🌐',
+    icon: 'Languages',
     title: 'Song ngữ tự động',
     desc: 'AI dịch toàn bộ bài giảng Việt–Anh trong tích tắc. Không cần từ điển, không cần gõ thêm.',
     color: 'from-teal-500 to-cyan-600',
@@ -88,7 +88,7 @@ export const FEATURES = [
     statLabel: 'Ngôn ngữ',
   },
   {
-    icon: '🎤',
+    icon: 'Mic',
     title: 'Phát âm thông minh',
     desc: 'Học sinh phát âm vào micro — hệ thống so sánh với giọng mẫu và chấm điểm tự động.',
     color: 'from-rose-500 to-pink-600',
@@ -96,7 +96,7 @@ export const FEATURES = [
     statLabel: 'Độ chính xác',
   },
   {
-    icon: '⚡',
+    icon: 'Zap',
     title: 'Kết quả ngay lập tức',
     desc: 'Chấm bài trắc nghiệm và phát âm trong dưới 1 giây. Học sinh biết kết quả ngay sau nộp.',
     color: 'from-amber-500 to-orange-600',
@@ -109,7 +109,7 @@ export const TESTIMONIALS = [
   {
     name: 'Cô Nguyễn Thu Hương',
     role: 'Giáo viên Tiếng Anh – Trường Tiểu học Nguyễn Du',
-    avatar: '👩‍🏫',
+    avatar: 'GraduationCap',
     avatarBg: 'from-violet-400 to-purple-500',
     quote: 'TeachPrimary giúp tôi soạn bài song ngữ nhanh gấp đôi. Tính năng TTS đọc chuẩn cả tiếng Anh lẫn tiếng Việt — học sinh rất hứng thú!',
     rating: 5,
@@ -118,7 +118,7 @@ export const TESTIMONIALS = [
   {
     name: 'Thầy Trần Minh Khoa',
     role: 'Giáo viên Toán – Trường TH Lê Văn Tám',
-    avatar: '👨‍🏫',
+    avatar: 'GraduationCap',
     avatarBg: 'from-teal-400 to-cyan-500',
     quote: 'Bài kiểm tra AI tự tạo câu hỏi từ nội dung tôi soạn, chấm điểm ngay khi học sinh nộp. Tôi có thêm thời gian tập trung vào giảng dạy.',
     rating: 5,
@@ -127,7 +127,7 @@ export const TESTIMONIALS = [
   {
     name: 'Cô Phạm Lan Anh',
     role: 'Hiệu phó – Trường Tiểu học Quốc Tế Thành Công',
-    avatar: '👩‍💼',
+    avatar: 'UserRound',
     avatarBg: 'from-rose-400 to-pink-500',
     quote: 'Hệ thống quản lý lớp và tổng hợp kết quả học sinh rất chuyên nghiệp. Admin dashboard giúp tôi nắm bắt toàn trường trong vài click.',
     rating: 5,

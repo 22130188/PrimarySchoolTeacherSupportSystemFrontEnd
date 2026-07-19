@@ -1,4 +1,7 @@
+import { Target, Languages, Mic, Zap } from 'lucide-react';
 import { FEATURES } from '../../../data/homePageData';
+
+const ICONS = { Target, Languages, Mic, Zap };
 
 export default function FeaturesSection() {
   return (
@@ -20,26 +23,29 @@ export default function FeaturesSection() {
 
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {FEATURES.map((feat, i) => (
-            <div
-              key={i}
-              className="group flex gap-6 bg-white rounded-2xl p-7 shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
-            >
-              <div className={`flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br ${feat.color} flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition-transform duration-300`}>
-                {feat.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-gray-800 mb-2">{feat.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{feat.desc}</p>
-              </div>
-              <div className="flex-shrink-0 text-right">
-                <div className={`text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${feat.color}`}>
-                  {feat.stat}
+          {FEATURES.map((feat, i) => {
+            const Icon = ICONS[feat.icon] || Target;
+            return (
+              <div
+                key={i}
+                className="group flex gap-6 bg-white rounded-2xl p-7 shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className={`flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br ${feat.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                  <Icon className="w-7 h-7 text-white" strokeWidth={1.75} />
                 </div>
-                <div className="text-xs text-gray-400 mt-0.5">{feat.statLabel}</div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">{feat.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{feat.desc}</p>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  <div className={`text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br ${feat.color}`}>
+                    {feat.stat}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-0.5">{feat.statLabel}</div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

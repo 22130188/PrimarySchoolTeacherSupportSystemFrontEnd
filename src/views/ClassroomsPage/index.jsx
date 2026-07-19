@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, School, Loader2, Search, Mail, CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle, Archive } from 'lucide-react';
+import { Plus, School, Loader2, Search, Mail, CheckCircle2, XCircle, Clock, RefreshCw, AlertTriangle, Archive, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
@@ -132,7 +132,10 @@ export default function ClassroomsPage() {
     }
   };
 
-  const filtered = classrooms.filter(c => {
+  const ITEMS_PER_PAGE = 6;
+  const [page, setPage] = useState(1);
+
+  const filtered = useMemo(() => classrooms.filter(c => {
     const matchText = !search ||
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.teacherName?.toLowerCase().includes(search.toLowerCase());
@@ -142,7 +145,21 @@ export default function ClassroomsPage() {
     const matchStatus = statusTab === 'ARCHIVED'
       ? classroomStatus === 'ARCHIVED' : classroomStatus !== 'ARCHIVED';
     return matchText && matchSubject && matchGrade && matchStatus;
-  });
+  }), [classrooms, search, filterSubject, filterGrade, statusTab]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated = useMemo(() => {
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterSubject, filterGrade, statusTab]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   return (
     <div className="min-h-screen bg-[#f8f7ff]">
@@ -321,20 +338,57 @@ export default function ClassroomsPage() {
               )}
 
               {!loading && filtered.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filtered.map(cls => (
-                    <ClassroomCard
-                      key={cls.id}
-                      classroom={cls}
-                      isTeacher={isTeacher}
-                      onViewDetail={(id) => navigate(`/classrooms/${id}`)}
-                      onCopyLink={handleCopyLink}
-                      onCopyCode={handleCopyCode}
-                      onRestore={(classroom) => setArchivedAction({ action: 'restore', classroom })}
-                      onPermanentDelete={(classroom) => setArchivedAction({ action: 'delete', classroom })}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {paginated.map(cls => (
+                      <ClassroomCard
+                        key={cls.id}
+                        classroom={cls}
+                        isTeacher={isTeacher}
+                        onViewDetail={(id) => navigate(`/classrooms/${id}`)}
+                        onCopyLink={handleCopyLink}
+                        onCopyCode={handleCopyCode}
+                        onRestore={(classroom) => setArchivedAction({ action: 'restore', classroom })}
+                        onPermanentDelete={(classroom) => setArchivedAction({ action: 'delete', classroom })}
+                      />
+                    ))}
+                  </div>
+
+                  {filtered.length > ITEMS_PER_PAGE && (
+                    <div className="mt-4 flex items-center justify-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page <= 1}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 hover:bg-teal-50 hover:text-teal-600 hover:border-teal-200 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 disabled:hover:border-gray-100 transition-all"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setPage(p)}
+                          className={`h-7 min-w-[28px] rounded-lg text-xs font-semibold transition-all ${
+                            p === page
+                              ? 'bg-teal-600 text-white shadow-sm'
+                              : 'border border-gray-100 bg-white text-gray-600 hover:bg-teal-50 hover:text-teal-600 hover:border-teal-200'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page >= totalPages}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white text-gray-500 hover:bg-teal-50 hover:text-teal-600 hover:border-teal-200 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-500 disabled:hover:border-gray-100 transition-all"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
               {!loading && classrooms.length > 0 && filtered.length === 0 && (

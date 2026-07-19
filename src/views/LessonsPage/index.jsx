@@ -686,10 +686,10 @@ export default function LessonsPage() {
                             handleDuplicate(lesson.id);
                           }}
                           disabled={duplicatingId === lesson.id}
-                          className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                          title="Tạo bản sao"
+                          className="absolute bottom-2 right-2 inline-flex h-6 items-center gap-1 rounded-md bg-emerald-600 px-2 text-[10px] font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 disabled:opacity-60"
                         >
-                          {duplicatingId === lesson.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                          {duplicatingId === lesson.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                          Tạo bản sao bài giảng
                         </button>
                       )}
                     </div>
