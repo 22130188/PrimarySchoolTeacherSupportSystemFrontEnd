@@ -4,22 +4,32 @@ const stripApiSuffix = (url) =>
     .replace(/\/$/, '')
     .replace(/\/api$/, '');
 
+const isProdHost = () => {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname || '';
+  return host === 'teachprimary.dev' || host === 'www.teachprimary.dev';
+};
+
 const getGatewayOrigin = () => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname || '';
-    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
-      return window.location.origin;
-    }
-  }
+  if (isProdHost()) return window.location.origin;
   return stripApiSuffix(import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080');
 };
 
+/** FastAPI canvas/image process — deploy nginx: /python-api → python-api:8001 */
 const getCanvasApiUrl = () => {
-  return import.meta.env.VITE_CANVAS_API_URL || `${getGatewayOrigin()}`;
+  if (isProdHost()) return `${window.location.origin}/python-api`;
+  const fromEnv = import.meta.env.VITE_CANVAS_API_URL;
+  if (fromEnv) return String(fromEnv).replace(/\/$/, '');
+  // local: FastAPI direct or via gateway depending on setup
+  return import.meta.env.DEV ? 'http://localhost:8001' : getGatewayOrigin();
 };
 
+/** Java image-service — deploy nginx: /image-api → image-service:8083 */
 const getImageApiUrl = () => {
-  return import.meta.env.VITE_IMAGE_API_URL || `${getGatewayOrigin()}`;
+  if (isProdHost()) return `${window.location.origin}/image-api`;
+  const fromEnv = import.meta.env.VITE_IMAGE_API_URL;
+  if (fromEnv) return String(fromEnv).replace(/\/$/, '');
+  return import.meta.env.DEV ? 'http://localhost:8083' : getGatewayOrigin();
 };
 
 const getTtsApiUrl = () => {

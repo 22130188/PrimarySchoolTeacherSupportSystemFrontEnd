@@ -1,11 +1,22 @@
 import axios from 'axios';
 import { API_CONFIG } from '../../config/api.config.js';
 
-const CANVAS_API_URL = API_CONFIG.CANVAS_API_URL;
+function canvasApiBase() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host === 'teachprimary.dev' || host === 'www.teachprimary.dev') {
+      return `${window.location.origin}/python-api`;
+    }
+  }
+  return String(API_CONFIG.CANVAS_API_URL || 'http://localhost:8001').replace(/\/$/, '');
+}
+
+const CANVAS_API_URL = canvasApiBase();
 const IMAGE_API_URL = API_CONFIG.IMAGE_API_URL;
 
 const authHeaders = (extra = {}) => {
-  const token = localStorage.getItem('token');
+  const raw = localStorage.getItem('token') || '';
+  const token = raw.toLowerCase().startsWith('bearer ') ? raw.slice(7).trim() : raw.trim();
   return token
     ? { Authorization: `Bearer ${token}`, ...extra }
     : { ...extra };
@@ -19,7 +30,7 @@ export async function processImage(source, operations = [], options = {}) {
     quality = 90,
   } = options;
 
-  const response = await axios.post(`${CANVAS_API_URL}/api/image/process`, {
+  const response = await axios.post(`${canvasApiBase()}/api/image/process`, {
     source,
     operations,
     return_type: returnType,
@@ -33,7 +44,9 @@ export async function processImage(source, operations = [], options = {}) {
 
 export async function loadServerIcons() {
   try {
-    const response = await axios.get(`${CANVAS_API_URL}/api/canvas/icons`);
+    const response = await axios.get(`${canvasApiBase()}/api/canvas/icons`, {
+      timeout: 60000,
+    });
     if (response.data?.success) return response.data.data || [];
   } catch (err) {
     console.error('Error loading server icons:', err);
@@ -43,7 +56,7 @@ export async function loadServerIcons() {
 
 export function serverIconUrl(name) {
   const encodedName = String(name || '').split('/').map(encodeURIComponent).join('/');
-  return `${CANVAS_API_URL}/api/canvas/icon/${encodedName}`;
+  return `${canvasApiBase()}/api/canvas/icon/${encodedName}`;
 }
 
 export function dataUrlToBlob(dataUrl) {
