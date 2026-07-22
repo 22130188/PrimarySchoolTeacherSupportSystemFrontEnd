@@ -53,6 +53,14 @@ const collaboraApi = {
     return response.data;
   },
 
+  /** Read-only Collabora session for a public teacher lesson. */
+  getPublicEditorSession: async (draftId) => {
+    const response = await axios.get(`${GATEWAY_URL}/api/lessons/public/${draftId}/editor`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  },
+
   uploadDraft: async ({ file, title, subject, grade, volume, book }) => {
     const formData = new FormData();
     formData.append('file', file);
