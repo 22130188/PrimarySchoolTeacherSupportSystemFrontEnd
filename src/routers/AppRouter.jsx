@@ -40,6 +40,7 @@ import AdminTestManagement from '../views/AdminPage/components/TestManagement';
 import AdminLessonManagement from '../views/AdminPage/components/LessonManagement';
 import LessonTemplateManagement from '../views/AdminPage/components/LessonTemplateManagement';
 import LessonContentManagement from '../views/AdminPage/components/LessonContentManagement';
+import PublicLessonManagement from '../views/AdminPage/components/PublicLessonManagement';
 import ResourceManagement from '../views/AdminPage/components/ResourceManagement';
 import CategoryManagement from '../views/AdminPage/components/CategoryManagement';
 import ActionLogManagement from '../views/AdminPage/components/ActionLogManagement';
@@ -106,6 +107,7 @@ export default function AppRouter() {
                     <Route path="tests" element={<AdminTestManagement />} />
                     <Route path="lessons" element={<AdminLessonManagement />} />
                     <Route path="lesson_templates" element={<LessonTemplateManagement />} />
+                    <Route path="public_lessons" element={<PublicLessonManagement />} />
                     <Route path="resources" element={<ResourceManagement />} />
                     <Route path="feedback" element={<FeedbackManagement />} />
                     <Route path="guides" element={<GuideManagement />} />

@@ -3,9 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { BookOpen, Plus, Search, FileText, Presentation, Trash2, Loader2, RefreshCw, AlertTriangle, Share2, Eye, Copy, Users, School, Edit3, X, ChevronLeft, ChevronRight, Languages } from 'lucide-react';
+import { BookOpen, Plus, Search, FileText, Presentation, Trash2, Loader2, RefreshCw, AlertTriangle, Share2, Eye, Copy, Users, School, Edit3, X, ChevronLeft, ChevronRight, Languages, Globe2, BadgeCheck, ShieldAlert } from 'lucide-react';
 import { SUBJECTS, GRADES } from '../../data/editorSharedConstants';
 import { DRAFT_COLORS, DRAFT_EMOJIS, SUBJECT_EMOJI } from '../../data/lessonData';
+import {
+  VERIFICATION_STATUS_LABELS,
+  VERIFICATION_STATUS_STYLE,
+} from '../../data/lessonPublicConfig';
 import CreateLessonModal from './CreateLessonModal';
 import ShareLessonModal from './ShareLessonModal';
 import ShareToClassroomModal from './ShareToClassroomModal';
@@ -140,6 +144,8 @@ export default function LessonsPage() {
       type,
       isCollabora,
       isPptx,
+      isPublic: Boolean(draft.isPublic),
+      publicVerificationStatus: draft.publicVerificationStatus || 'UNVERIFIED',
       date: formatDate(draft.updatedAt || draft.createdAt),
       color: type === 'PPTX' ? 'from-orange-300 to-amber-400' : DRAFT_COLORS[index % DRAFT_COLORS.length],
       emoji: type === 'PPTX' ? '📊' : (SUBJECT_EMOJI[draft.subject] || DRAFT_EMOJIS[index % DRAFT_EMOJIS.length]),
@@ -294,14 +300,6 @@ export default function LessonsPage() {
               </div>
 
               {!isStudent && showCreateModal && <CreateLessonModal onClose={() => setShowCreateModal(false)} />}
-              {shareModalLesson && (
-                <ShareLessonModal
-                  lessonId={shareModalLesson.id}
-                  lessonTitle={shareModalLesson.title}
-                  onClose={() => setShareModalLesson(null)}
-                />
-              )}
-
               {/* ==================== MY LESSONS TAB ==================== */}
               {activeTab === 'my' && (
                 <>
@@ -471,6 +469,16 @@ export default function LessonsPage() {
                             <span className="absolute bottom-2 left-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                               {lesson.isCollabora ? 'Collabora' : lesson.type === 'PPTX' ? '.pptx' : '.docx'}
                             </span>
+                            {lesson.isPublic && (
+                              <span
+                                className={`absolute top-2 right-2 px-1.5 py-0.5 rounded border text-[10px] font-bold ${
+                                  VERIFICATION_STATUS_STYLE[lesson.publicVerificationStatus] || VERIFICATION_STATUS_STYLE.UNVERIFIED
+                                }`}
+                                title={VERIFICATION_STATUS_LABELS[lesson.publicVerificationStatus]}
+                              >
+                                {VERIFICATION_STATUS_LABELS[lesson.publicVerificationStatus] || 'Chưa xác minh'}
+                              </span>
+                            )}
                           </div>
                           <div className="p-3">
                             <h3 className="text-sm font-bold text-gray-800 mb-1 group-hover:text-violet-600 transition-colors truncate">{lesson.title}</h3>
@@ -781,12 +789,23 @@ export default function LessonsPage() {
         </div>
       )}
 
-      {/* Share to teacher modal */}
+      {/* Share to teacher modal (+ public toggle) */}
       {shareModalLesson && (
         <ShareLessonModal
           lessonId={shareModalLesson.id}
           lessonTitle={shareModalLesson.title}
           onClose={() => setShareModalLesson(null)}
+          onPublicChange={(status) => {
+            setDrafts((prev) => prev.map((d) => (
+              d.id === shareModalLesson.id
+                ? {
+                    ...d,
+                    isPublic: status.isPublic,
+                    publicVerificationStatus: status.publicVerificationStatus,
+                  }
+                : d
+            )));
+          }}
         />
       )}
 

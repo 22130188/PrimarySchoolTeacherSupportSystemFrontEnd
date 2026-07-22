@@ -509,7 +509,7 @@ export default function ImageEditor({
             {panel === 'source' && (
               <SourcePanel
                 savedImages={savedImages}
-                onPickImage={loadBackground}
+                onPickImage={addImageToCanvas}
                 onAddImage={addImageToCanvas}
                 onCreateBlank={createBlankCanvas}
                 onDeleteImage={onDeleteImage}
