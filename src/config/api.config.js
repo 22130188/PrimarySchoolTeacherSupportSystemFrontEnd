@@ -4,6 +4,15 @@ const stripApiSuffix = (url) =>
     .replace(/\/$/, '')
     .replace(/\/api$/, '');
 
+const enforceHttps = (url) => {
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && typeof url === 'string' && url.startsWith('http://')) {
+    if (!url.includes('localhost') && !url.includes('127.0.0.1')) {
+      return url.replace('http://', 'https://');
+    }
+  }
+  return url;
+};
+
 const isProdHost = () => {
   if (typeof window === 'undefined') return false;
   const host = window.location.hostname || '';
@@ -12,14 +21,14 @@ const isProdHost = () => {
 
 const getGatewayOrigin = () => {
   if (isProdHost()) return window.location.origin;
-  return stripApiSuffix(import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080');
+  return enforceHttps(stripApiSuffix(import.meta.env.VITE_GATEWAY_URL || 'http://localhost:8080'));
 };
 
 /** FastAPI canvas/image process — deploy nginx: /python-api → python-api:8001 */
 const getCanvasApiUrl = () => {
   if (isProdHost()) return `${window.location.origin}/python-api`;
   const fromEnv = import.meta.env.VITE_CANVAS_API_URL;
-  if (fromEnv) return String(fromEnv).replace(/\/$/, '');
+  if (fromEnv) return enforceHttps(String(fromEnv).replace(/\/$/, ''));
   // local: FastAPI direct or via gateway depending on setup
   return import.meta.env.DEV ? 'http://localhost:8001' : getGatewayOrigin();
 };
@@ -28,7 +37,7 @@ const getCanvasApiUrl = () => {
 const getImageApiUrl = () => {
   if (isProdHost()) return `${window.location.origin}/image-api`;
   const fromEnv = import.meta.env.VITE_IMAGE_API_URL;
-  if (fromEnv) return String(fromEnv).replace(/\/$/, '');
+  if (fromEnv) return enforceHttps(String(fromEnv).replace(/\/$/, ''));
   return import.meta.env.DEV ? 'http://localhost:8083' : getGatewayOrigin();
 };
 

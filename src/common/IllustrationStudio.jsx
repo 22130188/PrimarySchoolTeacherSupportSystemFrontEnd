@@ -36,8 +36,12 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
     try {
       const response = await axios.get(`${CANVAS_API_URL}/api/canvas/icons`);
       if (response.data.success) {
-        setIcons(response.data.data || []);
-        (response.data.data || []).forEach((icon) => preloadImage(icon.url));
+        const processedIcons = (response.data.data || []).map(icon => ({
+          ...icon,
+          url: icon.url.startsWith('http') ? icon.url : `${CANVAS_API_URL}${icon.url.startsWith('/') ? '' : '/'}${icon.url}`
+        }));
+        setIcons(processedIcons);
+        processedIcons.forEach((icon) => preloadImage(icon.url));
       }
     } catch (error) {
       console.error('Error loading icons:', error);
