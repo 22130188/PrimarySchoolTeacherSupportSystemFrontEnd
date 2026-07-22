@@ -47,7 +47,12 @@ export async function loadServerIcons() {
     const response = await axios.get(`${canvasApiBase()}/api/canvas/icons`, {
       timeout: 60000,
     });
-    if (response.data?.success) return response.data.data || [];
+    if (response.data?.success) {
+      return (response.data.data || []).map(icon => ({
+        ...icon,
+        url: serverIconUrl(icon.name || icon.id)
+      }));
+    }
   } catch (err) {
     console.error('Error loading server icons:', err);
   }

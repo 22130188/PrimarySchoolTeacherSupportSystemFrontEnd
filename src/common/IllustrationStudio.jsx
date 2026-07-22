@@ -36,10 +36,13 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
     try {
       const response = await axios.get(`${CANVAS_API_URL}/api/canvas/icons`);
       if (response.data.success) {
-        const processedIcons = (response.data.data || []).map(icon => ({
-          ...icon,
-          url: icon.url.startsWith('http') ? icon.url : `${CANVAS_API_URL}${icon.url.startsWith('/') ? '' : '/'}${icon.url}`
-        }));
+        const processedIcons = (response.data.data || []).map(icon => {
+          const encodedName = String(icon.name || icon.id || '').split('/').map(encodeURIComponent).join('/');
+          return {
+            ...icon,
+            url: `${CANVAS_API_URL}/api/canvas/icon/${encodedName}`
+          };
+        });
         setIcons(processedIcons);
         processedIcons.forEach((icon) => preloadImage(icon.url));
       }
