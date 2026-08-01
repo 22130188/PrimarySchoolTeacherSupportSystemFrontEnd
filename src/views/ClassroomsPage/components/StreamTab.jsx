@@ -15,9 +15,9 @@ import resourceService from '../../../services/resourceService';
 import PostComments from './PostComments';
 
 const GOOGLE_PICKER_CONFIG = {
-  apiKey: import.meta.env.VITE_GOOGLE_PICKER_API_KEY,
-  clientId: import.meta.env.VITE_GOOGLE_PICKER_CLIENT_ID,
-  appId: import.meta.env.VITE_GOOGLE_PICKER_APP_ID,
+  apiKey: import.meta.env.VITE_GOOGLE_PICKER_API_KEY || 'AIzaSyCr8L6-FXRRr1MkJ65TE7Jon9SRrgaqulo',
+  clientId: import.meta.env.VITE_GOOGLE_PICKER_CLIENT_ID || '432813377322-jja302cqbgr3t0u64d0lior3jtctiad8.apps.googleusercontent.com',
+  appId: import.meta.env.VITE_GOOGLE_PICKER_APP_ID || '432813377322',
 };
 
 function formatTime(value) {
