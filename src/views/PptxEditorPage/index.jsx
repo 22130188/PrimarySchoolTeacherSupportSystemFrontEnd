@@ -15,6 +15,7 @@ import { rerenderTableImage, isNewTableImage, ensureTableDataForImage } from '..
 import { getShapeFormat, snapshotFabricObject } from '../../utils/shapeSelection';
 import { applyFabricTextFormat, getTextFormatUpdate, isFabricTextObject } from '../../utils/fabricTextFormatting';
 import lessonDraftApi from '../../services/lessonDraftApi';
+import lessonPublicApi from '../../services/lessonPublicApi';
 import { usePptxExport } from '../../hooks/usePptxExport';
 import { usePdfExport } from '../../hooks/usePdfExport';
 import { usePillowOnSelected } from './usePillowOnSelected';
@@ -31,7 +32,8 @@ export default function PptxEditorPage() {
   const classroomId = searchParams.get('classroomId');
   const viewMode = searchParams.get('mode');
   const fromAdmin = searchParams.get('from') === 'admin';
-  const isReadOnly = viewMode === 'view' || viewMode === 'copy' || fromAdmin;
+  const fromPublic = searchParams.get('from') === 'public';
+  const isReadOnly = viewMode === 'view' || viewMode === 'copy' || fromAdmin || fromPublic;
   const isDirtyRef = useRef(false);
   const isSavingRef = useRef(false);
   const [duplicating, setDuplicating] = useState(false);
@@ -91,6 +93,8 @@ export default function PptxEditorPage() {
         let draft;
         if (fromAdmin) {
           draft = await lessonDraftApi.getAdminDraft(id);
+        } else if (fromPublic) {
+          draft = await lessonPublicApi.getPublicLesson(id);
         } else if (classroomId) {
           draft = await lessonDraftApi.getClassroomSharedDraft(classroomId, id);
         } else if (isReadOnly) {

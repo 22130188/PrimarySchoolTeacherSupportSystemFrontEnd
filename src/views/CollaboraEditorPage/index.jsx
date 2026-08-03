@@ -14,15 +14,17 @@ export default function CollaboraEditorPage() {
   const templateId = searchParams.get('templateId');
   const classroomId = searchParams.get('classroomId');
   const fromAdmin = searchParams.get('from') === 'admin';
+  const fromPublic = searchParams.get('from') === 'public';
   const isTemplateMode = !!templateId;
   const isAdmin = roleId === 3;
   const isAdminTemplateEdit = isTemplateMode && isAdmin;
   const isTemplatePreview = isTemplateMode && !isAdminTemplateEdit;
   const isAdminLessonView = fromAdmin && isAdmin && !!draftId && !isTemplateMode;
+  const isPublicLessonView = fromPublic && !!draftId && !isTemplateMode;
   const isStudentClassroomView = classroomId && roleId === 1;
   const mode = isAdminTemplateEdit
     ? 'edit'
-    : (isTemplatePreview || isStudentClassroomView || isAdminLessonView || searchParams.get('mode') === 'view'
+    : (isTemplatePreview || isStudentClassroomView || isAdminLessonView || isPublicLessonView || searchParams.get('mode') === 'view'
       ? 'view'
       : (searchParams.get('mode') || 'edit'));
   const formRef = useRef(null);
@@ -51,6 +53,11 @@ export default function CollaboraEditorPage() {
           setSession(data);
           return;
         }
+        if (fromPublic) {
+          const data = await collaboraApi.getPublicEditorSession(draftId);
+          setSession(data);
+          return;
+        }
         if (classroomId) {
           await lessonDraftApi.getClassroomSharedDraft(classroomId, draftId);
         }
@@ -67,7 +74,7 @@ export default function CollaboraEditorPage() {
     };
 
     loadSession();
-  }, [classroomId, draftId, templateId]);
+  }, [classroomId, draftId, templateId, fromPublic]);
 
   useEffect(() => {
     if (session && formRef.current) {
