@@ -78,8 +78,9 @@ function appendParam(params, key, value) {
 
 export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orange', wide = false }) {
   const { user } = useAuthStore();
-  const apiKey = import.meta.env.VITE_PEXELS_API_KEY || 'btmSavpQDoCUjsHARGONcqLH18M2O8l1AuWGMhmLUhtBgzbeaMMfzSYL';
-  const hasApiKey = Boolean(apiKey && apiKey !== 'your_pexels_api_key_here');
+  const configuredApiKey = String(import.meta.env.VITE_PEXELS_API_KEY || '').trim();
+  const apiKey = configuredApiKey.startsWith('your_') ? '' : configuredApiKey;
+  const hasApiKey = Boolean(apiKey);
   const theme = THEMES[accent] || THEMES.orange;
 
   const [query, setQuery] = useState('');
