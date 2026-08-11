@@ -13,7 +13,7 @@ export default function useImageLibrary() {
 
   const [pendingFile, setPendingFile] = useState(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [saveForm, setSaveForm] = useState({ description: '', subject: '' });
+  const [saveForm, setSaveForm] = useState({ description: '', subject: '', grade: '' });
 
   const loadLibraryImages = useCallback(async () => {
     if (!user?.id) return;
@@ -50,7 +50,7 @@ export default function useImageLibrary() {
     }
     const baseName = file.name.replace(/\.[^/.]+$/, '');
     setPendingFile(file);
-    setSaveForm({ description: baseName, subject: '' });
+    setSaveForm({ description: baseName, subject: '', grade: '' });
     setShowSaveModal(true);
     e.target.value = '';
   }, [user]);
@@ -62,8 +62,8 @@ export default function useImageLibrary() {
 
   const confirmSave = useCallback(async () => {
     if (!pendingFile) return;
-    if (!saveForm.description.trim() || !saveForm.subject.trim()) {
-      window.showAlertToast('Vui lòng nhập mô tả và môn học cho ảnh');
+    if (!saveForm.description.trim() || !saveForm.subject.trim() || !saveForm.grade) {
+      window.showAlertToast('Vui lòng nhập mô tả, môn học và lớp cho ảnh');
       return;
     }
     setUploadingToLibrary(true);
@@ -72,6 +72,7 @@ export default function useImageLibrary() {
         blob: pendingFile,
         description: saveForm.description,
         subject: saveForm.subject,
+        grade: saveForm.grade,
         user,
       });
       window.showAlertToast('Lưu ảnh thành công!');

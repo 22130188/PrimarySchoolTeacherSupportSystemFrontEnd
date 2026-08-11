@@ -53,7 +53,7 @@ function ClassRow({ entry, index, total, onChange, onRemove, classrooms = [], su
 }
 
 export default function Step3TeacherClass({ classes, setClasses, onFinish, onBack, loading }) {
-    const { classrooms, subjects } = useCategories();
+    const { homeroomClasses, subjects } = useCategories();
     const handleChange = (index, field, value) =>
         setClasses((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c));
     const handleAdd    = () => setClasses((prev) => [...prev, { grade: '', subject: '' }]);
@@ -68,7 +68,7 @@ export default function Step3TeacherClass({ classes, setClasses, onFinish, onBac
                 {classes.map((entry, i) => (
                     <ClassRow key={i} entry={entry} index={i} total={classes.length}
                               onChange={handleChange} onRemove={handleRemove}
-                              classrooms={classrooms} subjects={subjects} />
+                              classrooms={homeroomClasses.map((item) => ({ ...item, value: item.label }))} subjects={subjects} />
                 ))}
             </div>
 

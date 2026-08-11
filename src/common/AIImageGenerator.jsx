@@ -32,7 +32,7 @@ export default function AIImageGenerator({ onAddImage, accent = 'indigo', wide =
   const [puterReady, setPuterReady] = useState(typeof window !== 'undefined' && !!window.puter);
 
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [saveForm, setSaveForm] = useState({ description: '', subject: '' });
+  const [saveForm, setSaveForm] = useState({ description: '', subject: '', grade: '' });
   const [saving, setSaving] = useState(false);
 
   const pollRef = useRef(null);
@@ -116,13 +116,13 @@ export default function AIImageGenerator({ onAddImage, accent = 'indigo', wide =
       setStatus({ msg: 'Vui lòng đăng nhập để lưu ảnh vào thư viện.', type: 'error' });
       return;
     }
-    setSaveForm({ description: prompt.trim() || 'Ảnh AI', subject: '' });
+    setSaveForm({ description: prompt.trim() || 'Ảnh AI', subject: '', grade: '' });
     setShowSaveModal(true);
   };
 
   const handleSaveLibrary = async () => {
-    if (!saveForm.description.trim() || !saveForm.subject.trim()) {
-      window.showAlertToast('Vui lòng nhập mô tả và môn học cho ảnh');
+    if (!saveForm.description.trim() || !saveForm.subject.trim() || !saveForm.grade) {
+      window.showAlertToast('Vui lòng nhập mô tả, môn học và lớp cho ảnh');
       return;
     }
     setSaving(true);
@@ -132,6 +132,7 @@ export default function AIImageGenerator({ onAddImage, accent = 'indigo', wide =
         blob,
         description: saveForm.description,
         subject: saveForm.subject,
+        grade: saveForm.grade,
         user,
       });
       window.showAlertToast('Lưu ảnh thành công!');

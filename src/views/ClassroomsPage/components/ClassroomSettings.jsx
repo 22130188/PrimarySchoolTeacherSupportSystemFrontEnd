@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Copy, RefreshCw, Link2, Keyboard, CheckCircle2, Save, Archive, GraduationCap, BookOpen, X } from 'lucide-react';
 import { resetInviteLink, resetClassCode, updateClassroom } from '../../../services/classroomApi';
-import { GRADE_LEVELS, SUBJECTS } from '../../../data/classroomData';
+import { useCategories } from '../../../hooks/useCategories';
 import { confirmToast } from '../../../utils/toastNotifications.js';
 
 export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
+  const { homeroomClasses, subjects } = useCategories();
   const [loading, setLoading] = useState(null);
   const [copied, setCopied] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [gradeLevel, setGradeLevel] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
   const [subject, setSubject] = useState('');
   const [error, setError] = useState('');
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
@@ -17,9 +18,9 @@ export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
   useEffect(() => {
     setName(classroom?.name || '');
     setDescription(classroom?.description || '');
-    setGradeLevel(classroom?.gradeLevel || '');
+    setSelectedClass(classroom?.classDisplayName || '');
     setSubject(classroom?.subject || '');
-  }, [classroom?.name, classroom?.description, classroom?.gradeLevel, classroom?.subject]);
+  }, [classroom?.name, classroom?.description, classroom?.classDisplayName, classroom?.subject]);
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -62,13 +63,27 @@ export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
       return;
     }
 
+    const classOption = homeroomClasses.find((item) => item.label === selectedClass);
+    if (!classOption) {
+      setError('Vui lòng chọn lớp từ danh mục quản trị');
+      return;
+    }
+
+    const classPayload = {
+      gradeLevel: classOption.gradeLevel,
+      classGroup: classOption.classGroup,
+      classCategoryId: classOption.classCategoryId,
+      groupCategoryId: classOption.groupCategoryId,
+      classDisplayName: classOption.label,
+    };
+
     setLoading('info');
     setError('');
     try {
       const updated = await updateClassroom(classroom.id, {
         name: name.trim(),
         description: description.trim(),
-        gradeLevel: gradeLevel ? parseInt(gradeLevel) : null,
+        ...classPayload,
         subject: subject || null,
       });
 
@@ -76,7 +91,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
         ...classroom,
         name: name.trim(),
         description: description.trim(),
-        gradeLevel: gradeLevel ? parseInt(gradeLevel) : null,
+        ...classPayload,
         subject: subject || null,
       });
     } catch (err) {
@@ -89,7 +104,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
   const hasInfoChanged =
     name.trim() !== (classroom?.name || '').trim()
     || description.trim() !== (classroom?.description || '').trim()
-    || String(gradeLevel) !== String(classroom?.gradeLevel || '')
+    || selectedClass !== (classroom?.classDisplayName || '')
     || subject !== (classroom?.subject || '');
 
   const handleArchiveClassroom = async () => {
@@ -153,13 +168,13 @@ export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
               <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> Khối lớp</span>
             </label>
             <select
-              value={gradeLevel}
-              onChange={(e) => setGradeLevel(e.target.value)}
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-black/15 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white"
             >
-              <option value="">Chọn khối lớp</option>
-              {GRADE_LEVELS.map(g => (
-                <option key={g.value} value={g.value}>{g.label}</option>
+              <option value="">Chọn lớp</option>
+              {homeroomClasses.map(g => (
+                <option key={g.value} value={g.label}>{g.label}</option>
               ))}
             </select>
           </div>
@@ -174,7 +189,7 @@ export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
               className="w-full px-3 py-2 rounded-lg border border-black/15 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white"
             >
               <option value="">Chọn môn học</option>
-              {SUBJECTS.map(s => (
+              {subjects.map(s => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>

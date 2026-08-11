@@ -34,7 +34,7 @@ export default function ClassroomManagement() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { subjects, grades } = useCategories();
+  const { subjects, homeroomClasses } = useCategories();
   const [activeTab, setActiveTab] = useState('ACTIVE');
   const [globalFilter, setGlobalFilter] = useState('');
   const [sorting, setSorting] = useState([]);
@@ -191,14 +191,14 @@ export default function ClassroomManagement() {
       ),
     },
     {
-      accessorKey: 'gradeLevel',
-      header: 'Khối lớp',
-      cell: ({ getValue }) => {
-        const val = getValue();
+      accessorKey: 'classDisplayName',
+      header: 'Lớp học',
+      cell: ({ getValue, row }) => {
+        const val = getValue() || (row.original.gradeLevel ? `Lớp ${row.original.gradeLevel}` : '');
         return val ? (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-900 whitespace-nowrap">
             <GraduationCap className="w-3.5 h-3.5 text-gray-500" />
-            Lớp {val}
+            {val}
           </span>
         ) : <span className="text-gray-300 text-xs">—</span>;
       },
@@ -463,7 +463,7 @@ export default function ClassroomManagement() {
         onSubmit={handleEdit}
         classroom={editClassroom}
         subjects={subjects}
-        grades={grades}
+        classes={homeroomClasses}
       />
 
       <ClassroomDetailModal

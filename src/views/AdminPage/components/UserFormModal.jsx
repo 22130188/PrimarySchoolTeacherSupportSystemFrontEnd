@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Minus, Loader2, AlertTriangle } from 'lucide-react';
+import { useCategories } from '../../../hooks/useCategories';
 
 
 const INITIAL_FORM = {
@@ -10,6 +11,7 @@ const INITIAL_FORM = {
 
 
 export default function UserFormModal({ isOpen, onClose, onSubmit, initialData, isEdit, currentUser }) {
+  const { homeroomClasses, subjects } = useCategories();
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -220,12 +222,15 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, initialData, 
 
           {form.role === 'STUDENT' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Khối lớp</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lớp học</label>
               <select name="grade" value={form.grade} onChange={handleChange}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all bg-white">
-                <option value="">Chọn khối</option>
-                {['1', '2', '3', '4', '5'].map((g) => (
-                  <option key={g} value={g}>Khối {g}</option>
+                <option value="">Chọn lớp</option>
+                {form.grade && !homeroomClasses.some((item) => item.label === form.grade) && (
+                  <option value={form.grade}>{form.grade}</option>
+                )}
+                {homeroomClasses.map((item) => (
+                  <option key={item.value} value={item.label}>{item.label}</option>
                 ))}
               </select>
             </div>
@@ -244,17 +249,23 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, initialData, 
                 <div key={i} className="flex items-center gap-2">
                   <select value={tc.grade} onChange={(e) => handleTeacherClassChange(i, 'grade', e.target.value)}
                     className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all bg-white">
-                    <option value="">Khối</option>
-                    {['1', '2', '3', '4', '5'].map((g) => (
-                      <option key={g} value={g}>Khối {g}</option>
+                    <option value="">Lớp học</option>
+                    {tc.grade && !homeroomClasses.some((item) => item.label === tc.grade) && (
+                      <option value={tc.grade}>{tc.grade}</option>
+                    )}
+                    {homeroomClasses.map((item) => (
+                      <option key={item.value} value={item.label}>{item.label}</option>
                     ))}
                   </select>
                   <select value={tc.subject} onChange={(e) => handleTeacherClassChange(i, 'subject', e.target.value)}
                     className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all bg-white">
                     <option value="">Môn học</option>
-                    <option value="Toán">Toán</option>
-                    <option value="Tiếng Việt">Tiếng Việt</option>
-                    <option value="Tiếng Anh">Tiếng Anh</option>
+                    {tc.subject && !subjects.some((item) => item.value === tc.subject) && (
+                      <option value={tc.subject}>{tc.subject}</option>
+                    )}
+                    {subjects.map((item) => (
+                      <option key={item.value} value={item.value}>{item.label}</option>
+                    ))}
                   </select>
                   {form.teacherClasses.length > 1 && (
                     <button type="button" onClick={() => removeTeacherClass(i)}

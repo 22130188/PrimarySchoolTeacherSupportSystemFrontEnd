@@ -14,6 +14,8 @@ import IconsPanel from '../../components/ImageEditor/panels/IconsPanel.jsx';
 import AdjustPanel from '../../components/ImageEditor/panels/AdjustPanel.jsx';
 import CropPanel from '../../components/ImageEditor/panels/CropPanel.jsx';
 import ComposePanel from '../../components/ImageEditor/panels/ComposePanel.jsx';
+import { useCategories } from '../../hooks/useCategories.js';
+import { filterLibraryImages, normalizeLibraryGrade } from '../../utils/imageLibraryFilters.js';
 
 const DRAW_MODES = [
   { id: 'pencil', label: 'Bút chì', icon: Pencil },
@@ -30,6 +32,7 @@ export default function PptxSidebar({
   runPillowOnSelected, isProcessing, hasSelectedImage,
   selectedImageNaturalSize, getOverlayWrapper, onMergeImages,
 }) {
+  const { grades } = useCategories();
   const {
     user, libraryUploadRef, libraryImages, loadingLibrary, uploadingToLibrary,
     loadLibraryImages, handleUploadFileChange,
@@ -37,12 +40,11 @@ export default function PptxSidebar({
   } = useImageLibrary();
 
   const [librarySubject, setLibrarySubject] = useState('all');
+  const [libraryGrade, setLibraryGrade] = useState('all');
   const [showStudio, setShowStudio] = useState(false);
   const [photoTool, setPhotoTool] = useState('crop');
 
-  const filteredImages = librarySubject === 'all'
-    ? libraryImages
-    : libraryImages.filter((img) => img.subject === librarySubject);
+  const filteredImages = filterLibraryImages(libraryImages, librarySubject, libraryGrade);
 
   useEffect(() => {
     if (activeTab === 'images' && expanded && user?.id) {
@@ -154,15 +156,28 @@ export default function PptxSidebar({
                     </button>
                   </div>
 
-                  <select
-                    value={librarySubject}
-                    onChange={(e) => setLibrarySubject(e.target.value)}
-                    className="w-full mb-3 text-[12px] border border-gray-200 rounded-lg px-2.5 py-2 bg-white text-gray-700 outline-none cursor-pointer transition focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
-                  >
-                    {LIBRARY_SUBJECT_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                  <div className="mb-3 grid grid-cols-2 gap-2">
+                    <select
+                      value={librarySubject}
+                      onChange={(e) => setLibrarySubject(e.target.value)}
+                      className="min-w-0 w-full text-[12px] border border-gray-200 rounded-lg px-2 py-2 bg-white text-gray-700 outline-none cursor-pointer transition focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                    >
+                      {LIBRARY_SUBJECT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={libraryGrade}
+                      onChange={(e) => setLibraryGrade(e.target.value)}
+                      className="min-w-0 w-full text-[12px] border border-gray-200 rounded-lg px-2 py-2 bg-white text-gray-700 outline-none cursor-pointer transition focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                    >
+                      <option value="all">Tất cả lớp</option>
+                      {grades.map((grade) => (
+                        <option key={grade.categoryId || grade.value} value={grade.value}>{grade.label}</option>
+                      ))}
+                    </select>
+                  </div>
 
                   {loadingLibrary && (
                     <div className="flex items-center justify-center py-6 text-gray-400">
@@ -173,9 +188,9 @@ export default function PptxSidebar({
 
                   {!loadingLibrary && filteredImages.length === 0 && (
                     <div className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-lg">
-                      {librarySubject === 'all'
+                      {librarySubject === 'all' && libraryGrade === 'all'
                         ? <>Chưa có ảnh nào trong thư viện.<br /><span className="text-[10px]">Tải ảnh lên hoặc tạo ảnh từ tab <strong>AI</strong></span></>
-                        : <>Chưa có ảnh môn <strong>{librarySubject}</strong></>
+                        : <>Không có ảnh theo bộ lọc đã chọn.</>
                       }
                     </div>
                   )}
@@ -195,6 +210,7 @@ export default function PptxSidebar({
                               {img.description || 'Ảnh không tên'}
                             </p>
                             {img.subject && <p className="text-[10px] text-gray-400 mt-0.5">Môn: {img.subject}</p>}
+                            {img.grade && <p className="text-[10px] text-gray-400">Lớp: {normalizeLibraryGrade(img.grade)}</p>}
                           </div>
                         </button>
                       ))}

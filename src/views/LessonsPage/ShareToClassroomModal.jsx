@@ -133,7 +133,7 @@ export default function ShareToClassroomModal({ lessonId, lessonTitle, onClose }
                       <p className="text-sm font-medium text-gray-800 truncate">{cls.name}</p>
                       <p className="text-xs text-gray-400 truncate">
                         {cls.subject && `${cls.subject} · `}
-                        {cls.gradeLevel && `Lớp ${cls.gradeLevel} · `}
+                        {(cls.classDisplayName || cls.gradeLevel) && `${cls.classDisplayName || `Lớp ${cls.gradeLevel}`} · `}
                         {cls.studentCount ?? 0} học sinh
                       </p>
                     </div>

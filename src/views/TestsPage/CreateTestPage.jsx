@@ -9,6 +9,7 @@ import DashboardSidebar from '../../components/DashboardSidebar';
 import { Plus, X, Trash2, Mic } from 'lucide-react';
 import testApi from '../../services/testApi';
 import { confirmToast } from '../../utils/toastNotifications.js';
+import { useCategories } from '../../hooks/useCategories';
 
 export default function CreateTestPage() {
   const navigate = useNavigate();
@@ -18,15 +19,12 @@ export default function CreateTestPage() {
   const { user } = useAuthStore();
   const currentUserId = user?.id || user?.userId || null;
   const { libraryImages, loadingLibrary, loadLibraryImages } = useImageLibrary();
+  const { homeroomClasses, subjects } = useCategories();
 
-  const subjectOptions = ['Toán', 'Tiếng Việt', 'Tiếng Anh'];
-  const gradeOptions = [
-    '1A','1B','1C',
-    '2A','2B','2C',
-    '3A','3B','3C',
-    '4A','4B','4C',
-    '5A','5B','5C',
-  ];
+  const gradeOptions = homeroomClasses.map((item) => ({
+    value: `${item.gradeLevel}${item.classGroup}`,
+    label: `${item.gradeLevel}${item.classGroup}`,
+  }));
 
   const testTypeOptions = [
     { value: 'EXAM', label: 'Bài kiểm tra' },
@@ -91,7 +89,7 @@ export default function CreateTestPage() {
   const [loadingAudioLibrary, setLoadingAudioLibrary] = useState(false);
   const [isRecording, setIsRecording] = useState({});
   const [saveStatus, setSaveStatus] = useState('DRAFT');
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [customLessonContent, setCustomLessonContent] = useState('');
   const [filterType, setFilterType] = useState('my-questions');
   const [filterSubject, setFilterSubject] = useState('');
@@ -106,7 +104,7 @@ export default function CreateTestPage() {
       .map((c) => c.name)
       .filter(Boolean)
   ));
-  const [initialLoading, setInitialLoading] = useState(isEditing);
+  const [, setInitialLoading] = useState(isEditing);
 
   useEffect(() => {
     if (isEditing && id) {
@@ -970,14 +968,14 @@ export default function CreateTestPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Môn học</label>
                       <select value={testInfo.subject} onChange={(e) => handleTestInfoChange('subject', e.target.value)} className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all">
                         <option value="">Chọn môn học</option>
-                        {subjectOptions.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                        {subjects.map((subject) => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Lớp</label>
                       <select value={testInfo.grade} onChange={(e) => handleTestInfoChange('grade', e.target.value)} className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all">
                         <option value="">Chọn lớp</option>
-                        {gradeOptions.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
+                        {gradeOptions.map((grade) => <option key={grade.value} value={grade.value}>{grade.label}</option>)}
                       </select>
                     </div>
                     <div>

@@ -63,7 +63,7 @@ function ClassRow({ entry, index, total, onChange, onRemove, grades = [], subjec
 }
 
 export default function ClassInfo({ user, onUpdate }) {
-    const { subjects, grades } = useCategories();
+    const { subjects, homeroomClasses } = useCategories();
     const initialClasses = user?.teacherClasses?.length
         ? user.teacherClasses.map((tc) => ({ grade: tc.grade, subjects: [tc.subject] }))
         : [{ grade: '', subjects: [] }];
@@ -105,7 +105,8 @@ export default function ClassInfo({ user, onUpdate }) {
             <div className="flex flex-col gap-6">
                 {classes.map((entry, i) => (
                     <ClassRow key={i} entry={entry} index={i} total={classes.length}
-                              onChange={handleChange} onRemove={handleRemove} grades={grades} subjects={subjects} />
+                              onChange={handleChange} onRemove={handleRemove}
+                              grades={homeroomClasses.map((item) => ({ ...item, value: item.label }))} subjects={subjects} />
                 ))}
             </div>
 

@@ -270,10 +270,10 @@ export default function ClassroomDetail() {
                           <div className="flex items-center gap-2 text-gray-500 text-sm">
                             {classroom.teacherName}
                           </div>
-                          {classroom.gradeLevel && (
+                          {(classroom.classDisplayName || classroom.gradeLevel) && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 text-sm font-semibold">
                               <GraduationCap className="w-3.5 h-3.5" />
-                              Lớp {classroom.gradeLevel}
+                              {classroom.classDisplayName || `Lớp ${classroom.gradeLevel}`}
                             </span>
                           )}
                           {classroom.subject && (

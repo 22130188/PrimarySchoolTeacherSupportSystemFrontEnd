@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import lessonCatalogApi from '../../../services/lessonCatalogApi';
 import { confirmToast } from '../../../utils/toastNotifications.js';
+import { useCategories } from '../../../hooks/useCategories';
 
 const INITIAL_FORM_STATE = {
   subject: '',
@@ -13,8 +14,6 @@ const INITIAL_FORM_STATE = {
   isActive: true,
 };
 
-const SUBJECTS = ['Toán', 'Tiếng Việt', 'Tiếng Anh'];
-const GRADES = ['1', '2', '3', '4', '5'];
 const PAGE_SIZE_OPTIONS = [12, 24, 48];
 
 const getLessonVolume = (content) => content?.volume || content?.bookVolume || content?.semester || content?.term || '';
@@ -31,6 +30,7 @@ const DEFAULT_BOOK_BY_SUBJECT = {
 };
 
 export default function LessonContentManagement() {
+  const { subjects, grades } = useCategories();
   const [contents, setContents] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -274,9 +274,9 @@ export default function LessonContentManagement() {
             className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
           >
             <option value="">Tất cả môn học</option>
-            {SUBJECTS.map((s) => (
-              <option key={s} value={s}>
-                {s}
+            {subjects.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
               </option>
             ))}
           </select>
@@ -286,9 +286,9 @@ export default function LessonContentManagement() {
             className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
           >
             <option value="">Tất cả lớp</option>
-            {GRADES.map((g) => (
-              <option key={g} value={g}>
-                Lớp {g}
+            {grades.map((g) => (
+              <option key={g.value} value={g.value}>
+                {g.label}
               </option>
             ))}
           </select>
@@ -473,9 +473,9 @@ export default function LessonContentManagement() {
                   className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                 >
                   <option value="">Chọn môn học</option>
-                  {SUBJECTS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
+                  {subjects.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
                     </option>
                   ))}
                 </select>
@@ -488,9 +488,9 @@ export default function LessonContentManagement() {
                   className="w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                 >
                   <option value="">Chọn lớp</option>
-                  {GRADES.map((g) => (
-                    <option key={g} value={g}>
-                      Lớp {g}
+                  {grades.map((g) => (
+                    <option key={g.value} value={g.value}>
+                      {g.label}
                     </option>
                   ))}
                 </select>

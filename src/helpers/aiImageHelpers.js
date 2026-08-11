@@ -57,10 +57,10 @@ export async function sourceToBlob(source) {
   return await res.blob();
 }
 
-export async function saveImageToLibrary({ blob, description, subject, user }) {
+export async function saveImageToLibrary({ blob, description, subject, grade, user }) {
   if (!user?.id) throw new Error('Vui lòng đăng nhập để lưu ảnh');
-  if (!description?.trim() || !subject?.trim()) {
-    throw new Error('Vui lòng nhập mô tả và môn học cho ảnh');
+  if (!description?.trim() || !subject?.trim() || !String(grade || '').trim()) {
+    throw new Error('Vui lòng nhập mô tả, môn học và lớp cho ảnh');
   }
 
   const formData = new FormData();
@@ -80,6 +80,7 @@ export async function saveImageToLibrary({ blob, description, subject, user }) {
   await axios.post(`${API_CONFIG.IMAGE_API_URL}/save`, {
     description: description.trim(),
     subject: subject.trim(),
+    grade: String(grade).trim(),
     imageUrl: imagePath,
     userId: user.id,
     userName: user?.fullName || user?.name || user?.username || 'Unknown',
