@@ -19,7 +19,7 @@ const getGatewayUrl = () => {
 };
 
 const getTranslateApiUrl = () => {
-  return import.meta.env.VITE_TRANSLATE_API_URL || 'http://localhost:8080/api/translate';
+  return import.meta.env.VITE_TRANSLATE_API_URL || 'http://localhost:8001/api/translate';
 };
 
 export const API_CONFIG = {
