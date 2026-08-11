@@ -13,7 +13,7 @@ export default function useImageLibrary() {
 
   const [pendingFile, setPendingFile] = useState(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [saveForm, setSaveForm] = useState({ description: '', subject: '' });
+  const [saveForm, setSaveForm] = useState({ description: '', subject: '', grade: '' });
 
   const loadLibraryImages = useCallback(async () => {
     if (!user?.id) return;
@@ -34,23 +34,23 @@ export default function useImageLibrary() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn file ảnh');
+      window.showAlertToast('Vui lòng chọn file ảnh');
       e.target.value = '';
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('File ảnh không được vượt quá 5MB');
+      window.showAlertToast('File ảnh không được vượt quá 5MB');
       e.target.value = '';
       return;
     }
     if (!user?.id) {
-      alert('Vui lòng đăng nhập để lưu ảnh');
+      window.showAlertToast('Vui lòng đăng nhập để lưu ảnh');
       e.target.value = '';
       return;
     }
     const baseName = file.name.replace(/\.[^/.]+$/, '');
     setPendingFile(file);
-    setSaveForm({ description: baseName, subject: '' });
+    setSaveForm({ description: baseName, subject: '', grade: '' });
     setShowSaveModal(true);
     e.target.value = '';
   }, [user]);
@@ -62,8 +62,8 @@ export default function useImageLibrary() {
 
   const confirmSave = useCallback(async () => {
     if (!pendingFile) return;
-    if (!saveForm.description.trim() || !saveForm.subject.trim()) {
-      alert('Vui lòng nhập mô tả và môn học cho ảnh');
+    if (!saveForm.description.trim() || !saveForm.subject.trim() || !saveForm.grade) {
+      window.showAlertToast('Vui lòng nhập mô tả, môn học và lớp cho ảnh');
       return;
     }
     setUploadingToLibrary(true);
@@ -72,15 +72,16 @@ export default function useImageLibrary() {
         blob: pendingFile,
         description: saveForm.description,
         subject: saveForm.subject,
+        grade: saveForm.grade,
         user,
       });
-      alert('Lưu ảnh thành công!');
+      window.showAlertToast('Lưu ảnh thành công!');
       setShowSaveModal(false);
       setPendingFile(null);
       loadLibraryImages();
     } catch (error) {
       console.error('Upload to library failed:', error);
-      alert('Lỗi tải ảnh lên thư viện');
+      window.showAlertToast('Lỗi tải ảnh lên thư viện');
     } finally {
       setUploadingToLibrary(false);
     }

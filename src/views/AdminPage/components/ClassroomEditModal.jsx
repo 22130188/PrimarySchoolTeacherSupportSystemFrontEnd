@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, School, GraduationCap, BookOpen } from 'lucide-react';
 
-export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroom, subjects = [], grades = [] }) {
+export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroom, subjects = [], classes = [] }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [gradeLevel, setGradeLevel] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
   const [subject, setSubject] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -13,7 +13,7 @@ export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroo
     if (classroom) {
       setName(classroom.name || '');
       setDescription(classroom.description || '');
-      setGradeLevel(classroom.gradeLevel || '');
+      setSelectedClass(classroom.classDisplayName || '');
       setSubject(classroom.subject || '');
       setError('');
     }
@@ -30,10 +30,15 @@ export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroo
     setLoading(true);
     setError('');
     try {
+      const classOption = classes.find((item) => item.label === selectedClass);
       await onSubmit({
         name: name.trim(),
         description: description.trim(),
-        gradeLevel: gradeLevel ? parseInt(gradeLevel) : null,
+        gradeLevel: classOption?.gradeLevel ?? classroom.gradeLevel ?? null,
+        classGroup: classOption?.classGroup ?? classroom.classGroup ?? null,
+        classCategoryId: classOption?.classCategoryId ?? classroom.classCategoryId ?? null,
+        groupCategoryId: classOption?.groupCategoryId ?? classroom.groupCategoryId ?? null,
+        classDisplayName: classOption?.label ?? classroom.classDisplayName ?? null,
         subject: subject || null,
       });
       onClose();
@@ -94,13 +99,13 @@ export default function ClassroomEditModal({ isOpen, onClose, onSubmit, classroo
                 <span className="flex items-center gap-1"><GraduationCap className="w-3.5 h-3.5" /> Khối lớp</span>
               </label>
               <select
-                value={gradeLevel}
-                onChange={(e) => setGradeLevel(e.target.value)}
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
                 className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 focus:bg-white transition-all duration-200 cursor-pointer"
               >
-                <option value="">Chọn khối lớp</option>
-                {grades.map(g => (
-                  <option key={g.value} value={g.value}>{g.label}</option>
+                <option value="">Chọn lớp</option>
+                {classes.map(g => (
+                  <option key={g.value} value={g.label}>{g.label}</option>
                 ))}
               </select>
             </div>

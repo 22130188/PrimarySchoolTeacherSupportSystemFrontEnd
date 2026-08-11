@@ -68,10 +68,11 @@ export async function uploadCanvasImage(dataUrl) {
   return null;
 }
 
-export async function saveToLibrary({ description, subject, imageUrl, user }) {
+export async function saveToLibrary({ description, subject, grade, imageUrl, user }) {
   const response = await axios.post(`${IMAGE_API_URL}/save`, {
     description,
     subject,
+    grade,
     imageUrl,
     userId: user?.id || 0,
     userName: user?.fullName || user?.name || user?.username || 'Unknown',

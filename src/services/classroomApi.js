@@ -27,11 +27,11 @@ async function handleRes(res) {
   return body;
 }
 
-export async function createClassroom(name, description, gradeLevel, subject) {
+export async function createClassroom(payload) {
   const res = await fetch(`${BASE}/api/classrooms`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ name, description, gradeLevel, subject }),
+    body: JSON.stringify(payload),
   });
   return handleRes(res);
 }

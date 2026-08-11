@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config.js';
 
-const TRANSLATE_SERVICE_URL = 'http://localhost:8001/api/translate';
+const TRANSLATE_SERVICE_URL = API_CONFIG.TRANSLATE_API_URL;
 
 class TranslateService {
   /**

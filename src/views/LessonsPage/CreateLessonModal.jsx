@@ -145,7 +145,7 @@ export default function CreateLessonModal({ onClose }) {
     if (!file) return;
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'docx' && ext !== 'pptx') {
-      alert('Chỉ hỗ trợ file .docx hoặc .pptx');
+      window.showAlertToast('Chỉ hỗ trợ file .docx hoặc .pptx');
       e.target.value = '';
       return;
     }
@@ -163,7 +163,7 @@ export default function CreateLessonModal({ onClose }) {
 
   const handleUploadAndOpen = async () => {
     if (!uploadFile || !collaboraForm.title.trim() || !collaboraForm.subject || !collaboraForm.grade || !collaboraForm.volume) {
-      alert('Vui lòng chọn file và nhập đầy đủ môn học, lớp, tập, tên bài giảng.');
+      window.showAlertToast('Vui lòng chọn file và nhập đầy đủ môn học, lớp, tập, tên bài giảng.');
       return;
     }
     try {
@@ -179,7 +179,7 @@ export default function CreateLessonModal({ onClose }) {
       onClose();
       navigate(`/lessons/collabora-editor?draftId=${draft.id}`);
     } catch (err) {
-      alert('Không thể tải file lên: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể tải file lên: ' + (err.response?.data?.message || err.message));
     } finally {
       setCreatingType('');
     }
@@ -187,7 +187,7 @@ export default function CreateLessonModal({ onClose }) {
 
   const handleCreateCollabora = async () => {
     if (!selectedType || !collaboraForm.title.trim() || !collaboraForm.subject || !collaboraForm.grade || !collaboraForm.volume) {
-      alert('Vui lòng chọn môn học, lớp, tập và tên bài giảng.');
+      window.showAlertToast('Vui lòng chọn môn học, lớp, tập và tên bài giảng.');
       return;
     }
 
@@ -204,14 +204,14 @@ export default function CreateLessonModal({ onClose }) {
       onClose();
       navigate(`/lessons/collabora-editor?draftId=${draft.id}`);
     } catch (err) {
-      alert('Không thể tạo bài giảng Collabora: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể tạo bài giảng Collabora: ' + (err.response?.data?.message || err.message));
     } finally {
       setCreatingType('');
     }
   };
   const handleCreateSimple = () => {
     if (!selectedType || !collaboraForm.title.trim() || !collaboraForm.subject || !collaboraForm.grade || !collaboraForm.volume) {
-      alert('Vui lòng chọn môn học, lớp, tập và tên bài giảng.');
+      window.showAlertToast('Vui lòng chọn môn học, lớp, tập và tên bài giảng.');
       return;
     }
 

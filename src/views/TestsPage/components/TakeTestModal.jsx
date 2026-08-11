@@ -174,7 +174,7 @@ export default function TakeTestModal({
       navigator.share({ title: 'Bài tập', text: shareText });
     } else {
       navigator.clipboard.writeText(shareText);
-      alert('Đã sao chép vào clipboard');
+      window.showAlertToast('Đã sao chép vào clipboard');
     }
   };
 

@@ -94,7 +94,7 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState({ msg: '', type: 'idle' });
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [saveForm, setSaveForm] = useState({ description: '', subject: '' });
+  const [saveForm, setSaveForm] = useState({ description: '', subject: '', grade: '' });
 
   const statusClass = useMemo(() => {
     if (status.type === 'error') return 'text-red-500';
@@ -180,7 +180,7 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
       return;
     }
     setSelectedPhoto(photo);
-    setSaveForm({ description: getPhotoDescription(photo), subject: '' });
+    setSaveForm({ description: getPhotoDescription(photo), subject: '', grade: '' });
   };
 
   const closeSaveModal = () => {
@@ -189,8 +189,8 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
 
   const confirmSave = async () => {
     if (!selectedPhoto) return;
-    if (!saveForm.description.trim() || !saveForm.subject.trim()) {
-      setStatus({ msg: 'Vui lòng nhập mô tả và môn học cho ảnh.', type: 'error' });
+    if (!saveForm.description.trim() || !saveForm.subject.trim() || !saveForm.grade) {
+      setStatus({ msg: 'Vui lòng nhập mô tả, môn học và lớp cho ảnh.', type: 'error' });
       return;
     }
 
@@ -202,16 +202,17 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
         blob,
         description: saveForm.description,
         subject: saveForm.subject,
+        grade: saveForm.grade,
         user,
       });
       setSelectedPhoto(null);
       setStatus({ msg: 'Đã lưu ảnh vào thư viện.', type: 'success' });
-      alert('Đã lưu ảnh Pexels vào thư viện thành công!');
+      window.showAlertToast('Đã lưu ảnh Pexels vào thư viện thành công!');
       onSaved?.();
     } catch (error) {
       const errMsg = extractErrorMessage(error);
       setStatus({ msg: errMsg, type: 'error' });
-      alert('Lưu ảnh thất bại: ' + errMsg);
+      window.showAlertToast('Lưu ảnh thất bại: ' + errMsg);
     } finally {
       setSaving(false);
     }

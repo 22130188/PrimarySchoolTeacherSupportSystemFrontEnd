@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 
-export default function CreateClassroomDialog({ open, onClose, onCreate, subjects = [], grades = [] }) {
+export default function CreateClassroomDialog({ open, onClose, onCreate, subjects = [], classes = [] }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [gradeLevel, setGradeLevel] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
   const [subject, setSubject] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -14,15 +14,29 @@ export default function CreateClassroomDialog({ open, onClose, onCreate, subject
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) { setError('Vui lòng nhập tên lớp học'); return; }
-    if (!gradeLevel) { setError('Vui lòng chọn khối lớp'); return; }
+    if (!selectedClass) { setError('Vui lòng chọn lớp'); return; }
     if (!subject) { setError('Vui lòng chọn môn học'); return; }
     setLoading(true);
     setError('');
     try {
-      await onCreate(name.trim(), description.trim(), parseInt(gradeLevel), subject);
+      const classOption = classes.find((item) => item.value === selectedClass);
+      if (!classOption) {
+        setError('Lớp đã chọn không còn tồn tại. Vui lòng tải lại danh mục');
+        return;
+      }
+      await onCreate({
+        name: name.trim(),
+        description: description.trim(),
+        subject,
+        gradeLevel: classOption.gradeLevel,
+        classGroup: classOption.classGroup,
+        classCategoryId: classOption.classCategoryId,
+        groupCategoryId: classOption.groupCategoryId,
+        classDisplayName: classOption.label,
+      });
       setName('');
       setDescription('');
-      setGradeLevel('');
+      setSelectedClass('');
       setSubject('');
       onClose();
     } catch (err) {
@@ -66,16 +80,16 @@ export default function CreateClassroomDialog({ open, onClose, onCreate, subject
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Khối lớp <span className="text-red-500">*</span>
+                Lớp học <span className="text-red-500">*</span>
               </label>
               <select
-                value={gradeLevel}
-                onChange={e => setGradeLevel(e.target.value)}
+                value={selectedClass}
+                onChange={e => setSelectedClass(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-sm transition-all bg-white appearance-none cursor-pointer"
                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
               >
-                <option value="">Chọn khối lớp</option>
-                {grades.map(g => (
+                <option value="">Chọn lớp</option>
+                {classes.map(g => (
                   <option key={g.value} value={g.value}>{g.label}</option>
                 ))}
               </select>

@@ -1,5 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { Upload, FileImage, Square, Trash2 } from 'lucide-react';
+import { confirmToast } from '../../../utils/toastNotifications.js';
+import { useCategories } from '../../../hooks/useCategories.js';
+import { filterLibraryImages } from '../../../utils/imageLibraryFilters.js';
 
 const SUBJECT_FILTERS = [
   { id: 'all', label: 'Tất cả' },
@@ -8,21 +11,16 @@ const SUBJECT_FILTERS = [
   { id: 'Tiếng Anh', label: 'Tiếng Anh' },
 ];
 
-function matchesSubject(imageSubject, selectedSubject) {
-  if (selectedSubject === 'all') return true;
-  const subject = String(imageSubject || '').trim().toLowerCase();
-  const selected = selectedSubject.toLowerCase();
-  return subject === selected || subject.startsWith(`${selected} `);
-}
-
 export default function SourcePanel({ savedImages = [], onPickImage, onAddImage, onCreateBlank, onDeleteImage }) {
+  const { grades } = useCategories();
   const fileRef = useRef(null);
   const [subjectFilter, setSubjectFilter] = useState('all');
+  const [gradeFilter, setGradeFilter] = useState('all');
   const [deletingId, setDeletingId] = useState(null);
 
   const filteredImages = useMemo(
-    () => savedImages.filter((img) => matchesSubject(img?.subject, subjectFilter)),
-    [savedImages, subjectFilter]
+    () => filterLibraryImages(savedImages, subjectFilter, gradeFilter),
+    [savedImages, subjectFilter, gradeFilter]
   );
 
   const handleFile = (e) => {
@@ -38,11 +36,14 @@ export default function SourcePanel({ savedImages = [], onPickImage, onAddImage,
     event.preventDefault();
     event.stopPropagation();
     if (!image?.id || !onDeleteImage) return;
-    if (!window.confirm('Xóa ảnh này khỏi thư viện?')) return;
+    if (!(await confirmToast('Xóa ảnh này khỏi thư viện?', { title: 'Xóa ảnh', confirmLabel: 'Xóa' }))) return;
 
     setDeletingId(image.id);
     try {
       await onDeleteImage(image.id);
+      window.showAlertToast('Đã xóa ảnh khỏi thư viện.');
+    } catch (error) {
+      window.showAlertToast(error?.message || 'Không thể xóa ảnh khỏi thư viện.');
     } finally {
       setDeletingId(null);
     }
@@ -109,10 +110,21 @@ export default function SourcePanel({ savedImages = [], onPickImage, onAddImage,
           ))}
         </div>
 
+        <select
+          value={gradeFilter}
+          onChange={(event) => setGradeFilter(event.target.value)}
+          className="mb-2 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-600 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+        >
+          <option value="all">Tất cả lớp</option>
+          {grades.map((grade) => (
+            <option key={grade.categoryId || grade.value} value={grade.value}>{grade.label}</option>
+          ))}
+        </select>
+
         {savedImages.length === 0 ? (
           <p className="text-xs text-slate-400">Chưa có ảnh nào trong thư viện.</p>
         ) : filteredImages.length === 0 ? (
-          <p className="text-xs text-slate-400">Không có ảnh theo môn đã chọn.</p>
+          <p className="text-xs text-slate-400">Không có ảnh theo bộ lọc đã chọn.</p>
         ) : (
           <div className="grid max-h-84 grid-cols-3 gap-2 overflow-y-auto pr-1">
             {filteredImages.map((img) => {

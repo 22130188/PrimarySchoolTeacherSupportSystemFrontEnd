@@ -8,6 +8,8 @@ import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
 import { Plus, X, Trash2, Mic } from 'lucide-react';
 import testApi from '../../services/testApi';
+import { confirmToast } from '../../utils/toastNotifications.js';
+import { useCategories } from '../../hooks/useCategories';
 
 export default function CreateTestPage() {
   const navigate = useNavigate();
@@ -17,15 +19,12 @@ export default function CreateTestPage() {
   const { user } = useAuthStore();
   const currentUserId = user?.id || user?.userId || null;
   const { libraryImages, loadingLibrary, loadLibraryImages } = useImageLibrary();
+  const { homeroomClasses, subjects } = useCategories();
 
-  const subjectOptions = ['Toán', 'Tiếng Việt', 'Tiếng Anh'];
-  const gradeOptions = [
-    '1A','1B','1C',
-    '2A','2B','2C',
-    '3A','3B','3C',
-    '4A','4B','4C',
-    '5A','5B','5C',
-  ];
+  const gradeOptions = homeroomClasses.map((item) => ({
+    value: `${item.gradeLevel}${item.classGroup}`,
+    label: `${item.gradeLevel}${item.classGroup}`,
+  }));
 
   const testTypeOptions = [
     { value: 'EXAM', label: 'Bài kiểm tra' },
@@ -90,7 +89,7 @@ export default function CreateTestPage() {
   const [loadingAudioLibrary, setLoadingAudioLibrary] = useState(false);
   const [isRecording, setIsRecording] = useState({});
   const [saveStatus, setSaveStatus] = useState('DRAFT');
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [customLessonContent, setCustomLessonContent] = useState('');
   const [filterType, setFilterType] = useState('my-questions');
   const [filterSubject, setFilterSubject] = useState('');
@@ -105,7 +104,7 @@ export default function CreateTestPage() {
       .map((c) => c.name)
       .filter(Boolean)
   ));
-  const [initialLoading, setInitialLoading] = useState(isEditing);
+  const [, setInitialLoading] = useState(isEditing);
 
   useEffect(() => {
     if (isEditing && id) {
@@ -210,7 +209,7 @@ export default function CreateTestPage() {
       }
     } catch (error) {
       console.error('Error loading test:', error);
-      alert('Lỗi khi tải thông tin bài kiểm tra');
+      window.showAlertToast('Lỗi khi tải thông tin bài kiểm tra');
       navigate('/tests');
     } finally {
       setInitialLoading(false);
@@ -224,7 +223,7 @@ export default function CreateTestPage() {
       setExistingQuestions(qs || []);
     } catch (error) {
       console.error('Error loading existing questions:', error);
-      alert('Lỗi khi tải danh sách câu hỏi cũ');
+      window.showAlertToast('Lỗi khi tải danh sách câu hỏi cũ');
     } finally {
       setLoadingExistingQuestions(false);
     }
@@ -557,13 +556,13 @@ export default function CreateTestPage() {
       updateQuestionField(questionId, 'imageUrl', imageUrl);
     } catch (error) {
       console.error('Error uploading question image:', error);
-      alert('Lỗi khi tải ảnh lên. Vui lòng thử lại.');
+      window.showAlertToast('Lỗi khi tải ảnh lên. Vui lòng thử lại.');
     }
   };
 
   const handleUploadQuestionAudio = async (questionId, file) => {
     if (!file) return;
-    if (!file.type.startsWith('audio/')) { alert('Vui lòng chọn file âm thanh hợp lệ'); return; }
+    if (!file.type.startsWith('audio/')) { window.showAlertToast('Vui lòng chọn file âm thanh hợp lệ'); return; }
     try {
       setUploadingAudio((prev) => ({ ...prev, [questionId]: true }));
       const uploadResponse = await resourceService.uploadAudio(
@@ -575,7 +574,7 @@ export default function CreateTestPage() {
       updateQuestionField(questionId, 'audioUrl', audioUrl);
     } catch (error) {
       console.error('Error uploading question audio:', error);
-      alert('Lỗi khi tải audio lên. Vui lòng thử lại.');
+      window.showAlertToast('Lỗi khi tải audio lên. Vui lòng thử lại.');
     } finally {
       setUploadingAudio((prev) => { const next = { ...prev }; delete next[questionId]; return next; });
     }
@@ -583,7 +582,7 @@ export default function CreateTestPage() {
 
   const handleUploadRecordedAudio = async (questionId) => {
     const blob = recordingBlobs[questionId];
-    if (!blob) { alert('Chưa có ghi âm để tải lên'); return; }
+    if (!blob) { window.showAlertToast('Chưa có ghi âm để tải lên'); return; }
     try {
       setUploadingAudio((prev) => ({ ...prev, [questionId]: true }));
       const uploadResponse = await resourceService.uploadAudio(
@@ -594,10 +593,10 @@ export default function CreateTestPage() {
       if (!audioUrl) throw new Error('Không nhận được đường dẫn audio từ server');
       updateQuestionField(questionId, 'audioUrl', audioUrl);
       setRecordingBlobs((prev) => { const next = { ...prev }; delete next[questionId]; return next; });
-      alert('Ghi âm đã được tải lên và lưu trong thư viện');
+      window.showAlertToast('Ghi âm đã được tải lên và lưu trong thư viện');
     } catch (error) {
       console.error('Error uploading recorded audio:', error);
-      alert('Lỗi khi tải ghi âm lên. Vui lòng thử lại.');
+      window.showAlertToast('Lỗi khi tải ghi âm lên. Vui lòng thử lại.');
     } finally {
       setUploadingAudio((prev) => { const next = { ...prev }; delete next[questionId]; return next; });
     }
@@ -623,7 +622,7 @@ export default function CreateTestPage() {
       setIsRecording((prev) => ({ ...prev, [questionId]: mediaRecorder }));
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      alert('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
+      window.showAlertToast('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
     }
   };
 
@@ -679,14 +678,14 @@ export default function CreateTestPage() {
   const handleSaveTest = async (status = saveStatus) => {
     setShowSaveModal(false);
     if (!testInfo.name || !testInfo.subject || !testInfo.duration) {
-      alert('Vui lòng điền đầy đủ thông tin bài kiểm tra'); return;
+      window.showAlertToast('Vui lòng điền đầy đủ thông tin bài kiểm tra'); return;
     }
-    if (questions.length === 0) { alert('Vui lòng thêm ít nhất 1 câu hỏi'); return; }
+    if (questions.length === 0) { window.showAlertToast('Vui lòng thêm ít nhất 1 câu hỏi'); return; }
 
     try {
       const invalidMatching = questions.some((q) => q.type === 'matching' && (q.matchingPairs || []).some((pair) => !pair.left?.trim() || !pair.right?.trim()));
       if (invalidMatching) {
-        alert('Vui lòng điền đầy đủ các cặp nối từ hoặc xóa các cặp trống trước khi lưu.');
+        window.showAlertToast('Vui lòng điền đầy đủ các cặp nối từ hoặc xóa các cặp trống trước khi lưu.');
         return;
       }
       setLoading(true);
@@ -723,16 +722,16 @@ export default function CreateTestPage() {
 
       if (isEditing && id) {
         await testApi.updateTest(id, testData);
-        alert('Cập nhật bài kiểm tra thành công!');
+        window.showAlertToast('Cập nhật bài kiểm tra thành công!');
       } else {
         await testApi.createTest(testData);
-        alert('Lưu bài kiểm tra thành công!');
+        window.showAlertToast('Lưu bài kiểm tra thành công!');
       }
       navigate('/tests');
     } catch (error) {
       console.error('Error saving test:', error);
       const message = error.response?.data?.message || error.message || 'Lỗi khi lưu bài kiểm tra';
-      alert(`Lỗi khi lưu bài kiểm tra: ${message}`);
+      window.showAlertToast(`Lỗi khi lưu bài kiểm tra: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -740,7 +739,7 @@ export default function CreateTestPage() {
 
   const handleDownloadTest = async (includeAnswers) => {
     if (!testInfo.name || !testInfo.subject || questions.length === 0) {
-      alert('Vui lòng hoàn thành bài kiểm tra trước khi tải xuống'); return;
+      window.showAlertToast('Vui lòng hoàn thành bài kiểm tra trước khi tải xuống'); return;
     }
     try {
       const testData = {
@@ -756,13 +755,16 @@ export default function CreateTestPage() {
       await testApi.downloadTestAsDocx(testData);
     } catch (error) {
       console.error('Error downloading test:', error);
-      alert('Lỗi khi tải xuống file');
+      window.showAlertToast('Lỗi khi tải xuống file');
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (testInfo.name || testInfo.subject || testInfo.duration || questions.length > 0) {
-      if (window.confirm('Bạn có chắc muốn hủy? Tất cả dữ liệu sẽ bị xóa.')) navigate('/tests');
+      if (await confirmToast('Bạn có chắc muốn hủy? Tất cả dữ liệu sẽ bị xóa.', { title: 'Hủy soạn bài kiểm tra', confirmLabel: 'Hủy và thoát', cancelLabel: 'Tiếp tục soạn', tone: 'warning' })) {
+        window.showAlertToast('Đã hủy soạn bài kiểm tra.');
+        navigate('/tests');
+      }
     } else {
       navigate('/tests');
     }
@@ -966,14 +968,14 @@ export default function CreateTestPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Môn học</label>
                       <select value={testInfo.subject} onChange={(e) => handleTestInfoChange('subject', e.target.value)} className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all">
                         <option value="">Chọn môn học</option>
-                        {subjectOptions.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+                        {subjects.map((subject) => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Lớp</label>
                       <select value={testInfo.grade} onChange={(e) => handleTestInfoChange('grade', e.target.value)} className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all">
                         <option value="">Chọn lớp</option>
-                        {gradeOptions.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
+                        {gradeOptions.map((grade) => <option key={grade.value} value={grade.value}>{grade.label}</option>)}
                       </select>
                     </div>
                     <div>

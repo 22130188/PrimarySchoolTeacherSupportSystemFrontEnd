@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import SortIcon from '../../../components/SortIcon';
 import adminTestService from '../../../services/adminTestService';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 const TEST_TABS = [
   { key: 'all', label: 'Tất cả' },
@@ -185,13 +186,14 @@ export default function TestManagement() {
   ], []);
 
   const handleDelete = async (testId) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa bài kiểm tra này?')) return;
+    if (!(await confirmToast('Bạn có chắc chắn muốn xóa bài kiểm tra này?', { title: 'Xóa bài kiểm tra', confirmLabel: 'Xóa' }))) return;
     try {
       await adminTestService.deleteTest(testId);
       setTests(prev => prev.filter(test => test.id !== testId));
+      window.showAlertToast('Đã xóa bài kiểm tra thành công.');
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Không thể xóa bài kiểm tra: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể xóa bài kiểm tra: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -204,7 +206,7 @@ export default function TestManagement() {
       setShowTestDetailModal(true);
     } catch (error) {
       console.error('Error loading test detail:', error);
-      alert('Không thể tải chi tiết bài kiểm tra: ' + (error.response?.data?.message || error.message));
+      window.showAlertToast('Không thể tải chi tiết bài kiểm tra: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoadingTestDetail(false);
     }
@@ -215,7 +217,7 @@ export default function TestManagement() {
       await adminTestService.downloadTestDocx(testId, testName);
     } catch (error) {
       console.error('Error downloading DOCX:', error);
-      alert('Không thể tải file DOCX: ' + (error.response?.data?.message || error.message));
+      window.showAlertToast('Không thể tải file DOCX: ' + (error.response?.data?.message || error.message));
     }
   };
 

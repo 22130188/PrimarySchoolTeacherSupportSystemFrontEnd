@@ -119,7 +119,7 @@ export default function UserManagement() {
       setConfirmOpen(false);
       setConfirmTarget(null);
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setConfirmLoading(false);
     }

@@ -115,7 +115,7 @@ export default function LessonTemplatesTab() {
       navigate(`/lessons/collabora-editor?draftId=${draft.id}`);
     } catch (err) {
       console.error('Failed to use lesson template:', err);
-      alert('Không thể tạo bài giảng từ mẫu: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể tạo bài giảng từ mẫu: ' + (err.response?.data?.message || err.message));
     } finally {
       setUsingId(null);
     }

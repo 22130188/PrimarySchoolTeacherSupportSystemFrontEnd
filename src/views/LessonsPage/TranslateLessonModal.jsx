@@ -4,6 +4,11 @@ import { AlertCircle, ArrowRightLeft, CheckCircle, Languages, Loader2, X } from 
 import lessonDraftApi from '../../services/lessonDraftApi';
 import collaboraApi from '../../services/collaboraApi';
 import TranslateService from '../../services/TranslateService';
+import {
+  isSuspiciousLessonTitleTranslation,
+  normalizeLessonTitle,
+  translateKnownLessonTitle,
+} from '../../utils/lessonTitleTranslation.js';
 
 const LANGUAGES = [
   { code: 'vi', label: 'Tiếng Việt' },
@@ -21,6 +26,17 @@ async function translateString(value, sourceLang, targetLang) {
   if (!isTranslatableText(value) || sourceLang === targetLang) return value;
   const result = await TranslateService.translateText(value, sourceLang, targetLang);
   return getTranslatedText(result, value);
+}
+
+async function translateLessonTitle(value, sourceLang, targetLang, targetLabel) {
+  const normalizedTitle = normalizeLessonTitle(value);
+  const knownTranslation = translateKnownLessonTitle(normalizedTitle, sourceLang, targetLang);
+  if (knownTranslation) return knownTranslation;
+
+  const translatedTitle = await translateString(normalizedTitle, sourceLang, targetLang);
+  return isSuspiciousLessonTitleTranslation(normalizedTitle, translatedTitle)
+    ? `${normalizedTitle} (${targetLabel})`
+    : translatedTitle;
 }
 
 async function translateCanvasValue(value, sourceLang, targetLang, onProgress) {
@@ -104,12 +120,14 @@ export default function TranslateLessonModal({ lesson, onClose, onTranslated }) 
     try {
       const draft = await lessonDraftApi.getDraft(lesson.id);
       const originalType = draft.type || 'DOCX';
-      const translatedTitle = await translateString(
-        draft.title || lesson.title || 'Bài giảng không tên',
+      const originalTitle = lesson.title || draft.title || 'Bài giảng không tên';
+      const translatedTitle = await translateLessonTitle(
+        originalTitle,
         sourceLang,
-        targetLang
+        targetLang,
+        targetLabel
       );
-      const newTitle = translatedTitle || `${draft.title || lesson.title} (${targetLabel})`;
+      const newTitle = translatedTitle || `${normalizeLessonTitle(originalTitle)} (${targetLabel})`;
 
       if (isCollaboraType(originalType)) {
         const newDraft = await collaboraApi.translateDraft(lesson.id, {

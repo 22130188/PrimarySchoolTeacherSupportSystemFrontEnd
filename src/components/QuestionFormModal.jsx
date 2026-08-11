@@ -299,7 +299,7 @@ const QuestionFormModal = ({
   const handleUploadImageFile = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Vui lòng chọn file ảnh hợp lệ');
+      window.showAlertToast('Vui lòng chọn file ảnh hợp lệ');
       return;
     }
 
@@ -318,7 +318,7 @@ const QuestionFormModal = ({
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Lỗi khi tải ảnh lên');
+      window.showAlertToast('Lỗi khi tải ảnh lên');
     } finally {
       setUploadingImage(false);
     }
@@ -327,7 +327,7 @@ const QuestionFormModal = ({
   const handleUploadAudioFile = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('audio/')) {
-      alert('Vui lòng chọn file âm thanh hợp lệ');
+      window.showAlertToast('Vui lòng chọn file âm thanh hợp lệ');
       return;
     }
 
@@ -346,7 +346,7 @@ const QuestionFormModal = ({
       }
     } catch (error) {
       console.error('Error uploading audio:', error);
-      alert('Lỗi khi tải audio lên');
+      window.showAlertToast('Lỗi khi tải audio lên');
     } finally {
       setUploadingAudio(false);
     }
@@ -379,7 +379,7 @@ const QuestionFormModal = ({
       setIsRecordingActive(true);
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      alert('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
+      window.showAlertToast('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
     }
   };
 
@@ -398,7 +398,7 @@ const QuestionFormModal = ({
 
   const handleUploadRecordedAudio = async () => {
     if (!recordingBlob) {
-      alert('Chưa có ghi âm để tải lên');
+      window.showAlertToast('Chưa có ghi âm để tải lên');
       return;
     }
     setUploadingAudio(true);
@@ -414,11 +414,11 @@ const QuestionFormModal = ({
       if (audioUrl) {
         setFormData((prev) => ({ ...prev, audioUrl }));
         setRecordingBlob(null);
-        alert('Ghi âm đã được tải lên và lưu trong thư viện');
+        window.showAlertToast('Ghi âm đã được tải lên và lưu trong thư viện');
       }
     } catch (error) {
       console.error('Error uploading recorded audio:', error);
-      alert('Lỗi khi tải ghi âm lên');
+      window.showAlertToast('Lỗi khi tải ghi âm lên');
     } finally {
       setUploadingAudio(false);
     }

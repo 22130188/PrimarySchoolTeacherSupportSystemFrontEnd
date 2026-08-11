@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, School, Loader2, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 import lessonDraftApi from '../../services/lessonDraftApi';
 import { getMyClassrooms } from '../../services/classroomApi';
+import { confirmToast } from '../../utils/toastNotifications.js';
 
 export default function ShareToClassroomModal({ lessonId, lessonTitle, onClose }) {
   const [classrooms, setClassrooms] = useState([]);
@@ -61,12 +62,13 @@ export default function ShareToClassroomModal({ lessonId, lessonTitle, onClose }
   };
 
   const handleRevoke = async (classroomId, classroomName) => {
-    if (!confirm(`Thu hồi chia sẻ với lớp "${classroomName}"?`)) return;
+    if (!(await confirmToast(`Thu hồi chia sẻ với lớp "${classroomName}"?`, { title: 'Thu hồi chia sẻ', confirmLabel: 'Thu hồi' }))) return;
     try {
       await lessonDraftApi.revokeClassroomShare(lessonId, classroomId);
       setShares(prev => prev.filter(s => s.classroomId !== classroomId));
+      window.showAlertToast('Đã thu hồi chia sẻ với lớp thành công.');
     } catch (err) {
-      alert(err.response?.data?.message || 'Không thể thu hồi');
+      window.showAlertToast(err.response?.data?.message || 'Không thể thu hồi');
     }
   };
 
@@ -131,7 +133,7 @@ export default function ShareToClassroomModal({ lessonId, lessonTitle, onClose }
                       <p className="text-sm font-medium text-gray-800 truncate">{cls.name}</p>
                       <p className="text-xs text-gray-400 truncate">
                         {cls.subject && `${cls.subject} · `}
-                        {cls.gradeLevel && `Lớp ${cls.gradeLevel} · `}
+                        {(cls.classDisplayName || cls.gradeLevel) && `${cls.classDisplayName || `Lớp ${cls.gradeLevel}`} · `}
                         {cls.studentCount ?? 0} học sinh
                       </p>
                     </div>

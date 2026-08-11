@@ -13,6 +13,8 @@ import {
 } from './PillowBridge.js';
 import { CONTROL_STYLE } from '../../data/editorSharedConstants';
 import { SUBJECT_OPTIONS } from '../../data/aiImageConstants';
+import { useCategories } from '../../hooks/useCategories.js';
+import { confirmToast } from '../../utils/toastNotifications.js';
 
 import {
   enablePencil, enableBrush, enableEraser, disableDrawing,
@@ -41,6 +43,7 @@ export default function ImageEditor({
   toolbarStickyTopClass = 'top-[64px]',
   compactShell = false,
 }) {
+  const { grades } = useCategories();
   const canvas = useFabricCanvas({ onSelectionChange: setSelected });
 
   const {
@@ -70,7 +73,7 @@ export default function ImageEditor({
   const naturalSizeRef = useRef({ width: 800, height: 600 });
 
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [saveForm, setSaveForm] = useState({ description: 'Ảnh đã chỉnh sửa', subject: '' });
+  const [saveForm, setSaveForm] = useState({ description: 'Ảnh đã chỉnh sửa', subject: '', grade: '' });
   const [saving, setSaving] = useState(false);
 
   const eraserCleanupRef = useRef(null);
@@ -387,6 +390,10 @@ export default function ImageEditor({
   }, [exportDataURL]);
 
   const handleSaveToLibrary = useCallback(async () => {
+    if (!saveForm.description.trim() || !saveForm.subject || !saveForm.grade) {
+      toast.warning('Vui lòng nhập mô tả, môn học và lớp cho ảnh.');
+      return;
+    }
     setSaving(true);
     try {
       const dataUrl = exportDataURL('png');
@@ -396,6 +403,7 @@ export default function ImageEditor({
       const res = await saveToLibrary({
         description: saveForm.description,
         subject: saveForm.subject,
+        grade: saveForm.grade,
         imageUrl: cloudUrl,
         user,
       });
@@ -414,8 +422,8 @@ export default function ImageEditor({
     }
   }, [exportDataURL, saveForm, user, onSaveSuccess]);
 
-  const handleResetAll = useCallback(() => {
-    if (!window.confirm('Xóa toàn bộ nội dung trên canvas?')) return;
+  const handleResetAll = useCallback(async () => {
+    if (!(await confirmToast('Xóa toàn bộ nội dung trên canvas?', { title: 'Làm trống canvas', confirmLabel: 'Xóa tất cả' }))) return;
     const c = fabricRef.current;
     if (!c) return;
     c.getObjects().slice().forEach((o) => c.remove(o));
@@ -423,6 +431,7 @@ export default function ImageEditor({
     c.requestRenderAll();
     setHasBackground(false);
     saveHistory();
+    window.showAlertToast('Đã xóa toàn bộ nội dung trên canvas.');
   }, [fabricRef, saveHistory]);
 
   const hasSelection = !!selectedObject;
@@ -592,6 +601,19 @@ export default function ImageEditor({
                   <option value="">Chọn môn học</option>
                   {SUBJECT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600">Lớp</label>
+                <select
+                  value={saveForm.grade}
+                  onChange={(e) => setSaveForm((f) => ({ ...f, grade: e.target.value }))}
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">Chọn lớp</option>
+                  {grades.map((grade) => (
+                    <option key={grade.categoryId || grade.value} value={grade.value}>{grade.label}</option>
                   ))}
                 </select>
               </div>

@@ -197,7 +197,7 @@ function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData }) {
         },
       });
     } catch (error) {
-      alert(error.message || 'Không thể mở Google Drive Picker');
+      window.showAlertToast(error.message || 'Không thể mở Google Drive Picker');
     } finally {
       setPickerOpening(false);
       setHiddenByPicker(false);
@@ -770,7 +770,7 @@ export default function StreamTab({
       }
       setTestModalOpen(true);
     } catch (err) {
-      alert(err?.message || 'Không thể tải thông tin bài làm.');
+      window.showAlertToast(err?.message || 'Không thể tải thông tin bài làm.');
       setSelectedPost(null);
     } finally {
       setLoadingTestDetails(false);
@@ -860,7 +860,7 @@ export default function StreamTab({
       setIsTakingTest(false);
       setSelectedPost(null);
     } catch (err) {
-      alert(err?.message || 'Có lỗi khi nộp bài');
+      window.showAlertToast(err?.message || 'Có lỗi khi nộp bài');
     } finally {
       setSubmittingTest(false);
     }
