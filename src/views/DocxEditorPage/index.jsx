@@ -142,10 +142,10 @@ export default function DocxEditorPage() {
     try {
       setDuplicating(true);
       await lessonDraftApi.duplicateSharedDraft(id);
-      alert('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
+      window.showAlertToast('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
       navigate('/lessons');
     } catch (err) {
-      alert('Không thể tạo bản sao: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể tạo bản sao: ' + (err.response?.data?.message || err.message));
     } finally {
       setDuplicating(false);
     }
@@ -404,7 +404,7 @@ export default function DocxEditorPage() {
       await exportToDocx({ pages: serialized, fileName });
     } catch (err) {
       console.error('Export failed:', err);
-      alert('Xuất file thất bại. Vui lòng thử lại.');
+      window.showAlertToast('Xuất file thất bại. Vui lòng thử lại.');
     }
   }, [exportToDocx, fileName]);
 
@@ -416,7 +416,7 @@ export default function DocxEditorPage() {
       await exportToPdf({ pages: serialized, fileName });
     } catch (err) {
       console.error('PDF Export failed:', err);
-      alert('Xuất PDF thất bại. Vui lòng thử lại.');
+      window.showAlertToast('Xuất PDF thất bại. Vui lòng thử lại.');
     }
   }, [exportToPdf, fileName]);
 

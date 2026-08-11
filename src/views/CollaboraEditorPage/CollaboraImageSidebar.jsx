@@ -6,6 +6,8 @@ import AIImageGenerator from '../../common/AIImageGenerator';
 import PexelsImageSearch from '../../common/PexelsImageSearch';
 import SaveImageModal from '../../common/SaveImageModal';
 import IllustrationStudioModal from '../../common/IllustrationStudioModal';
+import { useCategories } from '../../hooks/useCategories.js';
+import { filterLibraryImages, normalizeLibraryGrade } from '../../utils/imageLibraryFilters.js';
 
 export const COLLABORA_IMAGE_TABS = [
   { id: 'images', icon: ImagePlus, label: 'Ảnh' },
@@ -25,7 +27,9 @@ export default function CollaboraImageSidebar({
   expanded = true,
   onExpandedChange,
 }) {
+  const { grades } = useCategories();
   const [librarySubject, setLibrarySubject] = useState('all');
+  const [libraryGrade, setLibraryGrade] = useState('all');
   const [showStudio, setShowStudio] = useState(false);
 
   const {
@@ -34,9 +38,7 @@ export default function CollaboraImageSidebar({
     showSaveModal, saveForm, setSaveForm, cancelSave, confirmSave,
   } = useImageLibrary();
 
-  const filteredImages = librarySubject === 'all'
-    ? libraryImages
-    : libraryImages.filter((img) => img.subject === librarySubject);
+  const filteredImages = filterLibraryImages(libraryImages, librarySubject, libraryGrade);
 
   const panelSizeClass = activeTab === 'ai'
     ? 'h-[72vh] max-h-[760px] min-h-[540px]'
@@ -62,9 +64,12 @@ export default function CollaboraImageSidebar({
               <button
                 type="button"
                 onClick={() => onExpandedChange?.(false)}
-                className="w-7 h-7 rounded-md bg-transparent text-gray-400 inline-flex items-center justify-center cursor-pointer transition-all hover:bg-gray-100 hover:text-gray-600 border-none"
+                className="ml-auto inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 shadow-sm transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
+                aria-label="Đóng bảng hình ảnh"
+                title="Đóng bảng hình ảnh"
               >
-                <X size={14} />
+                <X size={16} strokeWidth={2.25} />
+                <span>Đóng</span>
               </button>
             </div>
 
@@ -103,15 +108,27 @@ export default function CollaboraImageSidebar({
                       </button>
                     </div>
 
-                    <select
-                      value={librarySubject}
-                      onChange={(e) => setLibrarySubject(e.target.value)}
-                      className="w-full text-[12px] border border-gray-200 rounded-lg px-2.5 py-2 bg-white text-gray-700 outline-none cursor-pointer transition focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 md:w-[260px]"
-                    >
-                      {LIBRARY_SUBJECT_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                    <div className="grid w-full gap-2 sm:grid-cols-2 md:w-[420px]">
+                      <select
+                        value={librarySubject}
+                        onChange={(e) => setLibrarySubject(e.target.value)}
+                        className="w-full text-[12px] border border-gray-200 rounded-lg px-2.5 py-2 bg-white text-gray-700 outline-none cursor-pointer transition focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                      >
+                        {LIBRARY_SUBJECT_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={libraryGrade}
+                        onChange={(e) => setLibraryGrade(e.target.value)}
+                        className="w-full text-[12px] border border-gray-200 rounded-lg px-2.5 py-2 bg-white text-gray-700 outline-none cursor-pointer transition focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                      >
+                        <option value="all">Tất cả lớp</option>
+                        {grades.map((grade) => (
+                          <option key={grade.categoryId || grade.value} value={grade.value}>{grade.label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {loadingLibrary && (
@@ -123,7 +140,9 @@ export default function CollaboraImageSidebar({
 
                   {!loadingLibrary && filteredImages.length === 0 && (
                     <div className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-lg">
-                      Chưa có ảnh trong thư viện.
+                      {librarySubject === 'all' && libraryGrade === 'all'
+                        ? 'Chưa có ảnh trong thư viện.'
+                        : 'Không có ảnh theo bộ lọc đã chọn.'}
                     </div>
                   )}
 
@@ -145,6 +164,7 @@ export default function CollaboraImageSidebar({
                               {img.description || 'Ảnh không tên'}
                             </p>
                             {img.subject && <p className="text-[10px] text-gray-400 mt-0.5">Môn: {img.subject}</p>}
+                            {img.grade && <p className="text-[10px] text-gray-400">Lớp: {normalizeLibraryGrade(img.grade)}</p>}
                           </div>
                         </button>
                       ))}

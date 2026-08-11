@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { removeStudent, resendInvitation, revokeInvitation } from '../../../services/classroomApi';
 import { STATUS_BADGE as STATUS_BADGE_DATA, STATUS_ICONS } from '../../../data/classroomData';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 function getInitials(name) {
   if (!name) return '?';
@@ -188,13 +189,14 @@ export default function PeopleTab({ roster, classroomId, isTeacher, readOnly = f
 
   // =================== ACTIONS ===================
   const handleRemove = async (memberId) => {
-    if (!confirm('Xóa học sinh này khỏi lớp?')) return;
+    if (!(await confirmToast('Xóa học sinh này khỏi lớp?', { title: 'Xóa học sinh', confirmLabel: 'Xóa khỏi lớp' }))) return;
     setActionLoading(`rm-${memberId}`);
     try {
       await removeStudent(classroomId, memberId);
       onRefresh?.();
+      window.showAlertToast('Đã xóa học sinh khỏi lớp.');
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setActionLoading(null);
     }
@@ -206,20 +208,21 @@ export default function PeopleTab({ roster, classroomId, isTeacher, readOnly = f
       await resendInvitation(classroomId, invitationId);
       onRefresh?.();
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleRevoke = async (invitationId) => {
-    if (!confirm('Thu hồi lời mời này?')) return;
+    if (!(await confirmToast('Thu hồi lời mời này?', { title: 'Thu hồi lời mời', confirmLabel: 'Thu hồi' }))) return;
     setActionLoading(`revoke-${invitationId}`);
     try {
       await revokeInvitation(classroomId, invitationId);
       onRefresh?.();
+      window.showAlertToast('Đã thu hồi lời mời.');
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setActionLoading(null);
     }

@@ -1,16 +1,19 @@
 import { X } from 'lucide-react';
 import { SUBJECT_OPTIONS } from '../data/aiImageConstants';
+import { useCategories } from '../hooks/useCategories.js';
 
 export default function SaveImageModal({
   open,
   title = 'Lưu ảnh vào thư viện',
-  subtitle = 'Nhập mô tả và môn học trước khi lưu vào hệ thống.',
+  subtitle = 'Nhập mô tả, môn học và lớp trước khi lưu vào hệ thống.',
   form,
   onChange,
   onClose,
   onSubmit,
   saving = false,
 }) {
+  const { grades } = useCategories();
+
   if (!open) return null;
 
   return (
@@ -54,6 +57,21 @@ export default function SaveImageModal({
               <option value="">-- Chọn môn học --</option>
               {SUBJECT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Lớp</label>
+            <select
+              value={form.grade || ''}
+              onChange={(e) => onChange({ ...form, grade: e.target.value })}
+              disabled={saving}
+              className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition cursor-pointer focus:border-violet-400 focus:ring-2 focus:ring-violet-100 disabled:opacity-60"
+            >
+              <option value="">-- Chọn lớp --</option>
+              {grades.map((grade) => (
+                <option key={grade.categoryId || grade.value} value={grade.value}>{grade.label}</option>
               ))}
             </select>
           </div>

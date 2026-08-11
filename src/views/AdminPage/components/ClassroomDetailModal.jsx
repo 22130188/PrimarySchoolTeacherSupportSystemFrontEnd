@@ -96,7 +96,7 @@ export default function ClassroomDetailModal({ isOpen, onClose, classroom, initi
               <InfoRow icon={Hash} label="Mã lớp" value={classroom.classCode} mono />
               <InfoRow icon={Users} label="Giáo viên" value={`${classroom.teacherName} (${classroom.teacherEmail})`} />
               <InfoRow icon={GraduationCap} label="Số học sinh" value={classroom.studentCount} />
-              <InfoRow icon={GraduationCap} label="Khối lớp" value={classroom.gradeLevel ? `Lớp ${classroom.gradeLevel}` : '—'} />
+              <InfoRow icon={GraduationCap} label="Lớp học" value={classroom.classDisplayName || (classroom.gradeLevel ? `Lớp ${classroom.gradeLevel}` : '—')} />
               <InfoRow icon={BookOpen} label="Môn học" value={classroom.subject || '—'} />
               <InfoRow icon={Mail} label="Lời mời đang chờ" value={classroom.pendingInvitationCount} />
               <InfoRow icon={Link2} label="Link mời" value={classroom.inviteLink} mono small />

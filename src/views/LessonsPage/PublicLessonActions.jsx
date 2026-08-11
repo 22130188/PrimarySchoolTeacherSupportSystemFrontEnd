@@ -60,7 +60,7 @@ export function RateLessonButton({ draftId, initialStars = 0, onRated }) {
             setStars(result.myRating ?? next);
             onRated?.(result);
           } else {
-            alert(msg || 'Không thể bỏ đánh giá.');
+            window.showAlertToast(msg || 'Không thể bỏ đánh giá.');
           }
         }
       } else {
@@ -69,7 +69,7 @@ export function RateLessonButton({ draftId, initialStars = 0, onRated }) {
         onRated?.(result);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Không thể đánh giá bài giảng.');
+      window.showAlertToast(err.response?.data?.message || 'Không thể đánh giá bài giảng.');
     } finally {
       setSaving(false);
     }

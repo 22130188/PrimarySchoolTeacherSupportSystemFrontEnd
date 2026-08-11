@@ -68,8 +68,8 @@ export default function UserDetailModal({ isOpen, onClose, user }) {
 
           {user.role === 'STUDENT' && user.grade && (
             <div className="p-3 bg-teal-50 rounded-xl">
-              <p className="text-xs text-teal-600 font-semibold uppercase tracking-wider mb-1">Khối lớp</p>
-              <p className="text-sm text-teal-800 font-medium">Khối {user.grade}</p>
+              <p className="text-xs text-teal-600 font-semibold uppercase tracking-wider mb-1">Lớp học</p>
+              <p className="text-sm text-teal-800 font-medium">{user.grade}</p>
             </div>
           )}
 
@@ -80,7 +80,7 @@ export default function UserDetailModal({ isOpen, onClose, user }) {
                 {user.teacherClasses.map((tc, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-blue-800">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                    Khối {tc.grade} — {tc.subject}
+                    {tc.grade} — {tc.subject}
                   </div>
                 ))}
               </div>

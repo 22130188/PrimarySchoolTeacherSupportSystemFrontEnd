@@ -6,9 +6,11 @@ import {
   updateCategory,
   deleteCategory,
 } from '../../../services/categoryApi';
+import { confirmToast } from '../../../utils/toastNotifications.js';
+import { useCategoryStore } from '../../../stores/categoryStore';
 
 const PANEL_TYPES = [
-  { type: 'grade', title: 'Khối', description: 'Khối — nhóm chương trình A, B, C' },
+  { type: 'grade', title: 'Khối', description: 'Khối — nhóm chương trình do quản trị viên thiết lập' },
   { type: 'class', title: 'Lớp học', description: 'Lớp học — Lớp 1 đến Lớp 5' },
 ];
 
@@ -133,6 +135,7 @@ export default function CategoryManagement() {
       } else {
         await createCategory(payload);
       }
+      useCategoryStore.getState().resetCache();
       await loadCategories();
       closeForm();
     } catch (err) {
@@ -144,20 +147,23 @@ export default function CategoryManagement() {
   };
 
   const handleDeleteCategory = async (id, type) => {
-    if (!window.confirm('Bạn có chắc muốn xóa danh mục này?')) {
+    if (!(await confirmToast('Bạn có chắc muốn xóa danh mục này?', { title: 'Xóa danh mục', confirmLabel: 'Xóa' }))) {
       return;
     }
 
     try {
       await deleteCategory(id);
+      useCategoryStore.getState().resetCache();
       if (type === 'grade') {
         setGradeCategories((prev) => prev.filter((item) => item.id !== id));
       } else {
         setClassCategories((prev) => prev.filter((item) => item.id !== id));
       }
+      window.showAlertToast('Đã xóa danh mục thành công.');
     } catch (err) {
       console.error('Delete category failed', err);
       setError(err.message || 'Không thể xóa danh mục');
+      window.showAlertToast(err.message || 'Không thể xóa danh mục');
     }
   };
 
@@ -177,7 +183,7 @@ export default function CategoryManagement() {
                 <div>
                   <h1 className="text-3xl font-semibold text-[#1E2A3C]">Quản lý khối & lớp</h1>
                   <p className="text-sm text-[#8893A8] max-w-2xl mt-1">
-                    Phân nhóm chương trình theo Khối (A, B, C) và quản lý các lớp học từ Lớp 1 đến Lớp 5.
+                    Phân nhóm chương trình theo các khối đã cấu hình và quản lý các lớp học từ Lớp 1 đến Lớp 5.
                   </p>
                 </div>
               </div>
@@ -219,7 +225,7 @@ export default function CategoryManagement() {
             <section className="rounded-[26px] bg-white border border-[#E5EAF2] shadow-sm overflow-hidden">
               <div className="flex flex-col gap-4 border-b border-[#E5EAF2] p-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-lg font-semibold text-[#1E2A3C]">Khối — nhóm chương trình A, B, C</p>
+                  <p className="text-lg font-semibold text-[#1E2A3C]">Khối — nhóm chương trình đã cấu hình</p>
                   <p className="text-sm text-[#8893A8] mt-1">Thêm, sửa, xóa khối và mô tả mức độ.</p>
                 </div>
                 <button
@@ -421,7 +427,7 @@ export default function CategoryManagement() {
                     value={formState.grade}
                     onChange={(e) => setFormState((prev) => ({ ...prev, grade: e.target.value }))}
                     className="w-full rounded-3xl border border-[#E5EAF2] bg-[#F8F9FC] px-4 py-3 text-sm text-[#1E2A3C] outline-none focus:border-[#3D6BFF] focus:ring-2 focus:ring-[#E9EFFF]"
-                    placeholder="VD: Khối A / Khối B / Khối C"
+                    placeholder="VD: Khối A / Khối B / Khối D"
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">

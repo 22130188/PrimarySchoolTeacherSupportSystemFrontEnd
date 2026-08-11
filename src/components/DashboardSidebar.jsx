@@ -11,6 +11,7 @@ export default function DashboardSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const roleId = useAuthStore(s => s.roleId);
+  const profileInitials = roleId === 1 ? 'HS' : roleId === 3 ? 'QT' : 'GV';
   const [showCreateChoices, setShowCreateChoices] = useState(false);
   const [showLessonCreator, setShowLessonCreator] = useState(false);
   
@@ -76,7 +77,7 @@ export default function DashboardSidebar() {
             className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-teal-400 flex items-center justify-center text-white text-xs font-bold shadow-md hover:shadow-lg hover:scale-110 transition-all duration-200"
             title="Hồ sơ"
           >
-            GV
+            {profileInitials}
           </Link>
         </div>
       </aside>

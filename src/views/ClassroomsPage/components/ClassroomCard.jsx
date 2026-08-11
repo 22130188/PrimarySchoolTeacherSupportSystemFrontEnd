@@ -98,12 +98,12 @@ export default function ClassroomCard({
       </div>
 
       <div className="px-4 pb-4 pt-1 min-h-[64px] flex flex-col justify-end border-t border-black/40">
-        {(classroom.gradeLevel || classroom.subject) && (
+        {(classroom.classDisplayName || classroom.gradeLevel || classroom.subject) && (
           <div className="flex items-center gap-2 mt-3 mb-2 flex-wrap">
-            {classroom.gradeLevel && (
+            {(classroom.classDisplayName || classroom.gradeLevel) && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-violet-50 text-violet-700 border border-black/10">
                 <GraduationCap className="w-3 h-3" />
-                Lớp {classroom.gradeLevel}
+                {classroom.classDisplayName || `Lớp ${classroom.gradeLevel}`}
               </span>
             )}
             {classroom.subject && (

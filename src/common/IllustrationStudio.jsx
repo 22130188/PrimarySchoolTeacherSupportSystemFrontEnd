@@ -5,6 +5,8 @@ import { API_CONFIG } from '../config/api.config.js';
 import { useAuthStore } from '../stores/authStore';
 import { LIBRARY_SUBJECT_OPTIONS } from '../data/aiImageConstants';
 import SaveImageModal from './SaveImageModal';
+import { useCategories } from '../hooks/useCategories.js';
+import { filterLibraryImages } from '../utils/imageLibraryFilters.js';
 
 const CANVAS_WIDTH = 480;
 const CANVAS_HEIGHT = 320;
@@ -12,6 +14,7 @@ const DEFAULT_ICON_SIZE = 60;
 const DEFAULT_LIB_IMAGE_SIZE = 100;
 
 export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu Ảnh' }) {
+  const { grades } = useCategories();
   const { user } = useAuthStore();
   const CANVAS_API_URL = API_CONFIG.CANVAS_API_URL;
   const IMAGE_API_URL = API_CONFIG.IMAGE_API_URL;
@@ -23,9 +26,10 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
   const [dragState, setDragState] = useState({ mode: null, itemId: null, startX: 0, startY: 0, baseX: 0, baseY: 0, baseWidth: 0, baseHeight: 0 });
   const [savedImages, setSavedImages] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('all');
+  const [selectedGrade, setSelectedGrade] = useState('all');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [saveForm, setSaveForm] = useState({ description: '', subject: '' });
+  const [saveForm, setSaveForm] = useState({ description: '', subject: '', grade: '' });
   const [saving, setSaving] = useState(false);
 
   const canvasRef = useRef(null);
@@ -241,15 +245,15 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
   const handleClearCanvas = () => setPlacedItems([]);
 
   const openSaveCanvasModal = () => {
-    if (placedItems.length === 0) { alert('Vui lòng đặt ít nhất một thành phần trước khi lưu'); return; }
-    if (!user?.id) { alert('Vui lòng đăng nhập để lưu ảnh'); return; }
-    setSaveForm({ description: `Hình minh họa ${placedItems.length} thành phần`, subject: '' });
+    if (placedItems.length === 0) { window.showAlertToast('Vui lòng đặt ít nhất một thành phần trước khi lưu'); return; }
+    if (!user?.id) { window.showAlertToast('Vui lòng đăng nhập để lưu ảnh'); return; }
+    setSaveForm({ description: `Hình minh họa ${placedItems.length} thành phần`, subject: '', grade: '' });
     setShowSaveModal(true);
   };
 
   const handleSaveCanvas = async () => {
-    if (!saveForm.description.trim() || !saveForm.subject.trim()) {
-      alert('Vui lòng nhập mô tả và môn học cho ảnh');
+    if (!saveForm.description.trim() || !saveForm.subject.trim() || !saveForm.grade) {
+      window.showAlertToast('Vui lòng nhập mô tả, môn học và lớp cho ảnh');
       return;
     }
     setSaving(true);
@@ -271,11 +275,12 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
               await axios.post(`${IMAGE_API_URL}/save`, {
                 description: saveForm.description,
                 subject: saveForm.subject,
+                grade: saveForm.grade,
                 imageUrl: imagePath,
                 userId: user.id,
                 userName: user?.fullName || user?.name || user?.username || 'Unknown',
               }, { headers: auth });
-              alert('Lưu ảnh thành công!');
+              window.showAlertToast('Lưu ảnh thành công!');
               setPlacedItems([]);
               setSelectedIconId(null);
               setShowSaveModal(false);
@@ -297,7 +302,7 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
       if (Array.isArray(detail)) msg += detail.map((d) => d.msg || d.message || JSON.stringify(d)).join(', ');
       else if (typeof detail === 'string') msg += detail;
       else msg += (error.response?.data?.message || error.message);
-      alert(msg);
+      window.showAlertToast(msg);
     } finally {
       setSaving(false);
     }
@@ -306,8 +311,8 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Vui lòng chọn một file ảnh'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('File ảnh không được vượt quá 5MB'); return; }
+    if (!file.type.startsWith('image/')) { window.showAlertToast('Vui lòng chọn một file ảnh'); return; }
+    if (file.size > 5 * 1024 * 1024) { window.showAlertToast('File ảnh không được vượt quá 5MB'); return; }
 
     setIsUploadingImage(true);
     try {
@@ -328,22 +333,20 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
           userId: user?.id || 0,
           userName: user?.fullName || user?.name || user?.username || 'Unknown',
         }, { headers: auth });
-        alert('Tải ảnh thành công!');
+        window.showAlertToast('Tải ảnh thành công!');
         loadSavedImages();
       }
     } catch (error) {
       console.error('Error uploading image:', error);
       const errorMsg = error.response?.data?.detail || error.response?.data?.message || 'Lỗi tải ảnh';
-      alert(`Lỗi: ${errorMsg}`);
+      window.showAlertToast(`Lỗi: ${errorMsg}`);
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const filteredImages = selectedSubject === 'all'
-    ? savedImages
-    : savedImages.filter((img) => img.subject === selectedSubject);
+  const filteredImages = filterLibraryImages(savedImages, selectedSubject, selectedGrade);
 
   return (
     <>
@@ -377,20 +380,35 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
 
               <div>
                 <div className="text-[12px] font-medium text-gray-700 mb-1.5">Thư viện ảnh</div>
-                <select
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  className="w-full mb-2 px-2 py-1.5 rounded-md border border-gray-200 bg-white text-[12px] text-gray-700 outline-none transition cursor-pointer focus:ring-2 focus:ring-pink-100 focus:border-pink-400"
-                >
-                  {LIBRARY_SUBJECT_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                <div className="mb-2 grid grid-cols-2 gap-2">
+                  <select
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    className="min-w-0 w-full px-2 py-1.5 rounded-md border border-gray-200 bg-white text-[12px] text-gray-700 outline-none transition cursor-pointer focus:ring-2 focus:ring-pink-100 focus:border-pink-400"
+                  >
+                    {LIBRARY_SUBJECT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedGrade}
+                    onChange={(e) => setSelectedGrade(e.target.value)}
+                    className="min-w-0 w-full px-2 py-1.5 rounded-md border border-gray-200 bg-white text-[12px] text-gray-700 outline-none transition cursor-pointer focus:ring-2 focus:ring-pink-100 focus:border-pink-400"
+                  >
+                    <option value="all">Tất cả lớp</option>
+                    {grades.map((grade) => (
+                      <option key={grade.categoryId || grade.value} value={grade.value}>{grade.label}</option>
+                    ))}
+                  </select>
+                </div>
 
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 [scrollbar-width:thin]">
                   {filteredImages.length === 0 ? (
                     <div className="text-[11px] text-gray-400 text-center py-2 bg-gray-50 rounded-md">
-                      {selectedSubject === 'all' ? 'Chưa có ảnh nào' : `Chưa có ảnh môn ${selectedSubject}`}
+                      {selectedSubject === 'all' && selectedGrade === 'all'
+                        ? 'Chưa có ảnh nào'
+                        : 'Không có ảnh theo bộ lọc đã chọn'}
                     </div>
                   ) : (
                     filteredImages.map((img) => (

@@ -1,14 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useCategoryStore } from '../stores/categoryStore';
 
-// Danh sách lớp cố định cho trường tiểu học (Lớp 1 - Lớp 5)
-const PRIMARY_GRADES = [
-  { value: 1, label: 'Lớp 1' },
-  { value: 2, label: 'Lớp 2' },
-  { value: 3, label: 'Lớp 3' },
-  { value: 4, label: 'Lớp 4' },
-  { value: 5, label: 'Lớp 5' },
-];
+const extractGradeLevel = (category) => {
+  const match = String(category?.name || category?.grade || category?.code || '').match(/\d+/);
+  return match ? Number(match[0]) : null;
+};
+
+const extractClassGroup = (category) => {
+  const nameMatch = String(category?.name || '').trim().match(/([A-Za-zÀ-ỹ0-9]+)$/u);
+  if (nameMatch) return nameMatch[1].toUpperCase();
+
+  const codeParts = String(category?.code || '').split('_').filter(Boolean);
+  return (codeParts.at(-1) || '').toUpperCase();
+};
+
+const sortByLabel = (left, right) => left.label.localeCompare(right.label, 'vi', { numeric: true });
 
 /**
  
@@ -25,15 +31,76 @@ export function useCategories() {
   } = useCategoryStore();
 
   useEffect(() => {
-    if ((!subjects.length || !grades.length || !classrooms.length) && !loading && !error) {
-      loadCategories();
-    }
-  }, []);
+    // Dùng cache để hiển thị ngay, sau đó đồng bộ lại để nhận thay đổi mới từ admin.
+    loadCategories(true);
+  }, [loadCategories]);
+
+  const subjectsOptions = useMemo(
+    () => subjects
+      .filter((category) => category.isActive !== false)
+      .map((category) => ({ value: category.name, label: category.name, categoryId: category.id }))
+      .sort(sortByLabel),
+    [subjects]
+  );
+
+  // Danh mục type=class là cấp lớp nền (Lớp 1 - Lớp 5), dùng cho bài giảng.
+  const baseClasses = useMemo(
+    () => classrooms
+      .filter((category) => category.isActive !== false)
+      .map((category) => {
+        const gradeLevel = extractGradeLevel(category);
+        return {
+          value: gradeLevel ?? category.name,
+          label: category.name,
+          categoryId: category.id,
+          categoryCode: category.code,
+          gradeLevel,
+        };
+      })
+      .sort((left, right) => (left.gradeLevel ?? 999) - (right.gradeLevel ?? 999) || sortByLabel(left, right)),
+    [classrooms]
+  );
+
+  // Danh mục type=grade quản lý các nhóm lớp do admin cấu hình (A, B, C, D...).
+  const classGroups = useMemo(
+    () => grades
+      .filter((category) => category.isActive !== false)
+      .map((category) => ({
+        value: category.id,
+        label: category.name,
+        categoryId: category.id,
+        categoryCode: category.code,
+        groupCode: extractClassGroup(category),
+      }))
+      .filter((category) => category.groupCode)
+      .sort((left, right) => sortByLabel(
+        { label: left.groupCode },
+        { label: right.groupCode }
+      )),
+    [grades]
+  );
+
+  const homeroomClasses = useMemo(
+    () => baseClasses.flatMap((baseClass) => classGroups.map((group) => ({
+      value: `${baseClass.categoryId}:${group.categoryId}`,
+      label: `${baseClass.label}${group.groupCode}`,
+      gradeLevel: baseClass.gradeLevel,
+      classCategoryId: baseClass.categoryId,
+      classCategoryCode: baseClass.categoryCode,
+      groupCategoryId: group.categoryId,
+      groupCategoryCode: group.categoryCode,
+      classGroup: group.groupCode,
+    }))),
+    [baseClasses, classGroups]
+  );
 
   return {
-    subjects: subjects.map(cat => ({ value: cat.name, label: cat.description || cat.name })),
-    grades: PRIMARY_GRADES,
-    classrooms: classrooms.map(cat => ({ value: cat.name, label: cat.description || cat.name })),
+    subjects: subjectsOptions,
+    grades: baseClasses,
+    classrooms: baseClasses,
+    baseClasses,
+    classGroups,
+    homeroomClasses,
     loading,
     error,
     refetch: loadCategories,
@@ -66,9 +133,9 @@ export function useSubjects() {
 }
 
 export function useGrades() {
-  const { loading, error } = useCategoryStore();
+  const { grades, loading, error } = useCategories();
   return {
-    grades: PRIMARY_GRADES,
+    grades,
     loading,
     error,
   };

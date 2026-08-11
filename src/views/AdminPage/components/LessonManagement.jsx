@@ -7,6 +7,7 @@ import {
 import { SUBJECT_COLORS } from '../../../data/lessonData';
 import adminLessonService from '../../../services/adminLessonService';
 import LessonTable from './LessonTable';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 function buildColumns({ onView, onDelete, openMenuId, setOpenMenuId, menuDirection, setMenuDirection, menuRef }) {
   return [
@@ -170,13 +171,14 @@ export default function LessonManagement() {
 
   const handleDelete = async (lessonId) => {
     setOpenMenuId(null);
-    if (!confirm('Bạn có chắc chắn muốn xóa bài giảng này?')) return;
+    if (!(await confirmToast('Bạn có chắc chắn muốn xóa bài giảng này?', { title: 'Xóa bài giảng', confirmLabel: 'Xóa' }))) return;
     try {
       await adminLessonService.deleteLesson(lessonId);
       setLessons(prev => prev.filter(lesson => lesson.id !== lessonId));
+      window.showAlertToast('Đã xóa bài giảng thành công.');
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Không thể xóa bài giảng: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể xóa bài giảng: ' + (err.response?.data?.message || err.message));
     }
   };
 

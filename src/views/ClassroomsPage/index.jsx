@@ -22,7 +22,7 @@ export default function ClassroomsPage() {
   const navigate = useNavigate();
   const roleId = useAuthStore(s => s.roleId);
   const isTeacher = roleId === 2;
-  const { subjects, grades } = useCategories();
+  const { subjects, homeroomClasses } = useCategories();
 
   const [classrooms, setClassrooms] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -76,11 +76,10 @@ export default function ClassroomsPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleCreate = async (name, desc, gradeLevel, subject) => {
-    const created = await createClassroom(name, desc, gradeLevel, subject);
+  const handleCreate = async (payload) => {
+    await createClassroom(payload);
     toast.success('Đã tạo lớp học thành công');
     await fetchData();
-    return created;
   };
 
   const handleJoin = async (classCode) => {
@@ -116,7 +115,7 @@ export default function ClassroomsPage() {
       await acceptInvitation(inv.id);
       fetchData();
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setInvLoading(null);
     }
@@ -128,7 +127,7 @@ export default function ClassroomsPage() {
       await rejectInvitation(inv.id);
       fetchData();
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setInvLoading(null);
     }
@@ -142,7 +141,7 @@ export default function ClassroomsPage() {
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.teacherName?.toLowerCase().includes(search.toLowerCase());
     const matchSubject = !filterSubject || c.subject === filterSubject;
-    const matchGrade = !filterGrade || c.gradeLevel === parseInt(filterGrade);
+    const matchGrade = !filterGrade || c.classDisplayName === filterGrade;
     const classroomStatus = c.status || 'ACTIVE';
     const matchStatus = statusTab === 'ARCHIVED'
       ? classroomStatus === 'ARCHIVED' : classroomStatus !== 'ARCHIVED';
@@ -273,8 +272,8 @@ export default function ClassroomsPage() {
                     className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-600 outline-none focus:border-teal-300 focus:ring-2 focus:ring-teal-100 transition-all cursor-pointer"
                   >
                     <option value="">Tất cả lớp</option>
-                    {grades.map(g => (
-                      <option key={g.value} value={g.value}>{g.label}</option>
+                    {homeroomClasses.map(g => (
+                      <option key={g.value} value={g.label}>{g.label}</option>
                     ))}
                   </select>
                 </div>
@@ -411,7 +410,7 @@ export default function ClassroomsPage() {
         onClose={() => setShowCreate(false)}
         onCreate={handleCreate}
         subjects={subjects}
-        grades={grades}
+        classes={homeroomClasses}
       />
       <JoinClassroomDialog
         open={showJoin}

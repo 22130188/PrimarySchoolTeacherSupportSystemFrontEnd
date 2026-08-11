@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './QuestionModal.css';
+import { confirmToast } from '../utils/toastNotifications.js';
 
 const QuestionModal = ({ open, question, onClose, onSave, onDelete }) => {
   const [form, setForm] = useState(null);
@@ -34,9 +35,14 @@ const QuestionModal = ({ open, question, onClose, onSave, onDelete }) => {
     onSave({ ...question, ...form });
   };
 
-  const del = () => {
-    if (window.confirm(`Xác nhận xóa câu hỏi "${question.title || ''}"?`)) {
-      onDelete(question.id);
+  const del = async () => {
+    if (await confirmToast(`Xác nhận xóa câu hỏi "${question.title || ''}"?`, { title: 'Xóa câu hỏi', confirmLabel: 'Xóa' })) {
+      try {
+        await onDelete(question.id);
+        window.showAlertToast('Đã xóa câu hỏi thành công.');
+      } catch (error) {
+        window.showAlertToast(error?.message || 'Không thể xóa câu hỏi.');
+      }
     }
   };
 

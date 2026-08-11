@@ -4,10 +4,11 @@ import { useAuthStore } from '../../stores/authStore';
 import { useCategories } from '../../hooks/useCategories';
 import TTSService from '../../services/TTSService';
 import AIToolPageLayout from '../../components/AIToolPageLayout';
+import { confirmToast } from '../../utils/toastNotifications.js';
 
 export default function TTSPage() {
   const { user } = useAuthStore();
-  const { subjects } = useCategories();
+  const { subjects, grades } = useCategories();
   const [text, setText] = useState('');
   const [language, setLanguage] = useState('vi');
   const [slow, setSlow] = useState(false);
@@ -17,7 +18,7 @@ export default function TTSPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showSaveAudioModal, setShowSaveAudioModal] = useState(false);
-  const [audioSaveForm, setAudioSaveForm] = useState({ audioName: '', subject: '' });
+  const [audioSaveForm, setAudioSaveForm] = useState({ audioName: '', subject: '', grade: '' });
   const [savedAudios, setSavedAudios] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -89,7 +90,7 @@ export default function TTSPage() {
       setError('Vui lòng đăng nhập để lưu audio');
       return;
     }
-    setAudioSaveForm({ audioName: '', subject: '' });
+    setAudioSaveForm({ audioName: '', subject: '', grade: '' });
     setShowSaveAudioModal(true);
   };
 
@@ -98,8 +99,8 @@ export default function TTSPage() {
       setError('Không có âm thanh để lưu');
       return;
     }
-    if (!audioSaveForm.audioName.trim() || !audioSaveForm.subject.trim()) {
-      setError('Vui lòng nhập tên audio và môn học');
+    if (!audioSaveForm.audioName.trim() || !audioSaveForm.subject.trim() || !audioSaveForm.grade) {
+      setError('Vui lòng nhập tên audio, môn học và lớp');
       return;
     }
 
@@ -111,6 +112,7 @@ export default function TTSPage() {
         userName: user?.fullName || user?.name || user?.username || 'Unknown',
         audioName: audioSaveForm.audioName,
         subject: audioSaveForm.subject,
+        grade: audioSaveForm.grade,
       });
       setSuccess('Lưu âm thanh thành công!');
       setAudioUrl('');
@@ -129,13 +131,15 @@ export default function TTSPage() {
   }, [user?.id]);
 
   const handleDeleteAudio = async (audioId) => {
-    if (window.confirm('Bạn chắc chắn muốn xóa âm thanh này?')) {
+    if (await confirmToast('Bạn chắc chắn muốn xóa âm thanh này?', { title: 'Xóa âm thanh', confirmLabel: 'Xóa' })) {
       try {
         await TTSService.deleteAudio(audioId);
         setSuccess('Xóa âm thanh thành công!');
         await loadSavedAudios();
+        window.showAlertToast('Xóa âm thanh thành công!');
       } catch (err) {
         setError('Lỗi xóa âm thanh: ' + err.message);
+        window.showAlertToast('Lỗi xóa âm thanh: ' + err.message);
       }
     }
   };
@@ -286,7 +290,7 @@ export default function TTSPage() {
                     <div className="flex items-start justify-between gap-3 mb-5">
                       <div>
                         <h2 className="text-xl font-semibold text-slate-900">Lưu audio</h2>
-                        <p className="text-sm text-slate-500">Nhập tên audio và môn học để lưu vào database.</p>
+                        <p className="text-sm text-slate-500">Nhập tên audio, môn học và lớp để lưu vào database.</p>
                       </div>
                       <button
                         type="button"
@@ -318,6 +322,20 @@ export default function TTSPage() {
                           <option value="">-- Chọn môn học --</option>
                           {subjects.map((s) => (
                             <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Lớp</label>
+                        <select
+                          value={audioSaveForm.grade}
+                          onChange={(e) => setAudioSaveForm((prev) => ({ ...prev, grade: e.target.value }))}
+                          className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-100 appearance-none cursor-pointer"
+                        >
+                          <option value="">-- Chọn lớp --</option>
+                          {grades.map((grade) => (
+                            <option key={grade.categoryId || grade.value} value={grade.value}>{grade.label}</option>
                           ))}
                         </select>
                       </div>
@@ -368,6 +386,7 @@ export default function TTSPage() {
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-slate-900 line-clamp-2">{audio.audioName || audio.text}</p>
                       {audio.subject && <p className="text-xs text-slate-500">Môn: {audio.subject}</p>}
+                      {audio.grade && <p className="text-xs text-slate-500">Lớp: {String(audio.grade).replace(/^Lớp\s*/i, '')}</p>}
                       <p className="text-xs text-slate-500">{new Date(audio.createdAt).toLocaleDateString('vi-VN')}</p>
                     </div>
                     <div className="flex items-center gap-2">

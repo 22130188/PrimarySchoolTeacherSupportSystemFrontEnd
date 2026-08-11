@@ -33,7 +33,7 @@ function AudioRecorder({ value, onChange }) {
 
   const startRecording = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Trình duyệt không hỗ trợ ghi âm');
+      window.showAlertToast('Trình duyệt không hỗ trợ ghi âm');
       return;
     }
     try {
@@ -50,7 +50,7 @@ function AudioRecorder({ value, onChange }) {
       mediaRef.current.start();
       setRecording(true);
     } catch (e) {
-      alert('Không thể truy cập micro: ' + (e.message || e));
+      window.showAlertToast('Không thể truy cập micro: ' + (e.message || e));
     }
   };
 
@@ -722,7 +722,7 @@ export default function TestTakingInterface({
       setSubmissionResult(finalResult);
       setResultOpen(true);
     } catch (err) {
-      alert(err.message || 'Có lỗi khi nộp bài');
+      window.showAlertToast(err.message || 'Có lỗi khi nộp bài');
     } finally {
       setSubmittingAnswers(false);
     }
@@ -734,7 +734,7 @@ export default function TestTakingInterface({
     try {
       await onSubmit({ answers, startedAt: new Date(startedAt).toISOString() });
     } catch (err) {
-      alert(err.message || 'Có lỗi khi nộp bài');
+      window.showAlertToast(err.message || 'Có lỗi khi nộp bài');
     } finally {
       setSubmittingAnswers(false);
     }

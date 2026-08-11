@@ -10,11 +10,15 @@ const useCategoryStore = create((set, get) => ({
   error: null,
   lastFetchTime: 0,
 
-  loadCategories: async () => {
-    const { lastFetchTime } = get();
+  loadCategories: async (force = false) => {
+    const { lastFetchTime, loading } = get();
     const now = Date.now();
+
+    if (loading) {
+      return;
+    }
     
-    if (now - lastFetchTime < 5 * 60 * 1000) {
+    if (!force && now - lastFetchTime < 5 * 60 * 1000) {
       return;
     }
 

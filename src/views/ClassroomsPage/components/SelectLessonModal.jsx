@@ -30,7 +30,7 @@ export default function SelectLessonModal({ classroomId, onClose, onLessonShared
       await lessonDraftApi.shareToClassroom(draftId, classroomId);
       onLessonShared();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Lỗi khi chia sẻ bài giảng');
+      window.showAlertToast(err.response?.data?.message || err.message || 'Lỗi khi chia sẻ bài giảng');
     } finally {
       setSharingId(null);
     }

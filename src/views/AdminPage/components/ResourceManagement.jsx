@@ -11,6 +11,7 @@ import { Search, Image, Volume2, Upload, Trash2, Download, Eye, ChevronLeft, Che
 import { RESOURCE_TABS } from '../../../data/adminDashboardData';
 import SortIcon from '../../../components/SortIcon';
 import resourceService from '../../../services/resourceService';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 import { useAuthStore } from '../../../stores/authStore';
 import UploadResourceModal from './UploadResourceModal';
 
@@ -212,7 +213,7 @@ export default function ResourceManagement() {
   }, []);
 
   const handleDelete = async (id, isImage) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa tài nguyên này?')) return;
+    if (!(await confirmToast('Bạn có chắc chắn muốn xóa tài nguyên này?', { title: 'Xóa tài nguyên', confirmLabel: 'Xóa' }))) return;
 
     try {
       if (isImage) {
@@ -222,9 +223,10 @@ export default function ResourceManagement() {
         await resourceService.deleteAudio(id);
         setAudios(prev => prev.filter(audio => audio.id !== id));
       }
+      window.showAlertToast('Đã xóa tài nguyên thành công.');
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Không thể xóa tài nguyên: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể xóa tài nguyên: ' + (err.response?.data?.message || err.message));
     }
   };
 

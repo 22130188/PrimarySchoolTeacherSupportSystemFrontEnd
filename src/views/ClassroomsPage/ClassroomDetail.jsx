@@ -9,6 +9,7 @@ import ClassroomSettings from './components/ClassroomSettings';
 import StreamTab from './components/StreamTab';
 import ClassroomListSidebar from './components/ClassroomListSidebar';
 import { toast } from 'sonner';
+import { confirmToast } from '../../utils/toastNotifications.js';
 import ClassroomLessonsTab from './components/ClassroomLessonsTab';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -122,7 +123,7 @@ export default function ClassroomDetail() {
       await createClassroomPost(id, payload);
       await fetchPosts();
     } catch (err) {
-      alert(err.message || 'Không thể đăng bài');
+      window.showAlertToast(err.message || 'Không thể đăng bài');
       throw err;
     } finally {
       setPostSubmitting(false);
@@ -139,7 +140,7 @@ export default function ClassroomDetail() {
       await updateClassroomPost(id, postId, payload);
       await fetchPosts();
     } catch (err) {
-      alert(err.message || 'Không thể cập nhật bài đăng');
+      window.showAlertToast(err.message || 'Không thể cập nhật bài đăng');
       throw err;
     } finally {
       setPostSubmitting(false);
@@ -156,17 +157,18 @@ export default function ClassroomDetail() {
     const normalizedAuthorName = (postToDelete?.authorName || '').trim().toLowerCase();
 
     if (!isTeacher && normalizedTeacherName && normalizedAuthorName === normalizedTeacherName) {
-      alert('Học sinh không có quyền xóa bài đăng của giáo viên quản lý lớp.');
+      window.showAlertToast('Học sinh không có quyền xóa bài đăng của giáo viên quản lý lớp.');
       return;
     }
 
-    if (!confirm('Bạn có chắc muốn xóa bài đăng này?')) return;
+    if (!(await confirmToast('Bạn có chắc muốn xóa bài đăng này?', { title: 'Xóa bài đăng', confirmLabel: 'Xóa' }))) return;
     setDeletingPostId(postId);
     try {
       await deleteClassroomPost(id, postId);
       await fetchPosts();
+      window.showAlertToast('Đã xóa bài đăng thành công.');
     } catch (err) {
-      alert(err.message || 'Không thể xóa bài đăng');
+      window.showAlertToast(err.message || 'Không thể xóa bài đăng');
     } finally {
       setDeletingPostId(null);
     }
@@ -268,10 +270,10 @@ export default function ClassroomDetail() {
                           <div className="flex items-center gap-2 text-gray-500 text-sm">
                             {classroom.teacherName}
                           </div>
-                          {classroom.gradeLevel && (
+                          {(classroom.classDisplayName || classroom.gradeLevel) && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 text-sm font-semibold">
                               <GraduationCap className="w-3.5 h-3.5" />
-                              Lớp {classroom.gradeLevel}
+                              {classroom.classDisplayName || `Lớp ${classroom.gradeLevel}`}
                             </span>
                           )}
                           {classroom.subject && (

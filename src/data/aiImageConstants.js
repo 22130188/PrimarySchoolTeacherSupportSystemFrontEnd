@@ -45,7 +45,7 @@ export const STATUS_COLORS = {
 };
 
 export const LIBRARY_SUBJECT_OPTIONS = [
-  { value: 'all', label: 'Tất cả ảnh' },
+  { value: 'all', label: 'Tất cả môn' },
   { value: 'Toán', label: 'Ảnh môn Toán' },
   { value: 'Tiếng Anh', label: 'Ảnh môn Tiếng Anh' },
   { value: 'Tiếng Việt', label: 'Ảnh môn Tiếng Việt' },

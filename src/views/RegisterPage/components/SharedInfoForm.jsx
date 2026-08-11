@@ -26,7 +26,7 @@ export default function SharedInfoForm({
     const [countdown,    setCountdown]    = useState(0); // đếm ngược giây
     const timerRef = useRef(null);
 
-    const { grades } = useCategories();
+    const { homeroomClasses } = useCategories();
 
     useEffect(() => () => clearInterval(timerRef.current), []);
 
@@ -164,8 +164,8 @@ export default function SharedInfoForm({
                             <select value={formData.grade} onChange={(e) => onChange({ grade: e.target.value })}
                                     className={`${inputCls} appearance-none cursor-pointer text-gray-600 pr-10`}>
                                 <option value="">-- Vui lòng chọn lớp --</option>
-                                {grades.length > 0 ? (
-                                    grades.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)
+                                {homeroomClasses.length > 0 ? (
+                                    homeroomClasses.map((g) => <option key={g.value} value={g.label}>{g.label}</option>)
                                 ) : (
                                     <option value="" disabled>Không có dữ liệu lớp</option>
                                 )}

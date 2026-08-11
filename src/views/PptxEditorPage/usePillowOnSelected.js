@@ -33,7 +33,7 @@ export function usePillowOnSelected({ getCanvas, saveHistory, markDirty }) {
     const canvas = getCanvas?.();
     const img = canvas?.getActiveObject();
     if (!img || img.type !== 'image') {
-      alert('Chọn một ảnh trên slide trước khi chỉnh.');
+      window.showAlertToast('Chọn một ảnh trên slide trước khi chỉnh.');
       return;
     }
     setIsProcessing(true);
@@ -67,7 +67,7 @@ export function usePillowOnSelected({ getCanvas, saveHistory, markDirty }) {
       markDirty?.();
     } catch (err) {
       console.error('Pillow op error:', err);
-      alert('Lỗi xử lý ảnh: ' + (err?.message || err));
+      window.showAlertToast('Lỗi xử lý ảnh: ' + (err?.message || err));
     } finally {
       setIsProcessing(false);
     }
