@@ -9,6 +9,7 @@ import ClassroomSettings from './components/ClassroomSettings';
 import StreamTab from './components/StreamTab';
 import ClassroomListSidebar from './components/ClassroomListSidebar';
 import { toast } from 'sonner';
+import { confirmToast } from '../../utils/toastNotifications.js';
 import ClassroomLessonsTab from './components/ClassroomLessonsTab';
 import { useAuthStore } from '../../stores/authStore';
 import {
@@ -122,7 +123,7 @@ export default function ClassroomDetail() {
       await createClassroomPost(id, payload);
       await fetchPosts();
     } catch (err) {
-      alert(err.message || 'Không thể đăng bài');
+      window.showAlertToast(err.message || 'Không thể đăng bài');
       throw err;
     } finally {
       setPostSubmitting(false);
@@ -139,7 +140,7 @@ export default function ClassroomDetail() {
       await updateClassroomPost(id, postId, payload);
       await fetchPosts();
     } catch (err) {
-      alert(err.message || 'Không thể cập nhật bài đăng');
+      window.showAlertToast(err.message || 'Không thể cập nhật bài đăng');
       throw err;
     } finally {
       setPostSubmitting(false);
@@ -156,17 +157,18 @@ export default function ClassroomDetail() {
     const normalizedAuthorName = (postToDelete?.authorName || '').trim().toLowerCase();
 
     if (!isTeacher && normalizedTeacherName && normalizedAuthorName === normalizedTeacherName) {
-      alert('Học sinh không có quyền xóa bài đăng của giáo viên quản lý lớp.');
+      window.showAlertToast('Học sinh không có quyền xóa bài đăng của giáo viên quản lý lớp.');
       return;
     }
 
-    if (!confirm('Bạn có chắc muốn xóa bài đăng này?')) return;
+    if (!(await confirmToast('Bạn có chắc muốn xóa bài đăng này?', { title: 'Xóa bài đăng', confirmLabel: 'Xóa' }))) return;
     setDeletingPostId(postId);
     try {
       await deleteClassroomPost(id, postId);
       await fetchPosts();
+      window.showAlertToast('Đã xóa bài đăng thành công.');
     } catch (err) {
-      alert(err.message || 'Không thể xóa bài đăng');
+      window.showAlertToast(err.message || 'Không thể xóa bài đăng');
     } finally {
       setDeletingPostId(null);
     }

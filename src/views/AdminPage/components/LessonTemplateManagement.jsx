@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { SUBJECTS, GRADES } from '../../../data/editorSharedConstants';
 import lessonTemplateApi from '../../../services/lessonTemplateApi';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 const STATUS_LABELS = {
   ACTIVE: 'Đang hiển thị',
@@ -219,7 +220,7 @@ export default function LessonTemplateManagement() {
     if (!file) return;
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (extension !== 'docx' && extension !== 'pptx') {
-      alert('Chỉ hỗ trợ file .docx hoặc .pptx');
+      window.showAlertToast('Chỉ hỗ trợ file .docx hoặc .pptx');
       event.target.value = '';
       return;
     }
@@ -245,7 +246,7 @@ export default function LessonTemplateManagement() {
   const handleUpload = async (event) => {
     event.preventDefault();
     if (!form.file || !form.title.trim() || !form.subject || !form.grade) {
-      alert('Vui lòng chọn file và nhập đầy đủ tên mẫu, môn học, lớp.');
+      window.showAlertToast('Vui lòng chọn file và nhập đầy đủ tên mẫu, môn học, lớp.');
       return;
     }
 
@@ -263,7 +264,7 @@ export default function LessonTemplateManagement() {
       resetForm();
     } catch (err) {
       console.error('Failed to upload lesson template:', err);
-      alert('Không thể tải mẫu lên: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể tải mẫu lên: ' + (err.response?.data?.message || err.message));
     } finally {
       setSaving(false);
     }
@@ -273,7 +274,7 @@ export default function LessonTemplateManagement() {
     event.preventDefault();
     if (!editingTemplate) return;
     if (!editForm.title.trim() || !editForm.subject || !editForm.grade || !editForm.type || !editForm.status) {
-      alert('Vui lòng nhập đầy đủ tên mẫu, môn học, lớp, định dạng và trạng thái.');
+      window.showAlertToast('Vui lòng nhập đầy đủ tên mẫu, môn học, lớp, định dạng và trạng thái.');
       return;
     }
 
@@ -291,20 +292,21 @@ export default function LessonTemplateManagement() {
       setEditingTemplate(null);
     } catch (err) {
       console.error('Failed to update template:', err);
-      alert('Không thể cập nhật mẫu: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể cập nhật mẫu: ' + (err.response?.data?.message || err.message));
     } finally {
       setUpdating(false);
     }
   };
 
   const handleDelete = async (templateId) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa mẫu bài giảng này?')) return;
+    if (!(await confirmToast('Bạn có chắc chắn muốn xóa mẫu bài giảng này?', { title: 'Xóa mẫu bài giảng', confirmLabel: 'Xóa' }))) return;
     try {
       await lessonTemplateApi.deleteAdminTemplate(templateId);
       setTemplates((prev) => prev.filter((item) => item.id !== templateId));
+      window.showAlertToast('Đã xóa mẫu bài giảng thành công.');
     } catch (err) {
       console.error('Failed to delete template:', err);
-      alert('Không thể xóa mẫu: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể xóa mẫu: ' + (err.response?.data?.message || err.message));
     }
   };
 

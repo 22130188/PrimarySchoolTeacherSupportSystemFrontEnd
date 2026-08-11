@@ -13,6 +13,7 @@ import {
 import CreateLessonModal from './CreateLessonModal';
 import ShareLessonModal from './ShareLessonModal';
 import ShareToClassroomModal from './ShareToClassroomModal';
+import { confirmToast } from '../../utils/toastNotifications.js';
 import TranslateLessonModal from './TranslateLessonModal';
 import LessonTemplatesTab from './LessonTemplatesTab';
 import lessonDraftApi from '../../services/lessonDraftApi';
@@ -198,7 +199,7 @@ export default function LessonsPage() {
     event.preventDefault();
     if (!editingLesson) return;
     if (!editLessonForm.title.trim() || !editLessonForm.subject || !editLessonForm.grade) {
-      alert('Vui lòng nhập đầy đủ tên bài giảng, môn học và lớp.');
+      window.showAlertToast('Vui lòng nhập đầy đủ tên bài giảng, môn học và lớp.');
       return;
     }
 
@@ -217,7 +218,7 @@ export default function LessonsPage() {
       setEditingLesson(null);
     } catch (err) {
       console.error('Failed to update lesson metadata:', err);
-      alert('Không thể cập nhật bài giảng: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể cập nhật bài giảng: ' + (err.response?.data?.message || err.message));
     } finally {
       setUpdatingLesson(false);
     }
@@ -227,12 +228,12 @@ export default function LessonsPage() {
     try {
       setDuplicatingId(draftId);
       await lessonDraftApi.duplicateSharedDraft(draftId);
-      alert('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
+      window.showAlertToast('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
       // Switch to "my" tab and refresh
       setActiveTab('my');
       fetchDrafts('', '', '');
     } catch (err) {
-      alert('Không thể tạo bản sao: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể tạo bản sao: ' + (err.response?.data?.message || err.message));
     } finally {
       setDuplicatingId(null);
     }
@@ -545,13 +546,14 @@ export default function LessonsPage() {
                             type="button"
                             onClick={async (e) => {
                               e.stopPropagation();
-                              if (!confirm('Bạn có chắc chắn muốn xóa bài giảng này?')) return;
+                              if (!(await confirmToast('Bạn có chắc chắn muốn xóa bài giảng này?', { title: 'Xóa bài giảng', confirmLabel: 'Xóa' }))) return;
                               try {
                                 setDeletingId(lesson.id);
                                 await lessonDraftApi.deleteDraft(lesson.id);
                                 setDrafts(prev => prev.filter(d => d.id !== lesson.id));
+                                window.showAlertToast('Đã xóa bài giảng thành công.');
                               } catch (err) {
-                                alert('Không thể xóa: ' + (err.response?.data?.message || err.message));
+                                window.showAlertToast('Không thể xóa: ' + (err.response?.data?.message || err.message));
                               } finally {
                                 setDeletingId(null);
                               }

@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import testApi from '../../services/testApi';
 import resourceService from '../../services/resourceService';
+import { confirmToast } from '../../utils/toastNotifications.js';
 
 const STATUS_STYLE = {
   DRAFT: 'bg-amber-100 text-amber-700',
@@ -83,16 +84,17 @@ export default function TestsPage() {
   const handleDeleteTest = async (event, testId) => {
     event.stopPropagation();
     setOpenActionMenu(null);
-    if (!window.confirm('Bạn có chắc muốn xóa bài kiểm tra này?')) {
+    if (!(await confirmToast('Bạn có chắc muốn xóa bài kiểm tra này?', { title: 'Xóa bài kiểm tra', confirmLabel: 'Xóa' }))) {
       return;
     }
 
     try {
       await testApi.deleteTest(testId);
       setTests((prevTests) => prevTests.filter((test) => test.id !== testId));
+      window.showAlertToast('Đã xóa bài kiểm tra thành công.');
     } catch (err) {
       console.error('Error deleting test:', err);
-      alert('Không thể xóa bài kiểm tra. Vui lòng thử lại.');
+      window.showAlertToast('Không thể xóa bài kiểm tra. Vui lòng thử lại.');
     }
   };
 
@@ -125,7 +127,7 @@ export default function TestsPage() {
           setAttemptHistory([]);
         }
       } catch (err) {
-        alert(err.message || 'Không thể tải bài kiểm tra');
+        window.showAlertToast(err.message || 'Không thể tải bài kiểm tra');
       }
     }
   };
@@ -181,10 +183,10 @@ export default function TestsPage() {
         submittedAt: new Date().toISOString(),
       };
       const result = await testApi.submitTestAnswers?.(payload);
-      alert('Nộp bài thành công!');
+      window.showAlertToast('Nộp bài thành công!');
       return result;
     } catch (err) {
-      alert(err.message || 'Có lỗi khi nộp bài');
+      window.showAlertToast(err.message || 'Có lỗi khi nộp bài');
       throw err;
     } finally {
       setSubmittingTest(false);

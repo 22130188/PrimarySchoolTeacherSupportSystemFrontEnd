@@ -135,7 +135,7 @@ export default function AIImagePage() {
 
   const handleSaveLibrary = async () => {
     if (!saveForm.description.trim() || !saveForm.subject.trim()) {
-      alert('Vui lòng nhập mô tả và môn học cho ảnh');
+      window.showAlertToast('Vui lòng nhập mô tả và môn học cho ảnh');
       return;
     }
     setSaving(true);
@@ -147,12 +147,12 @@ export default function AIImagePage() {
         subject: saveForm.subject,
         user,
       });
-      alert('Lưu ảnh thành công!');
+      window.showAlertToast('Lưu ảnh thành công!');
       setShowSaveModal(false);
       setStatus({ msg: 'Đã lưu ảnh vào thư viện.', type: 'success' });
     } catch (error) {
       console.error('Error saving AI image:', error);
-      alert('Lỗi lưu ảnh: ' + extractErrorMessage(error));
+      window.showAlertToast('Lỗi lưu ảnh: ' + extractErrorMessage(error));
     } finally {
       setSaving(false);
     }

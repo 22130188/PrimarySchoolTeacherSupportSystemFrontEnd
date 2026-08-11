@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Eye, EyeOff, ImagePlus, Loader2, Pencil, Plus, Save, Trash2, X, PlayCircle } from 'lucide-react';
 import { deleteGuide, getAdminGuides, saveGuide, uploadGuideImage, youtubeEmbedUrl } from '../../../services/guideApi';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 const EMPTY = { title: '', slug: '', description: '', note: '', published: true, steps: [] };
 const newStep = () => ({ title: '', content: '', imageUrl: '', imageAlt: '', videoUrl: '', sortOrder: 0 });
@@ -24,7 +25,17 @@ export default function GuideManagement() {
     try { await saveGuide({ ...editing, steps: editing.steps.map((step, index) => ({ ...step, sortOrder: index })) }); setEditing(null); load(); }
     catch (e) { setError(e.message); } finally { setSaving(false); }
   };
-  const remove = async (guide) => { if (!window.confirm(`Xóa hướng dẫn “${guide.title}”?`)) return; try { await deleteGuide(guide.id); load(); } catch (e) { setError(e.message); } };
+  const remove = async (guide) => {
+    if (!(await confirmToast(`Xóa hướng dẫn “${guide.title}”?`, { title: 'Xóa hướng dẫn', confirmLabel: 'Xóa' }))) return;
+    try {
+      await deleteGuide(guide.id);
+      load();
+      window.showAlertToast('Đã xóa hướng dẫn thành công.');
+    } catch (e) {
+      setError(e.message);
+      window.showAlertToast(e.message || 'Không thể xóa hướng dẫn.');
+    }
+  };
   const moveStep = (index, direction) => setEditing((current) => { const steps = [...current.steps]; const target = index + direction; if (target < 0 || target >= steps.length) return current; [steps[index], steps[target]] = [steps[target], steps[index]]; return { ...current, steps }; });
   const updateStep = (index, patch) => setEditing((current) => ({ ...current, steps: current.steps.map((step, i) => i === index ? { ...step, ...patch } : step) }));
 

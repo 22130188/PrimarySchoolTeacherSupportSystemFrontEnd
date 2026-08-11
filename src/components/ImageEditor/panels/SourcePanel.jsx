@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Upload, FileImage, Square, Trash2 } from 'lucide-react';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 const SUBJECT_FILTERS = [
   { id: 'all', label: 'Tất cả' },
@@ -38,11 +39,14 @@ export default function SourcePanel({ savedImages = [], onPickImage, onAddImage,
     event.preventDefault();
     event.stopPropagation();
     if (!image?.id || !onDeleteImage) return;
-    if (!window.confirm('Xóa ảnh này khỏi thư viện?')) return;
+    if (!(await confirmToast('Xóa ảnh này khỏi thư viện?', { title: 'Xóa ảnh', confirmLabel: 'Xóa' }))) return;
 
     setDeletingId(image.id);
     try {
       await onDeleteImage(image.id);
+      window.showAlertToast('Đã xóa ảnh khỏi thư viện.');
+    } catch (error) {
+      window.showAlertToast(error?.message || 'Không thể xóa ảnh khỏi thư viện.');
     } finally {
       setDeletingId(null);
     }

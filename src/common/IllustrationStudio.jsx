@@ -234,15 +234,15 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
   const handleClearCanvas = () => setPlacedItems([]);
 
   const openSaveCanvasModal = () => {
-    if (placedItems.length === 0) { alert('Vui lòng đặt ít nhất một thành phần trước khi lưu'); return; }
-    if (!user?.id) { alert('Vui lòng đăng nhập để lưu ảnh'); return; }
+    if (placedItems.length === 0) { window.showAlertToast('Vui lòng đặt ít nhất một thành phần trước khi lưu'); return; }
+    if (!user?.id) { window.showAlertToast('Vui lòng đăng nhập để lưu ảnh'); return; }
     setSaveForm({ description: `Hình minh họa ${placedItems.length} thành phần`, subject: '' });
     setShowSaveModal(true);
   };
 
   const handleSaveCanvas = async () => {
     if (!saveForm.description.trim() || !saveForm.subject.trim()) {
-      alert('Vui lòng nhập mô tả và môn học cho ảnh');
+      window.showAlertToast('Vui lòng nhập mô tả và môn học cho ảnh');
       return;
     }
     setSaving(true);
@@ -268,7 +268,7 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
                 userId: user.id,
                 userName: user?.fullName || user?.name || user?.username || 'Unknown',
               }, { headers: auth });
-              alert('Lưu ảnh thành công!');
+              window.showAlertToast('Lưu ảnh thành công!');
               setPlacedItems([]);
               setSelectedIconId(null);
               setShowSaveModal(false);
@@ -290,7 +290,7 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
       if (Array.isArray(detail)) msg += detail.map((d) => d.msg || d.message || JSON.stringify(d)).join(', ');
       else if (typeof detail === 'string') msg += detail;
       else msg += (error.response?.data?.message || error.message);
-      alert(msg);
+      window.showAlertToast(msg);
     } finally {
       setSaving(false);
     }
@@ -299,8 +299,8 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Vui lòng chọn một file ảnh'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('File ảnh không được vượt quá 5MB'); return; }
+    if (!file.type.startsWith('image/')) { window.showAlertToast('Vui lòng chọn một file ảnh'); return; }
+    if (file.size > 5 * 1024 * 1024) { window.showAlertToast('File ảnh không được vượt quá 5MB'); return; }
 
     setIsUploadingImage(true);
     try {
@@ -321,13 +321,13 @@ export default function IllustrationStudio({ onSaved, primaryActionLabel = 'Lưu
           userId: user?.id || 0,
           userName: user?.fullName || user?.name || user?.username || 'Unknown',
         }, { headers: auth });
-        alert('Tải ảnh thành công!');
+        window.showAlertToast('Tải ảnh thành công!');
         loadSavedImages();
       }
     } catch (error) {
       console.error('Error uploading image:', error);
       const errorMsg = error.response?.data?.detail || error.response?.data?.message || 'Lỗi tải ảnh';
-      alert(`Lỗi: ${errorMsg}`);
+      window.showAlertToast(`Lỗi: ${errorMsg}`);
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

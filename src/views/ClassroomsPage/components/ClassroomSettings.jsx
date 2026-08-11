@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Copy, RefreshCw, Link2, Keyboard, CheckCircle2, Save, Archive, GraduationCap, BookOpen, X } from 'lucide-react';
 import { resetInviteLink, resetClassCode, updateClassroom } from '../../../services/classroomApi';
 import { GRADE_LEVELS, SUBJECTS } from '../../../data/classroomData';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
   const [loading, setLoading] = useState(null);
@@ -27,26 +28,28 @@ export default function ClassroomSettings({ classroom, onUpdate, onArchive }) {
   };
 
   const handleResetLink = async () => {
-    if (!confirm('Link mời cũ sẽ hết hiệu lực. Tiếp tục?')) return;
+    if (!(await confirmToast('Link mời cũ sẽ hết hiệu lực. Bạn có muốn tiếp tục?', { title: 'Tạo lại link mời', confirmLabel: 'Tạo lại', tone: 'warning' }))) return;
     setLoading('link');
     try {
       const updated = await resetInviteLink(classroom.id);
       onUpdate?.(updated);
+      window.showAlertToast('Đã tạo lại link mời thành công.');
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setLoading(null);
     }
   };
 
   const handleResetCode = async () => {
-    if (!confirm('Mã lớp cũ sẽ hết hiệu lực. Tiếp tục?')) return;
+    if (!(await confirmToast('Mã lớp cũ sẽ hết hiệu lực. Bạn có muốn tiếp tục?', { title: 'Tạo lại mã lớp', confirmLabel: 'Tạo lại', tone: 'warning' }))) return;
     setLoading('code');
     try {
       const updated = await resetClassCode(classroom.id);
       onUpdate?.(updated);
+      window.showAlertToast('Đã tạo lại mã lớp thành công.');
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setLoading(null);
     }

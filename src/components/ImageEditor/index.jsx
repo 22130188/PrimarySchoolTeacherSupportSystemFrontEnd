@@ -13,6 +13,7 @@ import {
 } from './PillowBridge.js';
 import { CONTROL_STYLE } from '../../data/editorSharedConstants';
 import { SUBJECT_OPTIONS } from '../../data/aiImageConstants';
+import { confirmToast } from '../../utils/toastNotifications.js';
 
 import {
   enablePencil, enableBrush, enableEraser, disableDrawing,
@@ -414,8 +415,8 @@ export default function ImageEditor({
     }
   }, [exportDataURL, saveForm, user, onSaveSuccess]);
 
-  const handleResetAll = useCallback(() => {
-    if (!window.confirm('Xóa toàn bộ nội dung trên canvas?')) return;
+  const handleResetAll = useCallback(async () => {
+    if (!(await confirmToast('Xóa toàn bộ nội dung trên canvas?', { title: 'Làm trống canvas', confirmLabel: 'Xóa tất cả' }))) return;
     const c = fabricRef.current;
     if (!c) return;
     c.getObjects().slice().forEach((o) => c.remove(o));
@@ -423,6 +424,7 @@ export default function ImageEditor({
     c.requestRenderAll();
     setHasBackground(false);
     saveHistory();
+    window.showAlertToast('Đã xóa toàn bộ nội dung trên canvas.');
   }, [fabricRef, saveHistory]);
 
   const hasSelection = !!selectedObject;

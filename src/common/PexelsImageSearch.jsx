@@ -206,12 +206,12 @@ export default function PexelsImageSearch({ onAddImage, onSaved, accent = 'orang
       });
       setSelectedPhoto(null);
       setStatus({ msg: 'Đã lưu ảnh vào thư viện.', type: 'success' });
-      alert('Đã lưu ảnh Pexels vào thư viện thành công!');
+      window.showAlertToast('Đã lưu ảnh Pexels vào thư viện thành công!');
       onSaved?.();
     } catch (error) {
       const errMsg = extractErrorMessage(error);
       setStatus({ msg: errMsg, type: 'error' });
-      alert('Lưu ảnh thất bại: ' + errMsg);
+      window.showAlertToast('Lưu ảnh thất bại: ' + errMsg);
     } finally {
       setSaving(false);
     }

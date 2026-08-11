@@ -5,6 +5,7 @@ import lessonDraftApi from '../../../services/lessonDraftApi';
 import SelectLessonModal from './SelectLessonModal';
 import { useAuthStore } from '../../../stores/authStore';
 import PostComments from './PostComments';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 const formatDate = (value) => {
   if (!value) return 'Chưa cập nhật';
@@ -68,13 +69,14 @@ export default function ClassroomLessonsTab({ classroomId, isTeacher, readOnly =
 
   const handleRevokeShare = async (draftId, e) => {
     e.stopPropagation();
-    if (!confirm('Bạn có chắc chắn muốn ngừng chia sẻ bài giảng này trong lớp?')) return;
+    if (!(await confirmToast('Bạn có chắc chắn muốn ngừng chia sẻ bài giảng này trong lớp?', { title: 'Ngừng chia sẻ bài giảng', confirmLabel: 'Ngừng chia sẻ' }))) return;
     try {
       setRevokingId(draftId);
       await lessonDraftApi.revokeClassroomShare(draftId, classroomId);
       setLessons(prev => prev.filter(l => l.id !== draftId));
+      window.showAlertToast('Đã ngừng chia sẻ bài giảng trong lớp.');
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Không thể xóa bài giảng');
+      window.showAlertToast(err.response?.data?.message || err.message || 'Không thể xóa bài giảng');
     } finally {
       setRevokingId(null);
     }

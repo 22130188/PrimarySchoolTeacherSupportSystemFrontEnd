@@ -6,6 +6,7 @@ import {
   updateCategory,
   deleteCategory,
 } from '../../../services/categoryApi';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 const PANEL_TYPES = [
   { type: 'grade', title: 'Khối', description: 'Khối — nhóm chương trình A, B, C' },
@@ -144,7 +145,7 @@ export default function CategoryManagement() {
   };
 
   const handleDeleteCategory = async (id, type) => {
-    if (!window.confirm('Bạn có chắc muốn xóa danh mục này?')) {
+    if (!(await confirmToast('Bạn có chắc muốn xóa danh mục này?', { title: 'Xóa danh mục', confirmLabel: 'Xóa' }))) {
       return;
     }
 
@@ -155,9 +156,11 @@ export default function CategoryManagement() {
       } else {
         setClassCategories((prev) => prev.filter((item) => item.id !== id));
       }
+      window.showAlertToast('Đã xóa danh mục thành công.');
     } catch (err) {
       console.error('Delete category failed', err);
       setError(err.message || 'Không thể xóa danh mục');
+      window.showAlertToast(err.message || 'Không thể xóa danh mục');
     }
   };
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import lessonCatalogApi from '../../../services/lessonCatalogApi';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 const INITIAL_FORM_STATE = {
   subject: '',
@@ -180,16 +181,18 @@ export default function LessonContentManagement() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa nội dung bài học này?')) {
+    if (!(await confirmToast('Bạn có chắc muốn xóa nội dung bài học này?', { title: 'Xóa nội dung bài học', confirmLabel: 'Xóa' }))) {
       return;
     }
 
     try {
       await lessonCatalogApi.deleteCatalogItem(id);
       setContents((prev) => prev.filter((item) => item.id !== id));
+      window.showAlertToast('Đã xóa nội dung bài học thành công.');
     } catch (err) {
       console.error('Delete lesson content failed', err);
       setError(err.message || 'Xóa nội dung bài học thất bại');
+      window.showAlertToast(err.message || 'Xóa nội dung bài học thất bại');
     }
   };
 

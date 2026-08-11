@@ -142,10 +142,10 @@ export default function PptxEditorPage() {
     try {
       setDuplicating(true);
       await lessonDraftApi.duplicateSharedDraft(id);
-      alert('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
+      window.showAlertToast('Đã tạo bản sao thành công! Bản sao đã được thêm vào "Bài giảng của tôi".');
       navigate('/lessons');
     } catch (err) {
-      alert('Không thể tạo bản sao: ' + (err.response?.data?.message || err.message));
+      window.showAlertToast('Không thể tạo bản sao: ' + (err.response?.data?.message || err.message));
     } finally {
       setDuplicating(false);
     }
@@ -443,7 +443,7 @@ export default function PptxEditorPage() {
       console.error('PPTX export failed:', err);
       setSaveStatus('Lỗi xuất PPTX');
       setTimeout(() => setSaveStatus(''), 3000);
-      alert('Xuất file thất bại. Vui lòng thử lại.');
+      window.showAlertToast('Xuất file thất bại. Vui lòng thử lại.');
     }
   }, [saveCurrentSlide, exportToPptx, fileName, subject, grade]);
 
@@ -463,7 +463,7 @@ export default function PptxEditorPage() {
       console.error('PDF export failed:', err);
       setSaveStatus('Lỗi xuất PDF');
       setTimeout(() => setSaveStatus(''), 3000);
-      alert('Xuất PDF thất bại. Vui lòng thử lại.');
+      window.showAlertToast('Xuất PDF thất bại. Vui lòng thử lại.');
     }
   }, [saveCurrentSlide, exportToPdf, fileName]);
 

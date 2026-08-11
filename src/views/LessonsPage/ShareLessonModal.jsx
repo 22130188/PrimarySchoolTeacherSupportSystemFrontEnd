@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, Share2, Loader2, UserPlus, Eye, Copy, Trash2, ChevronDown, Globe2, BadgeCheck, ShieldAlert } from 'lucide-react';
 import lessonDraftApi from '../../services/lessonDraftApi';
 import lessonPublicApi from '../../services/lessonPublicApi';
+import { confirmToast } from '../../utils/toastNotifications.js';
 import {
   VERIFICATION_STATUS_LABELS,
   VERIFICATION_STATUS_STYLE,
@@ -106,17 +107,18 @@ export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPub
       await lessonDraftApi.updateSharePermission(lessonId, userId, newPermission);
       setShares(prev => prev.map(s => s.sharedWithUserId === userId ? { ...s, permission: newPermission } : s));
     } catch (err) {
-      alert(err.response?.data?.message || 'Không thể cập nhật quyền');
+      window.showAlertToast(err.response?.data?.message || 'Không thể cập nhật quyền');
     }
   };
 
   const handleRevoke = async (userId, name) => {
-    if (!confirm(`Thu hồi chia sẻ với ${name}?`)) return;
+    if (!(await confirmToast(`Thu hồi chia sẻ với ${name}?`, { title: 'Thu hồi chia sẻ', confirmLabel: 'Thu hồi' }))) return;
     try {
       await lessonDraftApi.revokeShare(lessonId, userId);
       setShares(prev => prev.filter(s => s.sharedWithUserId !== userId));
+      window.showAlertToast('Đã thu hồi chia sẻ thành công.');
     } catch (err) {
-      alert(err.response?.data?.message || 'Không thể thu hồi');
+      window.showAlertToast(err.response?.data?.message || 'Không thể thu hồi');
     }
   };
 

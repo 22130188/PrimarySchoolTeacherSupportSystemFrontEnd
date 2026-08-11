@@ -111,7 +111,7 @@ export default function ClassroomManagement() {
       await refetch();
       setStatusTarget(null);
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
       throw err;
     } finally {
       setStatusLoading(false);

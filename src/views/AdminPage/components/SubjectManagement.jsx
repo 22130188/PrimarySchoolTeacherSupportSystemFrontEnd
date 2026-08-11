@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Edit3, Trash2, ToggleLeft, ToggleRight, FileText, HelpCircle } from 'lucide-react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../../../services/categoryApi';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 const INITIAL_FORM_STATE = {
   name: '',
@@ -123,16 +124,18 @@ export default function SubjectManagement() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa môn học này?')) {
+    if (!(await confirmToast('Bạn có chắc muốn xóa môn học này?', { title: 'Xóa môn học', confirmLabel: 'Xóa' }))) {
       return;
     }
 
     try {
       await deleteCategory(id);
       setSubjects((prev) => prev.filter((item) => item.id !== id));
+      window.showAlertToast('Đã xóa môn học thành công.');
     } catch (err) {
       console.error('Delete subject failed', err);
       setError(err.message || 'Xóa môn học thất bại');
+      window.showAlertToast(err.message || 'Xóa môn học thất bại');
     }
   };
 

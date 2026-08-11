@@ -114,7 +114,7 @@ export default function ClassroomsPage() {
       await acceptInvitation(inv.id);
       fetchData();
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setInvLoading(null);
     }
@@ -126,7 +126,7 @@ export default function ClassroomsPage() {
       await rejectInvitation(inv.id);
       fetchData();
     } catch (err) {
-      alert(err.message);
+      window.showAlertToast(err.message);
     } finally {
       setInvLoading(null);
     }

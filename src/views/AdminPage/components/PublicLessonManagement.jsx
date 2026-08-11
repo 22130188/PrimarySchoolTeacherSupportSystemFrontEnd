@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import SortIcon from '../../../components/SortIcon';
 import lessonPublicApi from '../../../services/lessonPublicApi';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 import {
   DEFAULT_PUBLIC_VERIFICATION_CONFIG,
   PUBLIC_REPORT_REASONS,
@@ -208,7 +209,7 @@ export default function PublicLessonManagement() {
   };
 
   const unpublishLesson = async (lesson, reason = 'Admin ẩn thủ công') => {
-    if (!confirm(`Ẩn bài giảng công khai "${lesson.title}"?\nBài sẽ biến mất khỏi danh mục giáo viên và reset "Chưa xác minh".`)) return;
+    if (!(await confirmToast(`Ẩn bài giảng công khai "${lesson.title}"?\nBài sẽ biến mất khỏi danh mục giáo viên và reset "Chưa xác minh".`, { title: 'Ẩn bài giảng công khai', confirmLabel: 'Ẩn bài giảng' }))) return;
     try {
       setActingId(lesson.id);
       setMsg(noMsg);
@@ -219,8 +220,11 @@ export default function PublicLessonManagement() {
           : item
       )));
       setMsg(makeMsg('success', 'Đã ẩn bài khỏi danh mục công khai.'));
+      window.showAlertToast('Đã ẩn bài khỏi danh mục công khai.');
     } catch (err) {
-      setMsg(makeMsg('error', err.response?.data?.message || 'Không thể ẩn bài giảng.'));
+      const message = err.response?.data?.message || 'Không thể ẩn bài giảng.';
+      setMsg(makeMsg('error', message));
+      window.showAlertToast(message);
     } finally {
       setActingId(null);
     }

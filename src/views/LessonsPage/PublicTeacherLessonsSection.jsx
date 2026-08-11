@@ -218,19 +218,19 @@ export default function PublicTeacherLessonsSection({ hideIntro = false }) {
 
   const handleCopy = async (lesson) => {
     if (isOwner(lesson)) {
-      alert('Đây là bài giảng của bạn. Mở từ tab "Bài giảng của tôi" để chỉnh sửa.');
+      window.showAlertToast('Đây là bài giảng của bạn. Mở từ tab "Bài giảng của tôi" để chỉnh sửa.');
       return;
     }
     try {
       setCopyingId(lesson.id);
       const draft = await lessonPublicApi.copyToMyLessons(lesson.id);
-      alert('Đã sao chép về "Bài giảng của tôi".');
+      window.showAlertToast('Đã sao chép về "Bài giảng của tôi".');
       if (draft?.id) {
         navigate(`${editorPathFor(draft.type || lesson.type)}?draftId=${draft.id}`);
       }
       fetchLessons(keywordRef.current);
     } catch (err) {
-      alert(err.response?.data?.message || 'Không thể sao chép bài giảng.');
+      window.showAlertToast(err.response?.data?.message || 'Không thể sao chép bài giảng.');
     } finally {
       setCopyingId(null);
     }

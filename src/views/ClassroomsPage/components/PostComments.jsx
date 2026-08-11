@@ -6,6 +6,7 @@ import {
   deletePostComment
 } from '../../../services/classroomApi';
 import { useAuthStore } from '../../../stores/authStore';
+import { confirmToast } from '../../../utils/toastNotifications.js';
 
 function formatTime(value) {
   if (!value) return '';
@@ -101,7 +102,7 @@ export default function PostComments({
       setHasLoaded(true);
       setNewComment('');
     } catch (err) {
-      alert(err.message || 'Không thể gửi nhận xét');
+      window.showAlertToast(err.message || 'Không thể gửi nhận xét');
     } finally {
       setSubmitting(false);
     }
@@ -109,14 +110,15 @@ export default function PostComments({
 
   const handleDelete = async (commentId) => {
     if (readOnly) return;
-    if (!confirm('Bạn có chắc muốn xóa nhận xét này?')) return;
+    if (!(await confirmToast('Bạn có chắc muốn xóa nhận xét này?', { title: 'Xóa nhận xét', confirmLabel: 'Xóa' }))) return;
     setDeletingId(commentId);
     try {
       await deleteComment(classroomId, postId, commentId);
       setComments(prev => prev.filter(c => c.id !== commentId));
       syncCommentCount(Math.max(0, commentCount - 1));
+      window.showAlertToast('Đã xóa nhận xét thành công.');
     } catch (err) {
-      alert(err.message || 'Không thể xóa nhận xét');
+      window.showAlertToast(err.message || 'Không thể xóa nhận xét');
     } finally {
       setDeletingId(null);
     }

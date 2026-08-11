@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useCategories } from '../../hooks/useCategories';
 import TTSService from '../../services/TTSService';
 import AIToolPageLayout from '../../components/AIToolPageLayout';
+import { confirmToast } from '../../utils/toastNotifications.js';
 
 export default function TTSPage() {
   const { user } = useAuthStore();
@@ -129,13 +130,15 @@ export default function TTSPage() {
   }, [user?.id]);
 
   const handleDeleteAudio = async (audioId) => {
-    if (window.confirm('Bạn chắc chắn muốn xóa âm thanh này?')) {
+    if (await confirmToast('Bạn chắc chắn muốn xóa âm thanh này?', { title: 'Xóa âm thanh', confirmLabel: 'Xóa' })) {
       try {
         await TTSService.deleteAudio(audioId);
         setSuccess('Xóa âm thanh thành công!');
         await loadSavedAudios();
+        window.showAlertToast('Xóa âm thanh thành công!');
       } catch (err) {
         setError('Lỗi xóa âm thanh: ' + err.message);
+        window.showAlertToast('Lỗi xóa âm thanh: ' + err.message);
       }
     }
   };
