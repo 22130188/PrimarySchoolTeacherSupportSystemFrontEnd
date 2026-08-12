@@ -116,8 +116,8 @@ const lessonDraftApi = {
     return response.data;
   },
 
-  updateMetadata: async (id, { title, subject, grade }) => {
-    const response = await axios.patch(`${BASE_URL}/${id}`, { title, subject, grade }, { headers: getAuthHeader() });
+  updateMetadata: async (id, { title, subject, grade, status }) => {
+    const response = await axios.patch(`${BASE_URL}/${id}`, { title, subject, grade, status }, { headers: getAuthHeader() });
     clearDraftListCache();
     return response.data;
   },

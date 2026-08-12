@@ -15,6 +15,7 @@ export default function PronunciationPage() {
   const [recognitionModel, setRecognitionModel] = useState('whisper');
   
   const mediaRecorderRef = useRef(null);
+  const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
   const audioRef = useRef(null);
   const previousAudioUrlRef = useRef('');
@@ -37,6 +38,11 @@ export default function PronunciationPage() {
 
   useEffect(() => {
     return () => {
+      if (mediaRecorderRef.current?.state && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.onstop = null;
+        mediaRecorderRef.current.stop();
+      }
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
       if (previousAudioUrlRef.current) {
         URL.revokeObjectURL(previousAudioUrlRef.current);
       }
@@ -53,29 +59,46 @@ export default function PronunciationPage() {
     setError('');
     setSuccess('');
     setResult(null);
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setError('Trình duyệt không hỗ trợ ghi âm. Vui lòng tải lên file âm thanh.');
+      return;
+    }
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaStreamRef.current = stream;
+      const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+      const mimeType = preferredTypes.find((type) => MediaRecorder.isTypeSupported?.(type));
+      mediaRecorderRef.current = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data?.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: mediaRecorderRef.current.mimeType || 'audio/webm' });
+        if (blob.size === 0) {
+          setError('Không thu được dữ liệu âm thanh. Vui lòng ghi âm lại.');
+          stream.getTracks().forEach((track) => track.stop());
+          mediaStreamRef.current = null;
+          return;
+        }
         const extension = blob.type.includes('webm') ? 'webm' : blob.type.includes('ogg') ? 'ogg' : blob.type.includes('wav') ? 'wav' : 'webm';
         const recordedFile = new File([blob], `recorded.${extension}`, { type: blob.type });
         setAudioBlob(recordedFile);
         setNewAudioUrl(URL.createObjectURL(recordedFile));
         
         stream.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
     } catch {
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
       setError('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
     }
   };

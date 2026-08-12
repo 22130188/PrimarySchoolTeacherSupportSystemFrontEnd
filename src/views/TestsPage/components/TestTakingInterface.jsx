@@ -7,22 +7,19 @@ import ConfirmModal from '../../../common/ConfirmModal';
 
 function AudioRecorder({ value, onChange }) {
   const mediaRef = useRef(null);
+  const streamRef = useRef(null);
   const [recording, setRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
-  const [recBlob, setRecBlob] = useState(null);
 
   useEffect(() => {
     let objectUrl = null;
     if (value instanceof Blob) {
       objectUrl = URL.createObjectURL(value);
       setAudioUrl(objectUrl);
-      setRecBlob(value);
     } else if (typeof value === 'string') {
       setAudioUrl(value);
-      setRecBlob(null);
     } else {
       setAudioUrl(null);
-      setRecBlob(null);
     }
     return () => {
       if (objectUrl) {
@@ -31,6 +28,14 @@ function AudioRecorder({ value, onChange }) {
     };
   }, [value]);
 
+  useEffect(() => () => {
+    if (mediaRef.current?.state && mediaRef.current.state !== 'inactive') {
+      mediaRef.current.onstop = null;
+      mediaRef.current.stop();
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
   const startRecording = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       window.showAlertToast('Trình duyệt không hỗ trợ ghi âm');
@@ -38,18 +43,34 @@ function AudioRecorder({ value, onChange }) {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRef.current = new MediaRecorder(stream);
+      streamRef.current = stream;
+      const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+      const mimeType = preferredTypes.find((type) => MediaRecorder.isTypeSupported?.(type));
+      mediaRef.current = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       const chunks = [];
-      mediaRef.current.ondataavailable = (e) => chunks.push(e.data);
+      mediaRef.current.ondataavailable = (e) => {
+        if (e.data?.size > 0) chunks.push(e.data);
+      };
       mediaRef.current.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setRecBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
-        onChange && onChange(blob);
+        const recordedType = mediaRef.current?.mimeType || chunks[0]?.type || 'audio/webm';
+        const extension = recordedType.includes('ogg') ? 'ogg' : 'webm';
+        const blob = new Blob(chunks, { type: recordedType });
+        if (blob.size === 0) {
+          streamRef.current?.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+          window.showAlertToast('Không thu được dữ liệu âm thanh. Vui lòng ghi âm lại.');
+          return;
+        }
+        const file = new File([blob], `student-answer.${extension}`, { type: recordedType });
+        onChange?.(file);
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       };
       mediaRef.current.start();
       setRecording(true);
     } catch (e) {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
       window.showAlertToast('Không thể truy cập micro: ' + (e.message || e));
     }
   };
@@ -57,7 +78,6 @@ function AudioRecorder({ value, onChange }) {
   const stopRecording = () => {
     if (mediaRef.current && mediaRef.current.state !== 'inactive') {
       mediaRef.current.stop();
-      mediaRef.current.stream && mediaRef.current.stream.getTracks().forEach(t => t.stop());
     }
     setRecording(false);
   };
@@ -527,11 +547,17 @@ export default function TestTakingInterface({
   const [startedAt] = useState(Date.now());
 
   const incompleteCount = totalQuestions - answeredCount;
-  const pendingReviewCount = questions.reduce((acc, question) => {
+  const essayPendingReviewCount = questions.reduce((acc, question) => {
     const answer = answers[question.id];
     if (!answer) return acc;
     const qType = question.type ? question.type.toString().toUpperCase().replace(/-/g, '_') : 'MULTIPLE_CHOICE';
-    return qType === QUESTION_TYPES.ESSAY || qType === QUESTION_TYPES.AUDIO ? acc + 1 : acc;
+    return qType === QUESTION_TYPES.ESSAY ? acc + 1 : acc;
+  }, 0);
+  const audioPendingReviewFallback = questions.reduce((acc, question) => {
+    const answer = answers[question.id];
+    if (!answer) return acc;
+    const qType = question.type ? question.type.toString().toUpperCase().replace(/-/g, '_') : 'MULTIPLE_CHOICE';
+    return qType === QUESTION_TYPES.AUDIO ? acc + 1 : acc;
   }, 0);
 
   const handleSubmitTest = async () => {
@@ -570,6 +596,11 @@ export default function TestTakingInterface({
     const maxScore = test?.totalPoints ?? totalQuestions;
     const score = payload?.score ?? Math.round((correctCount / totalQuestions) * maxScore);
     const status = payload?.status || (score >= (maxScore * 0.5) ? 'Đạt' : 'Chưa đạt');
+    const serverAudioPendingCount = payload?.pendingReviewCount != null
+      ? Number(payload.pendingReviewCount) || 0
+      : Array.isArray(payload?.audioEvaluations)
+        ? payload.audioEvaluations.filter((item) => item?.reviewRequired).length
+        : audioPendingReviewFallback;
 
     return {
       correctCount,
@@ -578,7 +609,7 @@ export default function TestTakingInterface({
       maxScore,
       durationSeconds: payload?.durationSeconds ?? elapsedSeconds,
       status,
-      pendingReviewCount,
+      pendingReviewCount: essayPendingReviewCount + serverAudioPendingCount,
       audioEvaluations: payload?.audioEvaluations || [],
     };
   };

@@ -3,13 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
-import { BookOpen, Plus, Search, FileText, Presentation, Trash2, Loader2, RefreshCw, AlertTriangle, Share2, Eye, Copy, Users, School, Edit3, X, ChevronLeft, ChevronRight, Languages, Globe2, BadgeCheck, ShieldAlert } from 'lucide-react';
+import { BookOpen, Plus, Search, FileText, Presentation, Trash2, Loader2, RefreshCw, AlertTriangle, Share2, Eye, Copy, Users, School, Edit3, X, ChevronLeft, ChevronRight, Languages } from 'lucide-react';
 import { SUBJECTS, GRADES } from '../../data/editorSharedConstants';
 import { DRAFT_COLORS, DRAFT_EMOJIS, SUBJECT_EMOJI } from '../../data/lessonData';
-import {
-  VERIFICATION_STATUS_LABELS,
-  VERIFICATION_STATUS_STYLE,
-} from '../../data/lessonPublicConfig';
 import CreateLessonModal from './CreateLessonModal';
 import ShareLessonModal from './ShareLessonModal';
 import ShareToClassroomModal from './ShareToClassroomModal';
@@ -46,12 +42,14 @@ export default function LessonsPage() {
   const [loadingDrafts, setLoadingDrafts] = useState(true);
   const [draftError, setDraftError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [editingLesson, setEditingLesson] = useState(null);
   const [updatingLesson, setUpdatingLesson] = useState(false);
   const [editLessonForm, setEditLessonForm] = useState({
     title: '',
     subject: '',
     grade: '',
+    status: 'DRAFT',
   });
 
   const [searchTitle, setSearchTitle] = useState('');
@@ -145,6 +143,7 @@ export default function LessonsPage() {
       type,
       isCollabora,
       isPptx,
+      status: draft.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
       isPublic: Boolean(draft.isPublic),
       publicVerificationStatus: draft.publicVerificationStatus || 'UNVERIFIED',
       date: formatDate(draft.updatedAt || draft.createdAt),
@@ -183,6 +182,7 @@ export default function LessonsPage() {
       title: lesson.title || '',
       subject: SUBJECTS.includes(lesson.subject) ? lesson.subject : '',
       grade: GRADES.includes(lesson.grade) ? lesson.grade : '',
+      status: lesson.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
     });
   };
 
@@ -207,7 +207,16 @@ export default function LessonsPage() {
       title: editLessonForm.title.trim(),
       subject: editLessonForm.subject,
       grade: editLessonForm.grade,
+      status: editLessonForm.status,
     };
+
+    if (editingLesson.status === 'PUBLISHED' && editLessonForm.status === 'DRAFT') {
+      const confirmed = await confirmToast(
+        'Chuyển về Bản nháp sẽ ẩn bài giảng khỏi lớp học, chia sẻ riêng và danh sách công khai cho đến khi bạn đánh dấu hoàn chỉnh lại.',
+        { title: 'Chuyển về Bản nháp', confirmLabel: 'Cập nhật' }
+      );
+      if (!confirmed) return;
+    }
 
     try {
       setUpdatingLesson(true);
@@ -237,6 +246,48 @@ export default function LessonsPage() {
     } finally {
       setDuplicatingId(null);
     }
+  };
+
+  const handleToggleLessonStatus = async (lesson) => {
+    const nextStatus = lesson.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+    if (nextStatus === 'DRAFT') {
+      const confirmed = await confirmToast(
+        'Chuyển về Bản nháp sẽ ẩn bài giảng khỏi lớp học, chia sẻ riêng và danh sách công khai cho đến khi bạn đánh dấu hoàn chỉnh lại.',
+        { title: 'Chuyển về Bản nháp', confirmLabel: 'Chuyển trạng thái' }
+      );
+      if (!confirmed) return;
+    }
+
+    try {
+      setUpdatingStatusId(lesson.id);
+      const updated = await lessonDraftApi.updateStatus(lesson.id, nextStatus);
+      setDrafts((prev) => prev.map((draft) => (
+        draft.id === lesson.id ? { ...draft, ...(updated || {}), status: nextStatus } : draft
+      )));
+      window.showAlertToast(nextStatus === 'PUBLISHED'
+        ? 'Đã đánh dấu bài giảng là Bản hoàn chỉnh.'
+        : 'Đã chuyển bài giảng về Bản nháp.');
+    } catch (err) {
+      window.showAlertToast(err.response?.data?.message || 'Không thể cập nhật trạng thái bài giảng.');
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
+  const openTeacherShare = (lesson) => {
+    if (lesson.status !== 'PUBLISHED') {
+      window.showAlertToast('Chỉ có thể chia sẻ bài giảng đã được đánh dấu là Bản hoàn chỉnh.');
+      return;
+    }
+    setShareModalLesson(lesson);
+  };
+
+  const openClassroomShare = (lesson) => {
+    if (lesson.status !== 'PUBLISHED') {
+      window.showAlertToast('Chỉ có thể đăng vào lớp bài giảng đã được đánh dấu là Bản hoàn chỉnh.');
+      return;
+    }
+    setShareToClassroomLesson(lesson);
   };
 
   return (
@@ -470,16 +521,6 @@ export default function LessonsPage() {
                             <span className="absolute bottom-2 left-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                               {lesson.isCollabora ? 'Collabora' : lesson.type === 'PPTX' ? '.pptx' : '.docx'}
                             </span>
-                            {lesson.isPublic && (
-                              <span
-                                className={`absolute top-2 right-2 px-1.5 py-0.5 rounded border text-[10px] font-bold ${
-                                  VERIFICATION_STATUS_STYLE[lesson.publicVerificationStatus] || VERIFICATION_STATUS_STYLE.UNVERIFIED
-                                }`}
-                                title={VERIFICATION_STATUS_LABELS[lesson.publicVerificationStatus]}
-                              >
-                                {VERIFICATION_STATUS_LABELS[lesson.publicVerificationStatus] || 'Chưa xác minh'}
-                              </span>
-                            )}
                           </div>
                           <div className="p-3">
                             <h3 className="text-sm font-bold text-gray-800 mb-1 group-hover:text-violet-600 transition-colors truncate">{lesson.title}</h3>
@@ -489,11 +530,27 @@ export default function LessonsPage() {
                         {!isStudent && (
                           <button
                             type="button"
+                            onClick={() => handleToggleLessonStatus(lesson)}
+                            disabled={updatingStatusId === lesson.id}
+                            className={`absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold shadow-sm transition-colors disabled:cursor-wait disabled:opacity-60 ${
+                              lesson.status === 'PUBLISHED'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                            }`}
+                            title="Bấm để đổi trạng thái bài giảng"
+                          >
+                            {updatingStatusId === lesson.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {lesson.status === 'PUBLISHED' ? 'Bản hoàn chỉnh' : 'Bản nháp'}
+                          </button>
+                        )}
+                        {!isStudent && (
+                          <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditLessonModal(lesson);
                             }}
-                            className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-900 hover:text-blue-600 hover:bg-blue-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Chỉnh sửa bài giảng"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -505,9 +562,9 @@ export default function LessonsPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setShareModalLesson({ id: lesson.id, title: lesson.title });
+                              openTeacherShare(lesson);
                             }}
-                            className="absolute bottom-2 right-10 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-violet-500 hover:bg-violet-50 transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute bottom-2 right-10 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-900 hover:text-violet-600 hover:bg-violet-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Chia sẻ cho giáo viên"
                           >
                             <Share2 className="w-4 h-4" />
@@ -521,7 +578,7 @@ export default function LessonsPage() {
                               e.stopPropagation();
                               setTranslateLesson({ id: lesson.id, title: lesson.title });
                             }}
-                            className="absolute bottom-2 right-[4.5rem] p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute bottom-2 right-[4.5rem] p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-900 hover:text-emerald-600 hover:bg-emerald-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Dịch bài giảng"
                           >
                             <Languages className="w-4 h-4" />
@@ -533,9 +590,9 @@ export default function LessonsPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setShareToClassroomLesson({ id: lesson.id, title: lesson.title });
+                              openClassroomShare(lesson);
                             }}
-                            className="absolute bottom-2 right-[6.5rem] p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-teal-500 hover:bg-teal-50 transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute bottom-2 right-[6.5rem] p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-900 hover:text-teal-600 hover:bg-teal-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Chia sẻ vào lớp học"
                           >
                             <School className="w-4 h-4" />
@@ -559,7 +616,7 @@ export default function LessonsPage() {
                               }
                             }}
                             disabled={deletingId === lesson.id}
-                            className="absolute top-2 left-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                            className="absolute top-2 left-2 p-1.5 rounded-lg bg-white/80 backdrop-blur-sm text-gray-900 hover:text-red-600 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
                             title="Xóa bài giảng"
                           >
                             {deletingId === lesson.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -768,6 +825,35 @@ export default function LessonsPage() {
                   </select>
                 </label>
               </div>
+
+              <div>
+                <span className="mb-1.5 block text-xs font-semibold text-gray-600">Trạng thái bài giảng</span>
+                <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-1">
+                  <button
+                    type="button"
+                    onClick={() => updateEditLessonForm('status', 'DRAFT')}
+                    className={`h-9 rounded-md text-sm font-semibold transition-colors ${editLessonForm.status === 'DRAFT'
+                      ? 'border border-amber-200 bg-white text-amber-700 shadow-sm'
+                      : 'text-gray-500 hover:bg-white/70'
+                    }`}
+                  >
+                    Bản nháp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateEditLessonForm('status', 'PUBLISHED')}
+                    className={`h-9 rounded-md text-sm font-semibold transition-colors ${editLessonForm.status === 'PUBLISHED'
+                      ? 'border border-emerald-200 bg-white text-emerald-700 shadow-sm'
+                      : 'text-gray-500 hover:bg-white/70'
+                    }`}
+                  >
+                    Bản hoàn chỉnh
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Chỉ Bản hoàn chỉnh mới có thể chia sẻ cho giáo viên khác, chia sẻ công khai hoặc đăng vào lớp.
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-4">
@@ -796,6 +882,7 @@ export default function LessonsPage() {
         <ShareLessonModal
           lessonId={shareModalLesson.id}
           lessonTitle={shareModalLesson.title}
+          lessonStatus={shareModalLesson.status}
           onClose={() => setShareModalLesson(null)}
           onPublicChange={(status) => {
             setDrafts((prev) => prev.map((d) => (
@@ -816,6 +903,7 @@ export default function LessonsPage() {
         <ShareToClassroomModal
           lessonId={shareToClassroomLesson.id}
           lessonTitle={shareToClassroomLesson.title}
+          lessonStatus={shareToClassroomLesson.status}
           onClose={() => setShareToClassroomLesson(null)}
         />
       )}

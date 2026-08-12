@@ -16,8 +16,8 @@ class PronunciationService {
         `${PRONUNCIATION_SERVICE_URL}/${endpoint}`,
         formData,
         {
+          timeout: 180000,
           headers: {
-            'Content-Type': 'multipart/form-data',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         }
@@ -28,6 +28,8 @@ class PronunciationService {
         error.response?.data?.detail ||
         error.response?.data?.message ||
         error.response?.data?.error ||
+        (error.code === 'ECONNABORTED' ? 'Dịch vụ nhận dạng đang xử lý quá lâu. Vui lòng thử lại.' : null) ||
+        (error.request ? 'Không kết nối được dịch vụ kiểm tra phát âm. Vui lòng kiểm tra các dịch vụ backend và FastAPI.' : null) ||
         'Lỗi kiểm tra phát âm'
       );
     }
