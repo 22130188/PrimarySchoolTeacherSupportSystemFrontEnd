@@ -48,6 +48,37 @@ export function useFabricCanvas({ onSelectionChange } = {}) {
     emitHistory();
   }, [emitHistory]);
 
+  const addClonedObject = useCallback((clone, left, top) => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    const history = historyRef.current;
+    const wasRestoring = history.restoring;
+    canvas.discardActiveObject();
+    clone.set({ left, top, ...CONTROL_STYLE });
+
+    history.restoring = true;
+    try {
+      if (clone instanceof fabric.ActiveSelection || clone.type?.toLowerCase() === 'activeselection') {
+        clone.canvas = canvas;
+        clone.getObjects().forEach((object) => {
+          object.set(CONTROL_STYLE);
+          canvas.add(object);
+        });
+        clone.setCoords();
+      } else {
+        canvas.add(clone);
+      }
+    } finally {
+      history.restoring = wasRestoring;
+    }
+
+    canvas.setActiveObject(clone);
+    canvas.requestRenderAll();
+    saveHistory();
+    onSelectionChange?.(clone);
+  }, [onSelectionChange, saveHistory]);
+
   useEffect(() => {
     const canvas = new fabric.Canvas(canvasElRef.current, {
       width: 800,
@@ -159,13 +190,12 @@ export function useFabricCanvas({ onSelectionChange } = {}) {
           onSelectionChange?.(null);
         }
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'c' && active) {
+        e.preventDefault();
         active.clone().then((c) => { clipboardRef.current = c; });
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'v' && clipboardRef.current) {
+        e.preventDefault();
         clipboardRef.current.clone().then((c) => {
-          c.set({ left: (c.left || 40) + 18, top: (c.top || 40) + 18, ...CONTROL_STYLE });
-          canvas.add(c);
-          canvas.setActiveObject(c);
-          canvas.requestRenderAll();
+          addClonedObject(c, (c.left ?? 40) + 18, (c.top ?? 40) + 18);
         });
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
@@ -328,12 +358,9 @@ export function useFabricCanvas({ onSelectionChange } = {}) {
     const a = canvas?.getActiveObject();
     if (!a) return;
     a.clone().then((c) => {
-      c.set({ left: (a.left || 0) + 18, top: (a.top || 0) + 18, ...CONTROL_STYLE });
-      canvas.add(c);
-      canvas.setActiveObject(c);
-      canvas.requestRenderAll();
+      addClonedObject(c, (a.left ?? 0) + 18, (a.top ?? 0) + 18);
     });
-  }, []);
+  }, [addClonedObject]);
 
   const setCanvasSize = useCallback((w, h) => {
     const canvas = fabricRef.current;
