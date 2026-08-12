@@ -14,8 +14,8 @@ export default function SelectLessonModal({ classroomId, onClose, onLessonShared
       setLoading(true);
       try {
         const data = await lessonDraftApi.getDrafts();
-        setDrafts(Array.isArray(data) ? data : []);
-      } catch (err) {
+        setDrafts(Array.isArray(data) ? data.filter((draft) => draft.status === 'PUBLISHED') : []);
+      } catch {
         setError('Không thể tải danh sách bài giảng.');
       } finally {
         setLoading(false);
@@ -80,7 +80,7 @@ export default function SelectLessonModal({ classroomId, onClose, onLessonShared
             </div>
           ) : filteredDrafts.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              Không tìm thấy bài giảng nào.
+              Không có Bản hoàn chỉnh nào phù hợp để chia sẻ vào lớp.
             </div>
           ) : (
             <div className="space-y-3">

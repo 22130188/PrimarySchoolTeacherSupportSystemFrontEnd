@@ -10,7 +10,8 @@ import {
 
 const PERMISSION_LABELS = { VIEW: 'Chỉ xem', COPY: 'Cho phép tạo bản sao' };
 
-export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPublicChange }) {
+export default function ShareLessonModal({ lessonId, lessonTitle, lessonStatus, onClose, onPublicChange }) {
+  const isCompleted = lessonStatus === 'PUBLISHED';
   const [email, setEmail] = useState('');
   const [permission, setPermission] = useState('VIEW');
   const [shares, setShares] = useState([]);
@@ -64,6 +65,10 @@ export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPub
   }, [fetchShares, fetchPublicStatus]);
 
   const handleTogglePublic = async () => {
+    if (!isCompleted && !publicStatus.isPublic) {
+      setPublicError('Hãy đánh dấu bài giảng là Bản hoàn chỉnh trước khi chia sẻ công khai.');
+      return;
+    }
     setPublicError('');
     setPublicToggling(true);
     try {
@@ -85,6 +90,10 @@ export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPub
 
   const handleShare = async (e) => {
     e.preventDefault();
+    if (!isCompleted) {
+      setError('Hãy đánh dấu bài giảng là Bản hoàn chỉnh trước khi chia sẻ cho giáo viên khác.');
+      return;
+    }
     if (!email.trim()) return;
     setError('');
     setSuccess('');
@@ -156,7 +165,7 @@ export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPub
                     type="button"
                     role="switch"
                     aria-checked={publicStatus.isPublic}
-                    disabled={publicLoading || publicToggling}
+                    disabled={publicLoading || publicToggling || (!isCompleted && !publicStatus.isPublic)}
                     onClick={handleTogglePublic}
                     className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
                       publicStatus.isPublic ? 'bg-sky-600' : 'bg-gray-300'
@@ -200,6 +209,11 @@ export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPub
                 {publicError && (
                   <p className="mt-2 text-[11px] text-rose-600">{publicError}</p>
                 )}
+                {!isCompleted && (
+                  <p className="mt-2 text-[11px] font-medium text-amber-700">
+                    Bài giảng đang là Bản nháp. Hãy đánh dấu Bản hoàn chỉnh để bật chia sẻ công khai.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -213,7 +227,7 @@ export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPub
                 onChange={e => setEmail(e.target.value)}
                 placeholder="Nhập email giáo viên..."
                 className="w-full pl-4 pr-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all"
-                disabled={sharing}
+                disabled={sharing || !isCompleted}
               />
             </div>
             <div className="relative">
@@ -221,7 +235,7 @@ export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPub
                 value={permission}
                 onChange={e => setPermission(e.target.value)}
                 className="appearance-none pl-3 pr-8 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm outline-none focus:border-violet-300 cursor-pointer"
-                disabled={sharing}
+                disabled={sharing || !isCompleted}
               >
                 <option value="VIEW">Chỉ xem</option>
                 <option value="COPY">Tạo bản sao</option>
@@ -230,7 +244,7 @@ export default function ShareLessonModal({ lessonId, lessonTitle, onClose, onPub
             </div>
             <button
               type="submit"
-              disabled={sharing || !email.trim()}
+              disabled={sharing || !email.trim() || !isCompleted}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 text-white text-sm font-semibold shadow-md hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {sharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}

@@ -29,7 +29,7 @@ class ResourceService {
     }
   }
 
-  async uploadImage(file, description, subject, userId, userName) {
+  async uploadImage(file, description, subject, userId, userName, grade) {
     try {
       const cloudinaryFormData = new FormData();
       cloudinaryFormData.append('file', file);
@@ -49,7 +49,8 @@ class ResourceService {
         subject: subject,
         imageUrl: cloudinaryResponse.data.image_url,
         userId: userId || 0,
-        userName: userName || 'Unknown'
+        userName: userName || 'Unknown',
+        grade: grade || null
       }, authConfig());
 
       return saveResponse.data;
@@ -59,15 +60,22 @@ class ResourceService {
     }
   }
 
-  async uploadAudio(file, audioName, subject, userId, userName) {
+  async uploadAudio(file, audioName, subject, userId, userName, grade) {
     try {
+      const audioFile = file instanceof File
+        ? file
+        : new File(
+          [file],
+          `student-answer.${file?.type?.includes('ogg') ? 'ogg' : 'webm'}`,
+          { type: file?.type || 'audio/webm' },
+        );
       const cloudinaryFormData = new FormData();
-      cloudinaryFormData.append('file', file);
+      cloudinaryFormData.append('file', audioFile, audioFile.name);
 
       const cloudinaryResponse = await axios.post(
         `${GATEWAY_URL}/api/canvas/upload-audio`,
         cloudinaryFormData,
-        authConfig({ 'Content-Type': 'multipart/form-data' })
+        authConfig()
       );
 
       if (!cloudinaryResponse.data.success) {
@@ -80,7 +88,8 @@ class ResourceService {
         userId: userId || 0,
         userName: userName || 'Unknown',
         audioName: audioName,
-        subject: subject
+        subject: subject,
+        grade: grade || null
       }, authConfig());
 
       return saveResponse.data;

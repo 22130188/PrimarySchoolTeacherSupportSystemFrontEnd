@@ -51,6 +51,18 @@ function buildColumns({ onView, onDelete, openMenuId, setOpenMenuId, menuDirecti
       },
     },
     {
+      accessorKey: 'status',
+      header: 'Trạng thái',
+      cell: ({ getValue }) => {
+        const isCompleted = getValue() === 'PUBLISHED';
+        return (
+          <span className="inline-flex rounded-full border border-gray-900 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-900">
+            {isCompleted ? 'Bản hoàn chỉnh' : 'Bản nháp'}
+          </span>
+        );
+      },
+    },
+    {
       accessorKey: 'createdByName',
       header: 'Người tạo',
       cell: ({ getValue }) => (
@@ -123,6 +135,7 @@ function buildColumns({ onView, onDelete, openMenuId, setOpenMenuId, menuDirecti
 export default function LessonManagement() {
   const navigate = useNavigate();
   const [globalFilter, setGlobalFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [sorting, setSorting] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,6 +170,7 @@ export default function LessonManagement() {
         subject: lesson.subject,
         grade: lesson.grade,
         type: lesson.type || 'DOCX',
+        status: lesson.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT',
         createdByName: lesson.createdByName || 'Unknown',
         createdAt: new Date(lesson.createdAt).toLocaleDateString('vi-VN'),
         updatedAt: new Date(lesson.updatedAt).toLocaleDateString('vi-VN'),
@@ -194,6 +208,17 @@ export default function LessonManagement() {
         : '/lessons/docx-editor';
     navigate(`${editorPath}?draftId=${lesson.id}&mode=view&from=admin`);
   };
+
+  const statusCounts = useMemo(() => lessons.reduce((counts, lesson) => ({
+    draft: counts.draft + (lesson.status === 'DRAFT' ? 1 : 0),
+    completed: counts.completed + (lesson.status === 'PUBLISHED' ? 1 : 0),
+  }), { draft: 0, completed: 0 }), [lessons]);
+
+  const filteredLessons = useMemo(() => (
+    statusFilter === 'ALL'
+      ? lessons
+      : lessons.filter((lesson) => lesson.status === statusFilter)
+  ), [lessons, statusFilter]);
 
   const columns = useMemo(() => buildColumns({
     onView: handleViewLesson,
@@ -245,25 +270,43 @@ export default function LessonManagement() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 justify-between w-full">
-          <div className="text-sm text-gray-500">
-            Tổng cộng <span className="font-semibold text-gray-900">{lessons.length}</span> bài giảng
+          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+            <span>Tổng cộng <strong className="font-semibold text-gray-900">{lessons.length}</strong> bài giảng</span>
+            <span className="rounded-full border border-gray-900 bg-white px-2.5 py-1 text-xs font-semibold text-gray-900">
+              {statusCounts.draft} Bản nháp
+            </span>
+            <span className="rounded-full border border-gray-900 bg-white px-2.5 py-1 text-xs font-semibold text-gray-900">
+              {statusCounts.completed} Bản hoàn chỉnh
+            </span>
           </div>
 
-          <div className="relative w-full max-w-sm">
-            <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm bài giảng..."
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
-            />
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+              aria-label="Lọc theo trạng thái bài giảng"
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="DRAFT">Bản nháp</option>
+              <option value="PUBLISHED">Bản hoàn chỉnh</option>
+            </select>
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm bài giảng..."
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+              />
+            </div>
           </div>
         </div>
       </div>
 
       <LessonTable
-        data={lessons}
+        data={filteredLessons}
         columns={columns}
         globalFilter={globalFilter}
         onGlobalFilterChange={setGlobalFilter}

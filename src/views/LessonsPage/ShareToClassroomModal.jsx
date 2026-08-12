@@ -4,7 +4,8 @@ import lessonDraftApi from '../../services/lessonDraftApi';
 import { getMyClassrooms } from '../../services/classroomApi';
 import { confirmToast } from '../../utils/toastNotifications.js';
 
-export default function ShareToClassroomModal({ lessonId, lessonTitle, onClose }) {
+export default function ShareToClassroomModal({ lessonId, lessonTitle, lessonStatus, onClose }) {
+  const isCompleted = lessonStatus === 'PUBLISHED';
   const [classrooms, setClassrooms] = useState([]);
   const [shares, setShares] = useState([]);
   const [loadingClassrooms, setLoadingClassrooms] = useState(true);
@@ -45,6 +46,10 @@ export default function ShareToClassroomModal({ lessonId, lessonTitle, onClose }
   const isShared = (classroomId) => shares.some(s => s.classroomId === classroomId);
 
   const handleShare = async (classroomId) => {
+    if (!isCompleted) {
+      setError('Hãy đánh dấu bài giảng là Bản hoàn chỉnh trước khi chia sẻ vào lớp học.');
+      return;
+    }
     setError('');
     setSuccess('');
     setSharingId(classroomId);
@@ -93,6 +98,12 @@ export default function ShareToClassroomModal({ lessonId, lessonTitle, onClose }
         </div>
 
         <div className="p-6">
+          {!isCompleted && (
+            <div className="mb-4 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              Bài giảng đang là Bản nháp. Hãy đánh dấu Bản hoàn chỉnh trước khi chia sẻ vào lớp.
+            </div>
+          )}
           {error && (
             <div className="mb-4 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -139,7 +150,7 @@ export default function ShareToClassroomModal({ lessonId, lessonTitle, onClose }
                     </div>
                     <button
                       onClick={() => handleShare(cls.id)}
-                      disabled={sharingId === cls.id}
+                      disabled={sharingId === cls.id || !isCompleted}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-teal-500 to-cyan-500 shadow-sm hover:shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                     >
                       {sharingId === cls.id ? (

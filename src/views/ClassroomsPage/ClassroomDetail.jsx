@@ -70,7 +70,7 @@ export default function ClassroomDetail() {
   const fetchPosts = useCallback(async () => {
     setPostsLoading(true);
     try {
-      const data = await getClassroomPosts(id, 50);
+      const data = await getClassroomPosts(id, 100);
       setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err.message);
