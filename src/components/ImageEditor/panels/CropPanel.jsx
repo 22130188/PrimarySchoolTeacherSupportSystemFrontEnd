@@ -17,7 +17,7 @@ const RATIOS = [
 ];
 
 function CropOverlay({
-  box, setBox, shape, aspectRatio,
+  box, setBox, shape, radius, aspectRatio,
   freeformPoints, setFreeformPoints,
   portalTarget, targetInfo,
 }) {
@@ -175,6 +175,9 @@ function CropOverlay({
     width: (box.w / 100) * imgW,
     height: (box.h / 100) * imgH,
   };
+  const croppedNaturalWidth = Math.max(1, (box.w / 100) * canvasW);
+  const radiusScale = px.width / croppedNaturalWidth;
+  const previewRadius = Math.min(radius * radiusScale, px.width / 2, px.height / 2);
   const handle = 'absolute h-3 w-3 rounded-full border-2 border-white bg-emerald-500';
 
   return createPortal(
@@ -186,8 +189,16 @@ function CropOverlay({
       style={{ pointerEvents: drag ? 'auto' : 'none' }}
     >
       <div
-        className={`absolute border-2 border-dashed border-emerald-500 bg-emerald-500/10 ${shape === 'circle' ? 'rounded-full' : shape === 'rounded' ? 'rounded-xl' : ''}`}
-        style={{ left: `${px.left}px`, top: `${px.top}px`, width: `${px.width}px`, height: `${px.height}px`, pointerEvents: 'auto', cursor: 'move' }}
+        className={`absolute border-2 border-dashed border-emerald-500 bg-emerald-500/10 transition-[border-radius] duration-100 ${shape === 'circle' ? 'rounded-full' : ''}`}
+        style={{
+          left: `${px.left}px`,
+          top: `${px.top}px`,
+          width: `${px.width}px`,
+          height: `${px.height}px`,
+          borderRadius: shape === 'rounded' ? `${previewRadius}px` : undefined,
+          pointerEvents: 'auto',
+          cursor: 'move',
+        }}
         onMouseDown={(e) => onDown(e, 'move')}
       >
         <span className={`${handle} -left-1.5 -top-1.5`} style={{ cursor: 'nwse-resize' }} onMouseDown={(e) => onDown(e, 'nw')} />
@@ -298,6 +309,8 @@ export default function CropPanel({ onApply, getSelectedImageInfo, portalTarget,
             step={5}
             value={radius}
             onChange={(e) => setRadius(Number(e.target.value))}
+            aria-label="Độ bo góc"
+            aria-valuetext={`${radius} pixel`}
             className="w-full accent-emerald-600"
           />
         </div>
@@ -354,6 +367,7 @@ export default function CropPanel({ onApply, getSelectedImageInfo, portalTarget,
         box={box}
         setBox={setBox}
         shape={shape}
+        radius={radius}
         aspectRatio={ratio}
         freeformPoints={freeformPoints}
         setFreeformPoints={setFreeformPoints}
