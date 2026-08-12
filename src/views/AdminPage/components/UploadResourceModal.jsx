@@ -8,6 +8,7 @@ export default function UploadResourceModal({ isOpen, onClose, onUploadSuccess, 
   const [formData, setFormData] = useState({
     name: '',
     subject: '',
+    grade: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +59,10 @@ export default function UploadResourceModal({ isOpen, onClose, onUploadSuccess, 
       setError('Vui lòng chọn môn học');
       return;
     }
+    if (!formData.grade.trim()) {
+      setError('Vui lòng chọn lớp');
+      return;
+    }
 
     if (!user?.id) {
       setError('Vui lòng đăng nhập để tải lên');
@@ -72,7 +77,8 @@ export default function UploadResourceModal({ isOpen, onClose, onUploadSuccess, 
           formData.name,
           formData.subject,
           user.id,
-          user.fullName || user.name || user.username || 'Unknown'
+          user.fullName || user.name || user.username || 'Unknown',
+          formData.grade
         );
       } else {
         await resourceService.uploadAudio(
@@ -80,12 +86,13 @@ export default function UploadResourceModal({ isOpen, onClose, onUploadSuccess, 
           formData.name,
           formData.subject,
           user.id,
-          user.fullName || user.name || user.username || 'Unknown'
+          user.fullName || user.name || user.username || 'Unknown',
+          formData.grade
         );
       }
 
       setFile(null);
-      setFormData({ name: '', subject: '' });
+      setFormData({ name: '', subject: '', grade: '' });
       setError('');
       onUploadSuccess?.();
       onClose();
@@ -233,6 +240,23 @@ export default function UploadResourceModal({ isOpen, onClose, onUploadSuccess, 
               <option value="Mỹ thuật">Mỹ thuật</option>
               <option value="Âm nhạc">Âm nhạc</option>
               <option value="Khác">Khác</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Lớp
+            </label>
+            <select
+              name="grade"
+              value={formData.grade}
+              onChange={handleFormChange}
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+            >
+              <option value="">-- Chọn lớp --</option>
+              {[1, 2, 3, 4, 5].map((grade) => (
+                <option key={grade} value={`Lớp ${grade}`}>Lớp {grade}</option>
+              ))}
             </select>
           </div>
 

@@ -61,6 +61,13 @@ export default function LessonTable({ data, columns, globalFilter, onGlobalFilte
             ))}
           </thead>
           <tbody className="divide-y divide-gray-200">
+            {table.getRowModel().rows.length === 0 && (
+              <tr>
+                <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-gray-500">
+                  Không tìm thấy bài giảng phù hợp.
+                </td>
+              </tr>
+            )}
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className="group hover:bg-gray-50">
                 {row.getVisibleCells().map((cell) => (
@@ -76,7 +83,7 @@ export default function LessonTable({ data, columns, globalFilter, onGlobalFilte
 
       <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
         <div className="text-xs text-gray-500">
-          Hiển thị {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} đến{' '}
+          Hiển thị {data.length === 0 ? 0 : table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} đến{' '}
           {Math.min(
             (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
             data.length

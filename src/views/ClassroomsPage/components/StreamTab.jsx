@@ -97,7 +97,7 @@ function getPostTypeBadge(type) {
   return badgeMap[normalized] || { label: normalized, className: 'bg-slate-100 text-slate-700' };
 }
 
-function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData }) {
+function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData, classroomPosts = [] }) {
   const user = useAuthStore((state) => state.user);
   const [content, setContent] = useState(initialData?.content || '');
   const [driveUrlInput, setDriveUrlInput] = useState('');
@@ -117,14 +117,27 @@ function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData }) {
 
   const filteredExistingTests = useMemo(() => {
     if (!existingTests?.length) return [];
+    const completedTests = existingTests.filter(
+      (test) => test?.status?.toString()?.toUpperCase() === 'PUBLISHED',
+    );
     if (mode === 'TEST') {
-      return existingTests.filter((test) => test?.testType?.toString()?.toUpperCase() === 'EXAM');
+      return completedTests.filter((test) => test?.testType?.toString()?.toUpperCase() === 'EXAM');
     }
     if (mode === 'ASSIGNMENT') {
-      return existingTests.filter((test) => test?.testType?.toString()?.toUpperCase() === 'EXERCISE');
+      return completedTests.filter((test) => test?.testType?.toString()?.toUpperCase() === 'EXERCISE');
     }
-    return existingTests;
+    return completedTests;
   }, [existingTests, mode]);
+
+  const duplicateClassroomPost = useMemo(() => {
+    if (!referenceTestId || mode === 'ANNOUNCEMENT') return null;
+    const selectedId = Number(referenceTestId);
+    return classroomPosts.find((post) => (
+      post?.id !== initialData?.id
+      && post?.postType?.toString()?.toUpperCase() === mode
+      && Number(post?.referenceTestId) === selectedId
+    )) || null;
+  }, [classroomPosts, initialData?.id, mode, referenceTestId]);
 
   useEffect(() => {
     if (mode !== 'ANNOUNCEMENT') {
@@ -142,10 +155,11 @@ function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData }) {
 
   const canSubmit = useMemo(() => {
     const textContent = stripHtml(content).length > 0;
-    const hasBody = textContent || attachments.length > 0;
+    const hasSelectedTest = mode === 'ANNOUNCEMENT' || Boolean(referenceTestId);
+    const hasBody = textContent || attachments.length > 0 || Boolean(referenceTestId);
     const hasTitle = mode === 'ANNOUNCEMENT' ? true : title.trim().length > 0;
-    return hasTitle && hasBody;
-  }, [content, attachments, title, mode]);
+    return hasTitle && hasBody && hasSelectedTest && !duplicateClassroomPost;
+  }, [content, attachments, title, mode, referenceTestId, duplicateClassroomPost]);
 
   const handleAddLink = () => {
     const url = driveUrlInput.trim();
@@ -209,6 +223,7 @@ function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData }) {
     setReferenceTestId(testId);
     setReferenceTestName(test?.name || '');
     if (test) {
+      setTitle(test.name || '');
       setQuestionCount(test.questionCount ?? '');
       setMaxPoints(test.totalPoints ?? '');
       setDurationMinutes(test.duration ?? '');
@@ -279,6 +294,16 @@ function CreatePostModal({ onClose, onSubmit, submitting, mode, initialData }) {
                     <option key={test.id} value={test.id}>{test.name || `Bài ${test.id}`}</option>
                   ))}
                 </select>
+                {duplicateClassroomPost && (
+                  <p className="mt-2 text-sm font-medium text-rose-600" role="alert">
+                    {mode === 'TEST' ? 'Bài kiểm tra' : 'Bài tập'} này đã được đăng trong lớp. Vui lòng chọn bài khác.
+                  </p>
+                )}
+                {!referenceTestId && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Chỉ hiển thị các bài đã lưu ở trạng thái Hoàn thành.
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -916,6 +941,7 @@ export default function StreamTab({
           submitting={submitting}
           mode={modalLabel}
           initialData={editingPost}
+          classroomPosts={posts}
         />
       )}
 

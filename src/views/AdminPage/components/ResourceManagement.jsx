@@ -15,6 +15,23 @@ import { confirmToast } from '../../../utils/toastNotifications.js';
 import { useAuthStore } from '../../../stores/authStore';
 import UploadResourceModal from './UploadResourceModal';
 
+const getPaginationItems = (currentPage, pageCount) => {
+  if (pageCount <= 7) return Array.from({ length: pageCount }, (_, index) => index);
+
+  let rangeStart = Math.max(1, currentPage - 1);
+  let rangeEnd = Math.min(pageCount - 2, currentPage + 1);
+
+  if (currentPage <= 3) rangeEnd = 4;
+  if (currentPage >= pageCount - 4) rangeStart = pageCount - 5;
+
+  const items = [0];
+  if (rangeStart > 1) items.push('start-ellipsis');
+  for (let page = rangeStart; page <= rangeEnd; page += 1) items.push(page);
+  if (rangeEnd < pageCount - 2) items.push('end-ellipsis');
+  items.push(pageCount - 1);
+  return items;
+};
+
 export default function ResourceManagement() {
   const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState('images');
@@ -42,6 +59,7 @@ export default function ResourceManagement() {
             fileName: img.description || `Image ${img.id}`,
             uploadedBy: img.userName,
             subject: img.subject,
+            grade: img.grade,
             createdAt: new Date(img.createdAt).toLocaleDateString('vi-VN'),
             url: img.imageUrl,
             mimeType: 'image/*'
@@ -54,6 +72,7 @@ export default function ResourceManagement() {
             fileName: audio.audioName || `Audio ${audio.id}`,
             uploadedBy: audio.userName,
             subject: audio.subject,
+            grade: audio.grade,
             createdAt: new Date(audio.createdAt).toLocaleDateString('vi-VN'),
             url: audio.audioUrl,
             mimeType: 'audio/*',
@@ -97,6 +116,13 @@ export default function ResourceManagement() {
         cell: ({ getValue }) => {
           return <span className="text-xs font-semibold text-gray-900">{getValue()}</span>;
         },
+      },
+      {
+        accessorKey: 'grade',
+        header: 'Lớp',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-700">{getValue() || 'Chưa chọn'}</span>
+        ),
       },
       {
         accessorKey: 'uploadedBy',
@@ -166,6 +192,13 @@ export default function ResourceManagement() {
         cell: ({ getValue }) => {
           return <span className="text-xs font-semibold text-gray-900">{getValue()}</span>;
         },
+      },
+      {
+        accessorKey: 'grade',
+        header: 'Lớp',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-gray-700">{getValue() || 'Chưa chọn'}</span>
+        ),
       },
       {
         accessorKey: 'uploadedBy',
@@ -273,6 +306,9 @@ export default function ResourceManagement() {
       pagination: { pageSize: 6 },
     },
   });
+  const currentPage = table.getState().pagination.pageIndex;
+  const pageCount = table.getPageCount();
+  const paginationItems = getPaginationItems(currentPage, pageCount);
 
   if (loading) {
     return (
@@ -396,26 +432,52 @@ export default function ResourceManagement() {
           </table>
         </div>
 
-        {table.getPageCount() > 1 && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
-            <p className="text-sm text-gray-500">
+        {pageCount > 1 && (
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 sm:flex-row">
+            <p className="text-sm text-gray-500 tabular-nums">
               Hiển thị {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–
               {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}{' '}
-              / {table.getFilteredRowModel().rows.length}
+              trong tổng số {table.getFilteredRowModel().rows.length}
             </p>
-            <div className="flex items-center gap-1">
-              <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+            <nav className="flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1" aria-label="Phân trang tài nguyên">
+              <button
+                type="button"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-gray-600 transition-colors hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:border-transparent disabled:hover:bg-transparent"
+                aria-label="Trang trước"
+              >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              {Array.from({ length: table.getPageCount() }, (_, i) => i).map((pageIndex) => (
-                <button key={pageIndex} onClick={() => table.setPageIndex(pageIndex)} className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-200 ${pageIndex === table.getState().pagination.pageIndex ? 'bg-violet-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'}`}>
-                  {pageIndex + 1}
-                </button>
+              {paginationItems.map((item) => (
+                typeof item === 'string' ? (
+                  <span key={item} className="flex h-8 w-7 items-center justify-center text-sm text-gray-400">…</span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => table.setPageIndex(item)}
+                    aria-current={item === currentPage ? 'page' : undefined}
+                    aria-label={`Trang ${item + 1}`}
+                    className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm font-semibold tabular-nums transition-all ${item === currentPage
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                    }`}
+                  >
+                    {item + 1}
+                  </button>
+                )
               ))}
-              <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+              <button
+                type="button"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-gray-600 transition-colors hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:border-transparent disabled:hover:bg-transparent"
+                aria-label="Trang sau"
+              >
                 <ChevronRight className="w-4 h-4" />
               </button>
-            </div>
+            </nav>
           </div>
         )}
       </div>
@@ -461,6 +523,7 @@ export default function ResourceManagement() {
                   fileName: img.description || `Image ${img.id}`,
                   uploadedBy: img.userName,
                   subject: img.subject,
+                  grade: img.grade,
                   createdAt: new Date(img.createdAt).toLocaleDateString('vi-VN'),
                   url: img.imageUrl,
                   mimeType: 'image/*'
@@ -473,6 +536,7 @@ export default function ResourceManagement() {
                   fileName: audio.audioName || `Audio ${audio.id}`,
                   uploadedBy: audio.userName,
                   subject: audio.subject,
+                  grade: audio.grade,
                   createdAt: new Date(audio.createdAt).toLocaleDateString('vi-VN'),
                   url: audio.audioUrl,
                   mimeType: 'audio/*',
