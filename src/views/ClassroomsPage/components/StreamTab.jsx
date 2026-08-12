@@ -35,6 +35,20 @@ function formatTime(value) {
   }
 }
 
+function getPostStartTime(post) {
+  if (!post?.startAt) return null;
+  const value = new Date(post.startAt);
+  return Number.isNaN(value.getTime()) ? null : value;
+}
+
+function isPostLocked(post) {
+  const startTime = getPostStartTime(post);
+  return startTime !== null && Date.now() < startTime.getTime();
+}
+
+function postOpenLabel(post) {
+  return formatTime(post?.startAt);
+}
 function prettySize(bytes) {
   if (!bytes || Number.isNaN(Number(bytes))) return '';
   const size = Number(bytes);
@@ -752,6 +766,10 @@ export default function StreamTab({
 
   const handleOpenTestForPost = async (post) => {
     if (!post) return;
+    if (!isTeacher && !readOnly && isPostLocked(post)) {
+      window.showAlertToast(`B\u00e0i s\u1ebd m\u1edf l\u00fac ${postOpenLabel(post)}.`);
+      return;
+    }
     setSelectedPost(post);
     setSelectedTest(null);
     setAttemptHistory([]);
@@ -803,17 +821,28 @@ export default function StreamTab({
   };
 
   const handleStartTest = async () => {
-    setIsTakingTest(true);
-    setTestModalOpen(false);
-    
+    if (!isTeacher && !readOnly && isPostLocked(selectedPost)) {
+      window.showAlertToast(`B\u00e0i s\u1ebd m\u1edf l\u00fac ${postOpenLabel(selectedPost)}.`);
+      return;
+    }
+
     if (!isTeacher && !readOnly && selectedTest?.id && !selectedTest?.id.toString().startsWith('post-')) {
       try {
-        const attempt = await testApi.createAttempt(selectedTest.id);
+        const attempt = await testApi.createAttempt(selectedTest.id, selectedPost?.id);
+        if (!attempt?.attemptId) {
+          window.showAlertToast(attempt?.message || '\u0042\u00e0i ch\u01b0a t\u1edbi th\u1eddi gian m\u1edf.');
+          return;
+        }
         setAttemptMeta(attempt);
       } catch (err) {
         console.warn('Không thể tạo attempt trước khi làm bài:', err);
+        window.showAlertToast(err?.response?.data?.message || '\u004b\u0068\u00f4ng th\u1ec3 b\u1eaft \u0111\u1ea7u b\u00e0i l\u00e0m.');
+        return;
       }
     }
+    setIsTakingTest(true);
+    setTestModalOpen(false);
+
   };
 
   const uploadAudioAnswer = async (questionId, answer) => {
@@ -1111,7 +1140,8 @@ export default function StreamTab({
                   <button
                     type="button"
                     onClick={() => handleOpenTestForPost(post)}
-                    disabled={loadingTestDetails}
+                    disabled={loadingTestDetails || (!isTeacher && !readOnly && isPostLocked(post))}
+                    title={!isTeacher && !readOnly && isPostLocked(post) ? `B\u00e0i s\u1ebd m\u1edf l\u00fac ${postOpenLabel(post)}.` : undefined}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-semibold hover:shadow-lg disabled:opacity-60 transition-all"
                   >
                     {loadingTestDetails && selectedPost?.id === post.id ? (

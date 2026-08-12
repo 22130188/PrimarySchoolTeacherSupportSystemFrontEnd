@@ -116,9 +116,9 @@ const testApi = {
     }
   },
 
-  createAttempt: async (testId) => {
+  createAttempt: async (testId, classroomPostId = null) => {
     try {
-      const response = await api.post(`/api/tests/${testId}/attempts`, {}, { headers: { 'Content-Type': 'application/json' } });
+      const response = await api.post(`/api/tests/${testId}/attempts`, classroomPostId ? { classroomPostId } : {}, { headers: { 'Content-Type': 'application/json' } });
       return response.data.data;
     } catch (error) {
       console.error('Error creating test attempt:', error.response?.status, error.response?.data || error.message);
