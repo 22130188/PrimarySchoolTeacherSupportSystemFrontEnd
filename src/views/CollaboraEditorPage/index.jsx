@@ -207,12 +207,15 @@ export default function CollaboraEditorPage() {
     }
   };
 
-  const handleInsertAudio = ({ url } = {}) => {
+  const handleInsertAudio = async ({ url } = {}) => {
     const frame = document.getElementById('collabora-editor-frame');
     const source = normalizeSourceUrl(url);
     if (!source || !frame?.contentWindow) return setInsertStatus('Collabora chua san sang.');
+    if (!editorReady) return setInsertStatus('Collabora dang tai, vui long thu lai sau vai giay.');
+    const asset = await collaboraApi.createImageAsset({ sourceUrl: source }).catch(() => null);
+    if (!asset) return setInsertStatus('Khong the tai audio cho Collabora.');
     frame.contentWindow.postMessage(JSON.stringify({
-      MessageId: 'Action_InsertMultimedia', SendTime: Date.now(), Values: { url: source },
+      MessageId: 'Action_InsertMultimedia', SendTime: Date.now(), Values: { url: asset.url },
     }), '*');
     setInsertStatus('Da chen audio TTS vao Collabora.');
     setTimeout(() => setInsertStatus(''), 3000);

@@ -1,17 +1,18 @@
 let activeAudio = null;
 
 export function createFabricAudioCard(fabricModule, { audioUrl, audioName, left, top, controlStyle = {} }) {
-  const width = 320;
-  const height = 82;
-  const title = audioName || 'Audio TTS';
+  const width = 390;
+  const height = 56;
   const card = new fabricModule.Group([
-    new fabricModule.Rect({ left: 0, top: 0, width, height, rx: 12, ry: 12, fill: '#eef2ff', stroke: '#a5b4fc', strokeWidth: 1.5 }),
-    new fabricModule.Circle({ left: 38, top: 41, radius: 22, originX: 'center', originY: 'center', fill: '#4f46e5' }),
-    new fabricModule.Text('>', { left: 40, top: 40, originX: 'center', originY: 'center', fontSize: 23, fontFamily: 'Arial', fontWeight: 'bold', fill: '#ffffff' }),
-    new fabricModule.Textbox(title, { left: 72, top: 17, width: 225, fontSize: 15, fontFamily: 'Inter', fontWeight: '600', fill: '#312e81' }),
-    new fabricModule.Text('Double-click to play audio', { left: 72, top: 51, fontSize: 11, fontFamily: 'Inter', fill: '#6366f1' }),
+    new fabricModule.Rect({ left: 0, top: 0, width, height, rx: 6, ry: 6, fill: '#f8fafc', stroke: '#cbd5e1', strokeWidth: 1 }),
+    new fabricModule.Triangle({ left: 23, top: 28, width: 16, height: 16, angle: 90, originX: 'center', originY: 'center', fill: '#475569' }),
+    new fabricModule.Rect({ left: 47, top: 13, width: 145, height: 29, fill: '#ffffff', stroke: '#94a3b8', strokeWidth: 1 }),
+    new fabricModule.Text('|<', { left: 207, top: 21, fontSize: 12, fill: '#64748b' }),
+    new fabricModule.Text('>|', { left: 243, top: 21, fontSize: 12, fill: '#64748b' }),
+    new fabricModule.Text('00:00', { left: 286, top: 20, fontSize: 12, fontFamily: 'Inter', fill: '#334155' }),
+    new fabricModule.Text('))', { left: 348, top: 20, fontSize: 13, fontFamily: 'Arial', fill: '#475569' }),
   ], { left, top, originX: 'center', originY: 'center', ...controlStyle });
-  card.set({ isAudioElement: true, audioUrl, audioName: title, hoverCursor: 'pointer' });
+  card.set({ isAudioElement: true, audioUrl, audioName: audioName || 'Audio TTS', hoverCursor: 'pointer' });
   return card;
 }
 
