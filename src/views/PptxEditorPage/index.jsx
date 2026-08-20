@@ -653,6 +653,7 @@ export default function PptxEditorPage() {
             onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
             onAddShape={(s) => canvasRef.current?.addShape(s)}
             onAddImage={(d) => canvasRef.current?.addImage(d)}
+            onAddAudio={(audio) => canvasRef.current?.addAudio(audio)}
             onSetBackground={(c) => canvasRef.current?.setBackgroundColor(c)}
             getCanvas={() => canvasRef.current?.getCanvas?.()}
             onSaveHistory={() => canvasRef.current?.saveToHistory?.()}

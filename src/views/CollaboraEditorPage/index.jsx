@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Volume2 } from 'lucide-react';
 import collaboraApi from '../../services/collaboraApi';
 import lessonDraftApi from '../../services/lessonDraftApi';
 import CollaboraImageSidebar, { COLLABORA_IMAGE_TABS } from './CollaboraImageSidebar';
+import TtsAudioLibrary from '../../common/TtsAudioLibrary';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function CollaboraEditorPage() {
@@ -36,6 +37,7 @@ export default function CollaboraEditorPage() {
   const [insertStatus, setInsertStatus] = useState('');
   const [activeImageTab, setActiveImageTab] = useState('images');
   const [imagePanelExpanded, setImagePanelExpanded] = useState(false);
+  const [audioPanelExpanded, setAudioPanelExpanded] = useState(false);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -205,6 +207,17 @@ export default function CollaboraEditorPage() {
     }
   };
 
+  const handleInsertAudio = ({ url } = {}) => {
+    const frame = document.getElementById('collabora-editor-frame');
+    const source = normalizeSourceUrl(url);
+    if (!source || !frame?.contentWindow) return setInsertStatus('Collabora chua san sang.');
+    frame.contentWindow.postMessage(JSON.stringify({
+      MessageId: 'Action_InsertMultimedia', SendTime: Date.now(), Values: { url: source },
+    }), '*');
+    setInsertStatus('Da chen audio TTS vao Collabora.');
+    setTimeout(() => setInsertStatus(''), 3000);
+  };
+
   const canUseImageTools = session
     && (isAdminTemplateEdit || (session.canWrite !== false && !isStudentClassroomView && !isTemplatePreview && !isAdminLessonView && mode !== 'view'));
 
@@ -214,19 +227,21 @@ export default function CollaboraEditorPage() {
       return;
     }
     setActiveImageTab(tabId);
+    setAudioPanelExpanded(false);
     setImagePanelExpanded(true);
   };
   useEffect(() => {
-    if (!imagePanelExpanded) return undefined;
+    if (!imagePanelExpanded && !audioPanelExpanded) return undefined;
 
     const handlePointerDown = (event) => {
       if (imageToolsRef.current?.contains(event.target)) return;
       setImagePanelExpanded(false);
+      setAudioPanelExpanded(false);
     };
 
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [imagePanelExpanded]);
+  }, [imagePanelExpanded, audioPanelExpanded]);
 
   return (
     <div className="fixed inset-0 flex flex-col z-[9999] bg-white font-[Inter,sans-serif]">
@@ -293,6 +308,9 @@ export default function CollaboraEditorPage() {
                   </button>
                 );
               })}
+              <button type="button" onClick={() => { setAudioPanelExpanded((open) => !open); setImagePanelExpanded(false); }} className={`h-9 px-2.5 rounded-lg inline-flex items-center gap-1.5 text-xs font-medium ${audioPanelExpanded ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`} title="Audio TTS">
+                <Volume2 size={17} /><span className="hidden sm:inline">Audio</span>
+              </button>
             </div>
           )}
           {canUseImageTools && (
@@ -302,6 +320,11 @@ export default function CollaboraEditorPage() {
               expanded={imagePanelExpanded}
               onExpandedChange={setImagePanelExpanded}
             />
+          )}
+          {canUseImageTools && audioPanelExpanded && (
+            <div className="absolute inset-x-0 top-full z-[80] max-h-[60vh] overflow-y-auto border-b border-gray-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
+              <TtsAudioLibrary onSelectAudio={handleInsertAudio} accent="emerald" />
+            </div>
           )}
           <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1">
             Collabora

@@ -580,6 +580,7 @@ export default function DocxEditorPage() {
             onAddText={(p) => canvasRef.current?.addText(p)}
             onAddTable={(r, c) => canvasRef.current?.addTable(r, c)}
             onAddImage={(d) => canvasRef.current?.addImage(d)}
+            onAddAudio={(audio) => canvasRef.current?.addAudio(audio)}
             onAddShape={(s) => canvasRef.current?.addShape(s)}
             getCanvas={() => canvasRef.current?.getCanvas?.()}
             onSaveHistory={() => canvasRef.current?.saveToHistory?.()}

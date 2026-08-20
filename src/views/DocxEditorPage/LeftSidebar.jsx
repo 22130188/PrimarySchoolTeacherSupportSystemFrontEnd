@@ -5,6 +5,7 @@ import { LIBRARY_SUBJECT_OPTIONS } from '../../data/aiImageConstants';
 import { SHAPE_GROUPS } from '../../data/shapeLibrary';
 import TablePicker from '../../common/TablePicker';
 import useImageLibrary from '../../hooks/useImageLibrary';
+import TtsAudioLibrary from '../../common/TtsAudioLibrary';
 import AIImageGenerator from '../../common/AIImageGenerator';
 import PexelsImageSearch from '../../common/PexelsImageSearch';
 import SaveImageModal from '../../common/SaveImageModal';
@@ -32,7 +33,7 @@ const TABLE_QUICK = [
 
 export default function LeftSidebar({
   activeTab, onTabChange, expanded, onToggle,
-  onAddText, onAddTable, onAddImage, onAddShape,
+  onAddText, onAddTable, onAddImage, onAddAudio, onAddShape,
   getCanvas, onSaveHistory, selectedObject, fractionTick,
   drawMode = 'none', drawColor = '#111827', drawWidth = 4,
   onSetDrawMode, onSetDrawColor, onSetDrawWidth,
@@ -245,6 +246,8 @@ export default function LeftSidebar({
                   )}
                 </div>
               )}
+
+              {activeTab === 'audio' && <TtsAudioLibrary onSelectAudio={onAddAudio} />}
 
               {activeTab === 'ai' && (
                 <AIImageGenerator onAddImage={onAddImage} accent="indigo" />

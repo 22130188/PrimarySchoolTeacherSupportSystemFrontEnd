@@ -105,6 +105,7 @@ const MultiPageCanvas = forwardRef(function MultiPageCanvas({
       addTable: proxy('addTable'),
       addShape: proxy('addShape'),
       addImage: proxy('addImage'),
+      addAudio: proxy('addAudio'),
       addFractionPizza: proxy('addFractionPizza'),
       setFractionColor: proxy('setFractionColor'),
       addClock: proxy('addClock'),

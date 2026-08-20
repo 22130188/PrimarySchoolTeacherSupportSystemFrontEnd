@@ -2,6 +2,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 
 import * as fabric from 'fabric';
 import { PAGE_WIDTH, PAGE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups, registerFabricCustomProperties } from './editorConstants';
 import { setupAlignmentGuides } from '../../utils/alignmentGuides';
+import { createFabricAudioCard, playFabricAudio } from '../../utils/fabricAudioCard';
 import { loadAllFonts } from '../../utils/fontLoader';
 import { createFabricShape } from '../../utils/fabricShapes';
 import {
@@ -96,7 +97,7 @@ const PageCanvas = forwardRef(function PageCanvas({
             if (readOnly) {
               canvas.getObjects().forEach(obj => {
                 obj.selectable = false;
-                obj.evented = false;
+                obj.evented = !!obj.isAudioElement;
                 obj.hasControls = false;
                 obj.hasBorders = false;
                 obj.lockMovementX = true;
@@ -168,6 +169,10 @@ const PageCanvas = forwardRef(function PageCanvas({
 
       const handleDblClick = (opt) => {
         const target = opt.target;
+        if (target?.isAudioElement) {
+          playFabricAudio(target);
+          return;
+        }
         if (target?.teachTool === 'fraction' && opt.subTargets?.length && !readOnly) {
           toggleFractionSlice(target, opt.subTargets[0]);
           target.set('dirty', true);
@@ -409,6 +414,14 @@ const PageCanvas = forwardRef(function PageCanvas({
         });
         canvas.add(img); canvas.setActiveObject(img); canvas.renderAll(); saveToHistory();
       } catch (err) { console.error('Failed to add image:', err); }
+    },
+
+    addAudio: ({ url, audioUrl, name, audioName } = {}) => {
+      const canvas = fabricRef.current;
+      const source = url || audioUrl;
+      if (!canvas || !source) return;
+      const card = createFabricAudioCard(fabric, { audioUrl: source, audioName: name || audioName, left: PAGE_WIDTH / 2, top: PAGE_HEIGHT / 2, controlStyle: CONTROL_STYLE });
+      canvas.add(card); canvas.setActiveObject(card); canvas.renderAll(); saveToHistory();
     },
 
     addShape: (shapeType) => {
