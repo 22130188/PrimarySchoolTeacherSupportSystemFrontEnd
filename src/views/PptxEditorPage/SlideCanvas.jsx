@@ -2,7 +2,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 
 import * as fabric from 'fabric';
 import { SLIDE_WIDTH, SLIDE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups, registerFabricCustomProperties } from './pptxConstants';
 import { setupAlignmentGuides } from '../../utils/alignmentGuides';
-import { createFabricAudioCard, playFabricAudio } from '../../utils/fabricAudioCard';
+import { createFabricAudioCard, playFabricAudio, restoreFabricAudioCards } from '../../utils/fabricAudioCard';
 import { loadAllFonts } from '../../utils/fontLoader';
 import { createFabricShape } from '../../utils/fabricShapes';
 import {
@@ -330,7 +330,11 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       const source = url || audioUrl;
       if (!canvas || !source) return;
       const card = createFabricAudioCard(fabric, { audioUrl: source, audioName: name || audioName, left: SLIDE_WIDTH / 2, top: SLIDE_HEIGHT / 2, controlStyle: CONTROL_STYLE });
-      canvas.add(card); canvas.setActiveObject(card); canvas.renderAll(); saveToHistory();
+      canvas.add(card);
+      canvas.setActiveObject(card);
+      canvas.renderAll();
+      saveToHistory();
+      onObjectModified?.();
     },
 
     addFractionPizza: (opts) => {
@@ -469,7 +473,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       const current = hist.undoStack.pop();
       hist.redoStack.push(current);
       canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(() => {
-        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -483,7 +487,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       const state = hist.redoStack.pop();
       hist.undoStack.push(state);
       canvas.loadFromJSON(JSON.parse(state)).then(() => {
-        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -507,6 +511,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       else { canvas.clear(); canvas.backgroundColor = '#ffffff'; }
       restoreTableGroups(canvas, fabric);
       restoreEditableTableImages(canvas);
+      restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE);
       canvas.renderAll();
       historyRef.current.isRestoring = false;
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];

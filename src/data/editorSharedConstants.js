@@ -55,7 +55,7 @@ export const CUSTOM_SERIALIZATION_PROPS = [
   'clockRole', 'fracRole',
   'thermoRole', 'thermoValue', 'scaleRole', 'scaleLeft', 'scaleRight',
   'stickOnes', 'stickTens', 'stickColor',
-  'isAudioElement', 'audioUrl', 'audioName',
+  'isAudioElement', 'audioUrl', 'audioName', 'audioCardVersion',
 ];
 
 /**

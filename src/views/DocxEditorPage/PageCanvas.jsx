@@ -2,7 +2,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 
 import * as fabric from 'fabric';
 import { PAGE_WIDTH, PAGE_HEIGHT, CONTROL_STYLE, CUSTOM_SERIALIZATION_PROPS, restoreTableGroups, registerFabricCustomProperties } from './editorConstants';
 import { setupAlignmentGuides } from '../../utils/alignmentGuides';
-import { createFabricAudioCard, playFabricAudio } from '../../utils/fabricAudioCard';
+import { createFabricAudioCard, playFabricAudio, restoreFabricAudioCards } from '../../utils/fabricAudioCard';
 import { loadAllFonts } from '../../utils/fontLoader';
 import { createFabricShape } from '../../utils/fabricShapes';
 import {
@@ -94,6 +94,7 @@ const PageCanvas = forwardRef(function PageCanvas({
             await canvas.loadFromJSON(typeof initialJson === 'string' ? JSON.parse(initialJson) : initialJson);
             restoreTableGroups(canvas, fabric);
             restoreEditableTableImages(canvas, true);
+            restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE);
             if (readOnly) {
               canvas.getObjects().forEach(obj => {
                 obj.selectable = false;
@@ -421,7 +422,13 @@ const PageCanvas = forwardRef(function PageCanvas({
       const source = url || audioUrl;
       if (!canvas || !source) return;
       const card = createFabricAudioCard(fabric, { audioUrl: source, audioName: name || audioName, left: PAGE_WIDTH / 2, top: PAGE_HEIGHT / 2, controlStyle: CONTROL_STYLE });
-      canvas.add(card); canvas.setActiveObject(card); canvas.renderAll(); saveToHistory();
+      canvas.add(card);
+      canvas.setActiveObject(card);
+      canvas.renderAll();
+      saveToHistory();
+      // Programmatic insertions do not emit Fabric's object:modified event.
+      // Notify the editor explicitly so DOCX auto-save persists this audio.
+      onObjectModified?.(pageId);
     },
 
     addShape: (shapeType) => {
@@ -466,7 +473,7 @@ const PageCanvas = forwardRef(function PageCanvas({
       const current = hist.undoStack.pop();
       hist.redoStack.push(current);
       canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(() => {
-        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas, true); canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas, true); restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE); canvas.renderAll(); hist.isRestoring = false;
         if (isActiveRef.current) {
           onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
           onSelectionChange?.(null);
@@ -482,7 +489,7 @@ const PageCanvas = forwardRef(function PageCanvas({
       const state = hist.redoStack.pop();
       hist.undoStack.push(state);
       canvas.loadFromJSON(JSON.parse(state)).then(() => {
-        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas, true); canvas.renderAll(); hist.isRestoring = false;
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas, true); restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE); canvas.renderAll(); hist.isRestoring = false;
         if (isActiveRef.current) {
           onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
           onSelectionChange?.(null);
@@ -508,6 +515,7 @@ const PageCanvas = forwardRef(function PageCanvas({
       else { canvas.clear(); canvas.backgroundColor = '#ffffff'; }
       restoreTableGroups(canvas, fabric);
       restoreEditableTableImages(canvas, true);
+      restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE);
       canvas.renderAll();
       historyRef.current.isRestoring = false;
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];
