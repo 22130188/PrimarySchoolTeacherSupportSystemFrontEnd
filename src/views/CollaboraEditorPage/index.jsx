@@ -208,6 +208,10 @@ export default function CollaboraEditorPage() {
   };
 
   const handleInsertAudio = async ({ url } = {}) => {
+    if (!/\.pptx$/i.test(session?.fileName || '')) {
+      setInsertStatus('Collabora Writer/DOCX khong luu duoc audio nhung. Hay dung bai giang PPTX de chen audio.');
+      return;
+    }
     const frame = document.getElementById('collabora-editor-frame');
     const source = normalizeSourceUrl(url);
     if (!source || !frame?.contentWindow) return setInsertStatus('Collabora chua san sang.');
@@ -223,6 +227,7 @@ export default function CollaboraEditorPage() {
 
   const canUseImageTools = session
     && (isAdminTemplateEdit || (session.canWrite !== false && !isStudentClassroomView && !isTemplatePreview && !isAdminLessonView && mode !== 'view'));
+  const isCollaboraPptx = /\.pptx$/i.test(session?.fileName || '');
 
   const handleImageTabClick = (tabId) => {
     if (activeImageTab === tabId && imagePanelExpanded) {
@@ -311,7 +316,7 @@ export default function CollaboraEditorPage() {
                   </button>
                 );
               })}
-              <button type="button" onClick={() => { setAudioPanelExpanded((open) => !open); setImagePanelExpanded(false); }} className={`h-9 px-2.5 rounded-lg inline-flex items-center gap-1.5 text-xs font-medium ${audioPanelExpanded ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`} title="Audio TTS">
+              <button type="button" disabled={!isCollaboraPptx} onClick={() => { setAudioPanelExpanded((open) => !open); setImagePanelExpanded(false); }} className={`h-9 px-2.5 rounded-lg inline-flex items-center gap-1.5 text-xs font-medium ${isCollaboraPptx ? (audioPanelExpanded ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-100') : 'cursor-not-allowed text-gray-300'}`} title={isCollaboraPptx ? 'Audio TTS' : 'Audio nhung chi luu on dinh voi bai giang PPTX'}>
                 <Volume2 size={17} /><span className="hidden sm:inline">Audio</span>
               </button>
             </div>
@@ -324,7 +329,7 @@ export default function CollaboraEditorPage() {
               onExpandedChange={setImagePanelExpanded}
             />
           )}
-          {canUseImageTools && audioPanelExpanded && (
+          {canUseImageTools && isCollaboraPptx && audioPanelExpanded && (
             <div className="absolute inset-x-0 top-full z-[80] max-h-[60vh] overflow-y-auto border-b border-gray-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
               <TtsAudioLibrary onSelectAudio={handleInsertAudio} accent="emerald" />
             </div>
