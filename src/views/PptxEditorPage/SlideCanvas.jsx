@@ -325,16 +325,21 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       } catch (err) { console.error('Failed to add image:', err); }
     },
 
-    addAudio: ({ url, audioUrl, name, audioName } = {}) => {
+    addAudio: async ({ url, audioUrl, name, audioName } = {}) => {
       const canvas = fabricRef.current;
       const source = url || audioUrl;
       if (!canvas || !source) return;
-      const card = createFabricAudioCard(fabric, { audioUrl: source, audioName: name || audioName, left: SLIDE_WIDTH / 2, top: SLIDE_HEIGHT / 2, controlStyle: CONTROL_STYLE });
-      canvas.add(card);
-      canvas.setActiveObject(card);
-      canvas.renderAll();
-      saveToHistory();
-      onObjectModified?.();
+      try {
+        const card = await createFabricAudioCard(fabric, { audioUrl: source, audioName: name || audioName, left: SLIDE_WIDTH / 2, top: SLIDE_HEIGHT / 2, controlStyle: CONTROL_STYLE });
+        if (fabricRef.current !== canvas) return;
+        canvas.add(card);
+        canvas.setActiveObject(card);
+        canvas.renderAll();
+        saveToHistory();
+        onObjectModified?.();
+      } catch (error) {
+        console.error('Failed to add audio:', error);
+      }
     },
 
     addFractionPizza: (opts) => {
@@ -472,8 +477,8 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       hist.isRestoring = true;
       const current = hist.undoStack.pop();
       hist.redoStack.push(current);
-      canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(() => {
-        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE); canvas.renderAll(); hist.isRestoring = false;
+      canvas.loadFromJSON(JSON.parse(hist.undoStack[hist.undoStack.length - 1])).then(async () => {
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); await restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -486,8 +491,8 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       hist.isRestoring = true;
       const state = hist.redoStack.pop();
       hist.undoStack.push(state);
-      canvas.loadFromJSON(JSON.parse(state)).then(() => {
-        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE); canvas.renderAll(); hist.isRestoring = false;
+      canvas.loadFromJSON(JSON.parse(state)).then(async () => {
+        restoreTableGroups(canvas, fabric); restoreEditableTableImages(canvas); await restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE); canvas.renderAll(); hist.isRestoring = false;
         onHistoryChange?.(hist.undoStack.length > 1, hist.redoStack.length > 0);
         onSelectionChange?.(null);
       });
@@ -511,7 +516,7 @@ const SlideCanvas = forwardRef(({ zoom = 1, onSelectionChange, onObjectModified,
       else { canvas.clear(); canvas.backgroundColor = '#ffffff'; }
       restoreTableGroups(canvas, fabric);
       restoreEditableTableImages(canvas);
-      restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE);
+      await restoreFabricAudioCards(canvas, fabric, CONTROL_STYLE);
       canvas.renderAll();
       historyRef.current.isRestoring = false;
       historyRef.current.undoStack = [JSON.stringify(canvas.toJSON(CUSTOM_SERIALIZATION_PROPS))];

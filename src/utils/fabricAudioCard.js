@@ -1,8 +1,7 @@
 let activeAudio = null;
 
-const AUDIO_CARD_VERSION = 2;
-const CARD_WIDTH = 312;
-const CARD_HEIGHT = 52;
+const AUDIO_CARD_VERSION = 3;
+const CARD_WIDTH = 380;
 
 const AUDIO_CARD_CONTROLS = {
   tl: true,
@@ -16,6 +15,28 @@ const AUDIO_CARD_CONTROLS = {
   mtr: false,
 };
 
+function escapeSvgText(value) {
+  return String(value || 'Audio TTS')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function makeAudioCardSvg(audioName) {
+  const title = escapeSvgText(audioName).slice(0, 24);
+  return [
+    '<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'380\' height=\'104\' viewBox=\'0 0 380 104\'>',
+    '<defs><linearGradient id=\'audio-accent\' x1=\'0\' y1=\'0\' x2=\'1\' y2=\'1\'><stop offset=\'0\' stop-color=\'#8B7CF6\'/><stop offset=\'1\' stop-color=\'#5B4CE6\'/></linearGradient></defs>',
+    '<rect x=\'2\' y=\'2\' width=\'376\' height=\'100\' rx=\'18\' fill=\'#FFFFFF\' stroke=\'#E5E7F2\' stroke-width=\'2\'/>',
+    '<circle cx=\'52\' cy=\'52\' r=\'24\' fill=\'url(#audio-accent)\'/><path d=\'M45 39V65L66 52Z\' fill=\'#FFFFFF\'/>',
+    '<text x=\'96\' y=\'37\' fill=\'#2D2A4A\' font-family=\'Inter, Arial, sans-serif\' font-size=\'14\' font-weight=\'600\'>', title, '</text>',
+    '<rect x=\'96\' y=\'51\' width=\'194\' height=\'7\' rx=\'3.5\' fill=\'#E9E7FB\'/><rect x=\'96\' y=\'51\' width=\'42\' height=\'7\' rx=\'3.5\' fill=\'#6C5CE7\'/><circle cx=\'138\' cy=\'54.5\' r=\'6\' fill=\'#FFFFFF\' stroke=\'#6C5CE7\' stroke-width=\'3\'/>',
+    '<text x=\'96\' y=\'82\' fill=\'#8B87A6\' font-family=\'Inter, Arial, sans-serif\' font-size=\'12.5\'>00:00</text><text x=\'262\' y=\'82\' fill=\'#8B87A6\' font-family=\'Inter, Arial, sans-serif\' font-size=\'12.5\'>00:00</text>',
+    '<g transform=\'translate(326 41)\' fill=\'none\' stroke=\'#8B87A6\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M1 8H7L14 2V22L7 16H1Z\' fill=\'#8B87A6\' stroke=\'none\'/><path d=\'M18 8C21 10.5 21 13.5 18 16\' stroke-width=\'2\'/><path d=\'M22 4C28 9 28 15 22 20\' stroke-width=\'2\'/></g>',
+    '</svg>',
+  ].join('');
+}
+
 function configureAudioCard(card, controlStyle = {}) {
   card.set({
     ...controlStyle,
@@ -24,132 +45,24 @@ function configureAudioCard(card, controlStyle = {}) {
     hoverCursor: 'pointer',
     lockRotation: true,
     lockScalingFlip: true,
-    minScaleLimit: 0.65,
-    subTargetCheck: false,
+    minScaleLimit: 0.7,
   });
   card.setControlsVisibility?.(AUDIO_CARD_CONTROLS);
-  card._objects?.forEach((child) => {
-    child.set({
-      selectable: false,
-      evented: false,
-      hoverCursor: 'default',
-      lockMovementX: true,
-      lockMovementY: true,
-      lockScalingX: true,
-      lockScalingY: true,
-      lockRotation: true,
-    });
-  });
   return card;
 }
 
-export function createFabricAudioCard(fabricModule, { audioUrl, audioName, left, top, controlStyle = {} }) {
-  const progressY = 26;
-  const children = [
-    new fabricModule.Rect({
-      left: 0,
-      top: 0,
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
-      rx: 10,
-      ry: 10,
-      fill: '#ffffff',
-      stroke: '#dbe3ef',
-      strokeWidth: 1,
-      shadow: new fabricModule.Shadow({
-        color: 'rgba(15, 23, 42, 0.10)',
-        blur: 8,
-        offsetX: 0,
-        offsetY: 2,
-      }),
-    }),
-    new fabricModule.Circle({
-      left: 28,
-      top: progressY,
-      radius: 16,
-      originX: 'center',
-      originY: 'center',
-      fill: '#4f46e5',
-    }),
-    new fabricModule.Triangle({
-      left: 30,
-      top: progressY,
-      width: 10,
-      height: 12,
-      angle: 90,
-      originX: 'center',
-      originY: 'center',
-      fill: '#ffffff',
-    }),
-    new fabricModule.Rect({
-      left: 56,
-      top: progressY - 3,
-      width: 142,
-      height: 6,
-      rx: 3,
-      ry: 3,
-      fill: '#e8edf5',
-    }),
-    new fabricModule.Rect({
-      left: 56,
-      top: progressY - 3,
-      width: 28,
-      height: 6,
-      rx: 3,
-      ry: 3,
-      fill: '#818cf8',
-    }),
-    new fabricModule.Circle({
-      left: 84,
-      top: progressY,
-      radius: 4,
-      originX: 'center',
-      originY: 'center',
-      fill: '#4f46e5',
-      stroke: '#ffffff',
-      strokeWidth: 1.5,
-    }),
-    new fabricModule.Text('00:00', {
-      left: 211,
-      top: 19,
-      fontSize: 13,
-      fontFamily: 'Inter',
-      fontWeight: '600',
-      fill: '#475569',
-    }),
-    new fabricModule.Path('M 0 4 L 5 4 L 11 0 L 11 16 L 5 12 L 0 12 z', {
-      left: 263,
-      top: 18,
-      fill: '#64748b',
-      strokeWidth: 0,
-    }),
-    new fabricModule.Path('M 0 5 Q 7 8 0 11', {
-      left: 276,
-      top: 18,
-      fill: '',
-      stroke: '#64748b',
-      strokeWidth: 1.5,
-      strokeLineCap: 'round',
-      strokeLineJoin: 'round',
-    }),
-    new fabricModule.Path('M 2 1 Q 14 8 2 15', {
-      left: 281,
-      top: 18,
-      fill: '',
-      stroke: '#94a3b8',
-      strokeWidth: 1.5,
-      strokeLineCap: 'round',
-      strokeLineJoin: 'round',
-    }),
-  ];
-
-  const card = new fabricModule.Group(children, {
+/**
+ * The visual player is one Fabric image built from SVG. This avoids Group
+ * coordinate normalization, which caused separate controls to overlap.
+ */
+export async function createFabricAudioCard(fabricModule, { audioUrl, audioName, left, top, controlStyle = {} }) {
+  const source = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(makeAudioCardSvg(audioName));
+  const card = await fabricModule.FabricImage.fromURL(source);
+  card.set({
     left,
     top,
     originX: 'center',
     originY: 'center',
-  });
-  card.set({
     audioUrl,
     audioName: audioName || 'Audio TTS',
   });
@@ -157,25 +70,23 @@ export function createFabricAudioCard(fabricModule, { audioUrl, audioName, left,
 }
 
 /**
- * Reapply behaviour after Fabric deserializes a saved card. Cards created by
- * the first version are rebuilt with the compact, fixed-ratio design.
+ * Reapply interaction after Fabric deserializes. Older Group-based cards are
+ * upgraded in place to the single-SVG player while preserving their location.
  */
-export function restoreFabricAudioCards(canvas, fabricModule, controlStyle = {}) {
+export async function restoreFabricAudioCards(canvas, fabricModule, controlStyle = {}) {
   if (!canvas || !fabricModule) return;
 
-  canvas.getObjects()
-    .filter((object) => object.isAudioElement)
-    .forEach((object) => {
-      if (object.audioCardVersion === AUDIO_CARD_VERSION) {
-        configureAudioCard(object, controlStyle);
-        return;
-      }
+  const cards = canvas.getObjects().filter((object) => object.isAudioElement);
+  for (const object of cards) {
+    if (object.audioCardVersion === AUDIO_CARD_VERSION && object.type === 'image') {
+      configureAudioCard(object, controlStyle);
+      continue;
+    }
 
-      const scale = Math.min(
-        1.4,
-        Math.max(0.65, ((Math.abs(object.scaleX ?? 1) + Math.abs(object.scaleY ?? 1)) / 2)),
-      );
-      const replacement = createFabricAudioCard(fabricModule, {
+    try {
+      const priorWidth = object.getScaledWidth?.() || CARD_WIDTH;
+      const scale = Math.min(1.1, Math.max(0.7, priorWidth / CARD_WIDTH));
+      const replacement = await createFabricAudioCard(fabricModule, {
         audioUrl: object.audioUrl,
         audioName: object.audioName,
         left: object.left,
@@ -183,15 +94,16 @@ export function restoreFabricAudioCards(canvas, fabricModule, controlStyle = {})
         controlStyle,
       });
       replacement.set({
-        originX: object.originX || 'center',
-        originY: object.originY || 'center',
         angle: object.angle || 0,
         scaleX: scale,
         scaleY: scale,
       });
       canvas.remove(object);
       canvas.add(replacement);
-    });
+    } catch (error) {
+      console.error('Failed to restore audio card:', error);
+    }
+  }
 }
 
 export function playFabricAudio(target) {
