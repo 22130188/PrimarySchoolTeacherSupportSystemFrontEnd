@@ -18,6 +18,27 @@ export default function CreateTestPage() {
   const isEditing = !!id;
   const { user } = useAuthStore();
   const currentUserId = user?.id || user?.userId || null;
+  const getQuestionTimestamp = (question) => {
+    const timestamp = Date.parse(question?.createdAt || '');
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  };
+  const sortQuestionsByNewest = (questionList) => [...questionList].sort((firstQuestion, secondQuestion) => {
+    const timestampDifference = getQuestionTimestamp(secondQuestion) - getQuestionTimestamp(firstQuestion);
+    if (timestampDifference !== 0) return timestampDifference;
+    return (Number(secondQuestion?.id) || 0) - (Number(firstQuestion?.id) || 0);
+  });
+  const formatQuestionCreatedAt = (createdAt) => {
+    if (!createdAt) return 'Ch\u01b0a c\u00f3 th\u1eddi gian t\u1ea1o';
+    const date = new Date(createdAt);
+    if (Number.isNaN(date.getTime())) return 'Ch\u01b0a c\u00f3 th\u1eddi gian t\u1ea1o';
+    return new Intl.DateTimeFormat('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
   const { libraryImages, loadingLibrary, loadLibraryImages } = useImageLibrary();
   const { homeroomClasses, subjects } = useCategories();
 
@@ -220,7 +241,7 @@ export default function CreateTestPage() {
     try {
       setLoadingExistingQuestions(true);
       const qs = await testApi.getFilteredQuestions(filterType, filterSubject, filterLessonContent, filterTestType === 'all' ? '' : filterTestType);
-      setExistingQuestions(qs || []);
+      setExistingQuestions(sortQuestionsByNewest(qs || []));
     } catch (error) {
       console.error('Error loading existing questions:', error);
       window.showAlertToast('Lỗi khi tải danh sách câu hỏi cũ');
@@ -1192,6 +1213,7 @@ export default function CreateTestPage() {
                                   )}
                                   <div className="mt-3 text-xs text-gray-600">
                                     <span className="font-medium">Người tạo:</span> {authorLabel}
+                                    <span className="ml-2">{'\u00b7 T\u1ea1o l\u00fac: '}{formatQuestionCreatedAt(question.createdAt)}</span>
                                   </div>
                                 </div>
                                 <div className="ml-3 flex gap-2 flex-shrink-0">
