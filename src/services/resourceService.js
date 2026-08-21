@@ -56,6 +56,8 @@ const authConfig = (headers = {}) => ({
   },
 });
 
+const MAX_AUDIO_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 class ResourceService {
   async getAllImages() {
     try {
@@ -121,13 +123,22 @@ class ResourceService {
           `student-answer.${file?.type?.includes('ogg') ? 'ogg' : 'webm'}`,
           { type: file?.type || 'audio/webm' },
         );
+      if (!audioFile.type.startsWith('audio/')) {
+        throw new Error('Ch\u1ec9 c\u00f3 th\u1ec3 t\u1ea3i l\u00ean t\u1ec7p \u00e2m thanh.');
+      }
+      if (audioFile.size > MAX_AUDIO_UPLOAD_BYTES) {
+        throw new Error('T\u1ec7p \u00e2m thanh v\u01b0\u1ee3t qu\u00e1 gi\u1edbi h\u1ea1n 10 MB.');
+      }
       const cloudinaryFormData = new FormData();
       cloudinaryFormData.append('file', audioFile, audioFile.name);
 
       const cloudinaryResponse = await axios.post(
         `${canvasBase()}/api/canvas/upload-audio`,
         cloudinaryFormData,
-        authConfig({ 'Content-Type': 'multipart/form-data' })
+        {
+          ...authConfig({ 'Content-Type': 'multipart/form-data' }),
+          timeout: 85000,
+        }
       );
 
       if (!cloudinaryResponse.data.success) {
@@ -151,6 +162,13 @@ class ResourceService {
       return saveResponse.data;
     } catch (error) {
       console.error('Error uploading audio:', error);
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('T\u1ea3i audio qu\u00e1 l\u00e2u. B\u1ea3n ghi v\u1eabn \u0111\u01b0\u1ee3c gi\u1eef, vui l\u00f2ng th\u1eed n\u1ed9p l\u1ea1i.');
+      }
+      const detail = error.response?.data?.detail || error.response?.data?.message;
+      if (detail) {
+        throw new Error(detail);
+      }
       throw error;
     }
   }

@@ -567,6 +567,11 @@ function TestResultOverlay({ test, result, submittedAnswers, onClose }) {
       return (
         <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
           <div>
+            {question.imageUrl && (
+              <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <img src={question.imageUrl} alt="Question illustration" className="max-h-80 w-full object-contain" />
+              </div>
+            )}
             <p className="text-sm font-semibold text-slate-700 mb-3">Nghe và trả lời</p>
             {questionAudioSrc && (
               <div className="mb-4">

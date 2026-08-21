@@ -16,7 +16,7 @@ class PronunciationService {
         `${PRONUNCIATION_SERVICE_URL}/${endpoint}`,
         formData,
         {
-          timeout: 180000,
+          timeout: 85000,
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },

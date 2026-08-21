@@ -457,6 +457,11 @@ function QuestionRenderer({ question, answer, onAnswerChange }) {
     return (
       <div className="space-y-4">
         <p className="font-semibold text-slate-900">{question.content}</p>
+        {hasImage && (
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm">
+            <img src={question.imageUrl} alt="Question illustration" className="max-h-80 w-full object-contain" />
+          </div>
+        )}
 
         {/*{question.audioUrl && (*/}
         {/*  <audio controls src={question.audioUrl} className="w-full rounded" />*/}
@@ -701,6 +706,17 @@ export default function TestTakingInterface({
       const evaluation = submissionResult?.audioEvaluations?.find((item) => item.questionId === question.id);
       return (
         <div className="space-y-3 text-sm text-slate-700">
+          {question.imageUrl && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+              <img src={question.imageUrl} alt="Question illustration" className="max-h-80 w-full object-contain" />
+            </div>
+          )}
+          {question.audioUrl && (
+            <div>
+              <p className="font-semibold">Audio question:</p>
+              <audio controls src={getAudioSource(question.audioUrl)} className="w-full" preload="metadata" />
+            </div>
+          )}
           <p className="font-semibold">Trả lời của bạn:</p>
           {answer?.audio ? (
             <audio controls src={getAudioSource(answer.audio)} className="w-full" />
