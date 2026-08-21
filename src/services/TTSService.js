@@ -60,11 +60,11 @@ class TTSService {
     }
   }
 
-  static async getSavedAudios(userId) {
+  static async getSavedAudios() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${TTS_SERVICE_URL}/audios/${userId}`,
+        `${TTS_SERVICE_URL}/audios`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -78,7 +78,6 @@ class TTSService {
       return [];
     }
   }
-
   static async deleteAudio(audioId) {
     try {
       const token = localStorage.getItem('token');

@@ -14,7 +14,7 @@ export default function TtsAudioLibrary({ onSelectAudio }) {
     if (!user?.id) return setAudios([]);
     setLoading(true);
     try {
-      const result = await TTSService.getSavedAudios(user.id);
+      const result = await TTSService.getSavedAudios();
       setAudios(result.filter((audio) => audio?.audioUrl));
     } finally {
       setLoading(false);

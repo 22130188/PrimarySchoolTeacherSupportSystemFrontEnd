@@ -75,7 +75,7 @@ export default function TTSPage() {
 
     setIsLoadingHistory(true);
     try {
-      const audios = await TTSService.getSavedAudios(user.id);
+      const audios = await TTSService.getSavedAudios();
       setSavedAudios(audios);
     } catch (err) {
       console.error('Failed to load saved audios:', err);

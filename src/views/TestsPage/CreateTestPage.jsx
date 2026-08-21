@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import useImageLibrary from '../../hooks/useImageLibrary';
 import resourceService from '../../services/resourceService';
+import TTSService from '../../services/TTSService';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import DashboardSidebar from '../../components/DashboardSidebar';
@@ -547,18 +548,23 @@ export default function CreateTestPage() {
   };
 
   const loadAudioLibrary = async () => {
+    if (!currentUserId) {
+      setLibraryAudios([]);
+      window.showAlertToast('Vui lòng đăng nhập để xem audio của bạn.');
+      return;
+    }
+
     try {
       setLoadingAudioLibrary(true);
-      const response = await resourceService.getAllAudios();
-      setLibraryAudios(response?.success ? response.data || [] : []);
+      const audios = await TTSService.getSavedAudios();
+      setLibraryAudios(audios);
     } catch (error) {
-      console.error('Error loading audio library:', error);
+      console.error('Error loading personal audio library:', error);
       setLibraryAudios([]);
     } finally {
       setLoadingAudioLibrary(false);
     }
   };
-
   const selectLibraryAudio = (questionId, audioUrl) => {
     updateQuestionField(questionId, 'audioUrl', audioUrl);
     setShowAudioLibraryModal(false);
@@ -1403,36 +1409,64 @@ export default function CreateTestPage() {
 
         {/* Modal: Thư viện audio */}
         {showAudioLibraryModal && (
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-              <div className="bg-white rounded-xl p-6 max-w-4xl w-full shadow-xl overflow-hidden">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Chọn âm thanh từ thư viện</h2>
-                    <p className="text-sm text-gray-500">Chọn một file âm thanh đã tải lên trước đó.</p>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm">
+            <div className="flex max-h-[calc(100vh-3rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+              <div className="flex items-start justify-between border-b border-slate-100 px-7 py-6">
+                <div>
+                  <div className="mb-2 inline-flex rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">Audio của tôi</div>
+                  <h2 className="text-2xl font-bold text-slate-900">Chọn âm thanh từ thư viện</h2>
+                  <p className="mt-1 text-sm text-slate-500">Chỉ hiển thị các audio bạn đã lưu từ công cụ chuyển văn bản thành giọng nói hoặc đã tải lên.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowAudioLibraryModal(false); setCurrentAudioQuestionId(null); }}
+                  className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Đóng thư viện audio"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 p-6">
+                {loadingAudioLibrary ? (
+                  <div className="flex min-h-52 items-center justify-center gap-3 text-sm text-slate-500">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+                    Đang tải audio của bạn...
                   </div>
-                  <button onClick={() => { setShowAudioLibraryModal(false); setCurrentAudioQuestionId(null); }} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5 text-gray-500" /></button>
-                </div>
-                <div className="rounded-xl border border-gray-200 p-4">
-                  {loadingAudioLibrary ? (
-                      <div className="text-sm text-gray-500">Đang tải thư viện audio...</div>
-                  ) : libraryAudios.length === 0 ? (
-                      <div className="text-sm text-gray-500">Chưa có audio trong thư viện.</div>
-                  ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto">
-                        {libraryAudios.map((audio) => (
-                            <button key={audio.id} type="button" onClick={() => selectLibraryAudio(currentAudioQuestionId, audio.audioUrl)} className="border rounded-xl p-4 text-left hover:border-orange-500 transition-all">
-                              <div className="font-semibold text-gray-900">{audio.name || audio.title || 'Audio'}</div>
-                              <div className="text-sm text-gray-500 truncate">{audio.description || audio.originalFilename || audio.audioUrl}</div>
-                              <audio controls src={audio.audioUrl} className="mt-3 w-full" />
+                ) : libraryAudios.length === 0 ? (
+                  <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+                    <p className="font-semibold text-slate-700">Bạn chưa có audio trong thư viện</p>
+                    <p className="mt-1 text-sm text-slate-500">Hãy lưu audio tại công cụ Chuyển văn bản thành giọng nói hoặc tải file audio lên câu hỏi.</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
+                    {libraryAudios.map((audio) => {
+                      const audioName = audio.audioName || audio.text || audio.originalName || audio.fileName || 'Âm thanh không tên';
+                      const isSelected = questions.find((question) => question.id === currentAudioQuestionId)?.audioUrl === audio.audioUrl;
+                      return (
+                        <article key={audio.id || audio.audioUrl} className={`rounded-2xl border p-4 transition ${isSelected ? 'border-orange-400 bg-orange-50/70 ring-2 ring-orange-100' : 'border-slate-200 bg-white hover:border-orange-200'}`}>
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-base font-semibold text-slate-900" title={audioName}>{audioName}</p>
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                                {audio.subject && <span className="rounded-full bg-sky-50 px-2.5 py-1 text-sky-700">{audio.subject}</span>}
+                                {audio.grade && <span className="rounded-full bg-violet-50 px-2.5 py-1 text-violet-700">Lớp {audio.grade}</span>}
+                                {audio.createdAt && <span className="rounded-full bg-slate-100 px-2.5 py-1">{new Date(audio.createdAt).toLocaleDateString('vi-VN')}</span>}
+                              </div>
+                            </div>
+                            <button type="button" onClick={() => selectLibraryAudio(currentAudioQuestionId, audio.audioUrl)} className="shrink-0 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600">
+                              {isSelected ? 'Đã chọn' : 'Chọn audio'}
                             </button>
-                        ))}
-                      </div>
-                  )}
-                </div>
+                          </div>
+                          <audio controls src={audio.audioUrl} className="mt-4 h-10 w-full" preload="metadata" />
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
+          </div>
         )}
-
         <Footer />
       </div>
   );

@@ -71,7 +71,7 @@ class ResourceService {
 
   async getAllAudios() {
     try {
-      const response = await axios.get(`${ttsBase()}/audios`, authConfig());
+      const response = await axios.get(`${ttsBase()}/admin/audios`, authConfig());
       return response.data;
     } catch (error) {
       console.error('Error fetching audios:', error);
@@ -185,7 +185,7 @@ class ResourceService {
 
   async deleteAudio(audioId) {
     try {
-      const response = await axios.delete(`${ttsBase()}/audios/${audioId}`, authConfig());
+      const response = await axios.delete(`${ttsBase()}/admin/audios/${audioId}`, authConfig());
       return response.data;
     } catch (error) {
       console.error('Error deleting audio:', error);
