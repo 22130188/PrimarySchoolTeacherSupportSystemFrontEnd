@@ -37,8 +37,26 @@ async function handleRes(res) {
   return res.json();
 }
 
-export async function getAdminClassrooms() {
-  const res = await fetch(`${BASE}/api/admin/classrooms`, { headers: authHeaders() });
+export async function getAdminClassrooms({
+  page = 0,
+  size = 8,
+  status,
+  keyword = '',
+  sort = 'createdAt',
+  direction = 'desc',
+} = {}) {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+    sort,
+    direction,
+  });
+  if (status) params.set('status', status);
+  if (keyword.trim()) params.set('keyword', keyword.trim());
+
+  const res = await fetch(`${BASE}/api/admin/classrooms?${params.toString()}`, {
+    headers: authHeaders(),
+  });
   return handleRes(res);
 }
 
