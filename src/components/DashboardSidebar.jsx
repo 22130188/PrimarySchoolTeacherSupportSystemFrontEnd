@@ -1,5 +1,5 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Plus, MoreHorizontal } from 'lucide-react';
+import { Plus, MoreHorizontal, Mic } from 'lucide-react';
 import { useState } from 'react';
 import { SIDEBAR_MENU } from '../data/mockDashboardData';
 import { useAuthStore } from '../stores/authStore';
@@ -15,12 +15,26 @@ export default function DashboardSidebar() {
   const [showCreateChoices, setShowCreateChoices] = useState(false);
   const [showLessonCreator, setShowLessonCreator] = useState(false);
   
-  const MENU = SIDEBAR_MENU.filter(item => {
+  const baseMenu = SIDEBAR_MENU.filter(item => {
     if (roleId === 1) { // STUDENT
       return item.id !== 'ai' && item.id !== 'lessons' && item.id !== 'tests';
     }
     return true;
   });
+  const studentPracticeItem = {
+    id: 'student-pronunciation',
+    icon: Mic,
+    label: 'Luyện đọc',
+    path: '/student/pronunciation',
+  };
+  const classroomIndex = baseMenu.findIndex(item => item.id === 'classrooms');
+  const MENU = roleId === 1
+    ? [
+        ...baseMenu.slice(0, classroomIndex + 1),
+        studentPracticeItem,
+        ...baseMenu.slice(classroomIndex + 1),
+      ]
+    : baseMenu;
 
   return (
     <>

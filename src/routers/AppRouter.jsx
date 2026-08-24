@@ -22,6 +22,7 @@ import DocxEditorPage     from '../views/DocxEditorPage';
 import PptxEditorPage     from '../views/PptxEditorPage';
 import CollaboraEditorPage from '../views/CollaboraEditorPage';
 import PronunciationPage  from '../views/PronunciationPage';
+import StudentPronunciationPage from '../views/StudentPronunciationPage';
 import TranslatePage      from '../views/TranslatePage';
 import ClassroomDetail    from '../views/ClassroomsPage/ClassroomDetail';
 import JoinByLinkPage     from '../views/JoinClassroom/JoinByLinkPage';
@@ -121,7 +122,8 @@ export default function AppRouter() {
                 <Route path="/tts"             element={renderPrivateRoute(<TTSPage />, [1, 2])} />
                 <Route path="/image"           element={<ImagePage />} />
                 <Route path="/ai-image"        element={renderPrivateRoute(<AIImagePage />, [1, 2])} />
-                <Route path="/pronunciation"   element={renderPrivateRoute(<PronunciationPage />, [1, 2])} />
+                <Route path="/pronunciation"   element={renderPrivateRoute(<PronunciationPage />, [2])} />
+                <Route path="/student/pronunciation" element={renderPrivateRoute(<StudentPronunciationPage />, [1])} />
                 <Route path="/translate"       element={renderPrivateRoute(<TranslatePage />, [1, 2])} />
                 <Route path="/lessons"         element={renderPrivateRoute(<LessonsPage />, [2])} />
                 <Route path="/lessons/docx-editor" element={renderPrivateRoute(<DocxEditorPage />, [1, 2, 3])} />

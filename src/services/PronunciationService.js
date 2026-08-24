@@ -5,13 +5,21 @@ const PRONUNCIATION_SERVICE_URL = API_CONFIG.PRONUNCIATION_API_URL;
 
 class PronunciationService {
   static async checkPronunciation(targetText, audioFile, model = 'whisper') {
+    const endpoint = model === 'vosk' ? 'check-vosk' : 'check';
+    return this.sendCheckRequest(endpoint, targetText, audioFile);
+  }
+
+  static async checkStudentPractice(targetText, audioFile) {
+    return this.sendCheckRequest('practice/check', targetText, audioFile);
+  }
+
+  static async sendCheckRequest(endpoint, targetText, audioFile) {
     try {
       const formData = new FormData();
       formData.append('target_text', targetText);
       formData.append('audio_file', audioFile, audioFile.name || 'recorded.wav');
 
       const token = localStorage.getItem('token');
-      const endpoint = model === 'vosk' ? 'check-vosk' : 'check';
       const response = await axios.post(
         `${PRONUNCIATION_SERVICE_URL}/${endpoint}`,
         formData,
