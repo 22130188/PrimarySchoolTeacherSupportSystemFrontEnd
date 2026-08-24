@@ -1,15 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  AlertCircle,
-  CheckCircle2,
-  Headphones,
-  LoaderCircle,
-  Mic,
-  MicOff,
-  RotateCcw,
-  Trash2,
-  Upload,
-} from 'lucide-react';
+import { Mic, MicOff, Upload, Loader, AlertCircle, CheckCircle, Play, Trash2, Sparkles } from 'lucide-react';
 import AIToolPageLayout from '../../components/AIToolPageLayout';
 import PronunciationService from '../../services/PronunciationService';
 
@@ -22,70 +12,60 @@ function hasSupportedAudioFormat(file) {
   return SUPPORTED_AUDIO_EXTENSIONS.some((extension) => name.endsWith(extension));
 }
 
-function getAccuracyValue(score) {
-  const value = Number.parseFloat(String(score || '').replace('%', '').trim());
-  return Number.isFinite(value) ? value : 0;
-}
-
-function getFeedbackStyle(score) {
-  if (score >= 85) {
-    return { badge: 'Rất tốt!', color: 'text-emerald-600', background: 'border-emerald-200 bg-emerald-50' };
-  }
-  if (score >= 60) {
-    return { badge: 'Cố gắng thêm nhé!', color: 'text-amber-600', background: 'border-amber-200 bg-amber-50' };
-  }
-  return { badge: 'Mình luyện lại nhé!', color: 'text-rose-600', background: 'border-rose-200 bg-rose-50' };
-}
-
 export default function StudentPronunciationPage() {
-  const [targetText, setTargetText] = useState('');
+  const [targetText, setTargetText] = useState('apple');
   const [isRecording, setIsRecording] = useState(false);
-  const [audioFile, setAudioFile] = useState(null);
+  const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
-  const previousAudioUrlRef = useRef('');
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
+  const previousAudioUrlRef = useRef('');
 
-  const replaceAudioUrl = (nextUrl) => {
-    if (previousAudioUrlRef.current) URL.revokeObjectURL(previousAudioUrlRef.current);
-    previousAudioUrlRef.current = nextUrl;
-    setAudioUrl(nextUrl);
+  const setNewAudioUrl = (newUrl) => {
+    if (previousAudioUrlRef.current) {
+      URL.revokeObjectURL(previousAudioUrlRef.current);
+    }
+    previousAudioUrlRef.current = newUrl;
+    setAudioUrl(newUrl);
   };
 
-  const releaseMicrophone = () => {
+  const stopMediaStream = () => {
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
     mediaStreamRef.current = null;
   };
 
   useEffect(() => () => {
-    if (mediaRecorderRef.current?.state === 'recording') {
+    if (mediaRecorderRef.current?.state && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.onstop = null;
       mediaRecorderRef.current.stop();
     }
-    releaseMicrophone();
-    if (previousAudioUrlRef.current) URL.revokeObjectURL(previousAudioUrlRef.current);
+    stopMediaStream();
+    if (previousAudioUrlRef.current) {
+      URL.revokeObjectURL(previousAudioUrlRef.current);
+    }
   }, []);
 
   useEffect(() => {
-    if (audioRef.current && audioUrl) audioRef.current.load();
+    if (audioRef.current && audioUrl) {
+      audioRef.current.load();
+    }
   }, [audioUrl]);
 
-  const resetResult = () => {
-    setResult(null);
-    setError('');
-  };
-
   const startRecording = async () => {
-    resetResult();
+    setError('');
+    setSuccess('');
+    setResult(null);
+
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      setError('Thiết bị này chưa hỗ trợ ghi âm. Em có thể tải file âm thanh lên để luyện đọc.');
+      setError('Trình duyệt không hỗ trợ ghi âm. Vui lòng tải lên file âm thanh.');
       return;
     }
 
@@ -101,24 +81,25 @@ export default function StudentPronunciationPage() {
       recorder.ondataavailable = (event) => {
         if (event.data?.size > 0) audioChunksRef.current.push(event.data);
       };
+
       recorder.onstop = () => {
-        const recordedType = recorder.mimeType || 'audio/webm';
-        const blob = new Blob(audioChunksRef.current, { type: recordedType });
-        releaseMicrophone();
-        if (!blob.size) {
-          setError('Chưa thu được âm thanh. Em hãy kiểm tra micro và thử lại.');
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        stopMediaStream();
+        if (blob.size === 0) {
+          setError('Không thu được dữ liệu âm thanh. Vui lòng ghi âm lại.');
           return;
         }
-        const extension = recordedType.includes('ogg') ? 'ogg' : recordedType.includes('wav') ? 'wav' : 'webm';
-        const file = new File([blob], `luyen-doc.${extension}`, { type: recordedType });
-        setAudioFile(file);
-        replaceAudioUrl(URL.createObjectURL(file));
+        const extension = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('wav') ? 'wav' : 'webm';
+        const recordedFile = new File([blob], `recorded.${extension}`, { type: blob.type });
+        setAudioBlob(recordedFile);
+        setNewAudioUrl(URL.createObjectURL(recordedFile));
       };
+
       recorder.start();
       setIsRecording(true);
     } catch {
-      releaseMicrophone();
-      setError('Không thể dùng micro. Em hãy cho phép trình duyệt truy cập micro rồi thử lại.');
+      stopMediaStream();
+      setError('Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.');
     }
   };
 
@@ -129,11 +110,12 @@ export default function StudentPronunciationPage() {
     }
   };
 
-  const selectAudioFile = (event) => {
+  const handleFileUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
     if (!hasSupportedAudioFormat(file)) {
-      setError('Chỉ hỗ trợ file WAV, MP3, WEBM, OGG hoặc M4A.');
+      setError('Chỉ chấp nhận file âm thanh WAV, MP3, WEBM, OGG hoặc M4A.');
       event.target.value = '';
       return;
     }
@@ -142,207 +124,212 @@ export default function StudentPronunciationPage() {
       event.target.value = '';
       return;
     }
-    setAudioFile(file);
-    replaceAudioUrl(URL.createObjectURL(file));
-    resetResult();
-  };
 
-  const removeAudio = () => {
-    if (previousAudioUrlRef.current) URL.revokeObjectURL(previousAudioUrlRef.current);
-    previousAudioUrlRef.current = '';
-    setAudioFile(null);
-    setAudioUrl('');
-    setResult(null);
+    setAudioBlob(file);
+    setNewAudioUrl(URL.createObjectURL(file));
     setError('');
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setSuccess('');
+    setResult(null);
   };
 
   const checkPronunciation = async () => {
     if (!targetText.trim()) {
-      setError('Em hãy nhập từ hoặc câu muốn luyện đọc.');
+      setError('Vui lòng nhập từ hoặc câu mẫu cần kiểm tra.');
       return;
     }
-    if (!audioFile) {
-      setError('Em hãy ghi âm hoặc tải file âm thanh trước khi kiểm tra.');
+    if (!audioBlob) {
+      setError('Vui lòng ghi âm hoặc tải lên file âm thanh.');
       return;
     }
+
     setIsProcessing(true);
     setError('');
-    setResult(null);
+    setSuccess('');
+
     try {
-      const pronunciationResult = await PronunciationService.checkStudentPractice(targetText.trim(), audioFile);
+      const pronunciationResult = await PronunciationService.checkStudentPractice(targetText.trim(), audioBlob);
       setResult(pronunciationResult);
+      setSuccess('Kiểm tra phát âm thành công!');
     } catch (requestError) {
-      setError(requestError.message || 'Chưa thể kiểm tra phát âm. Em hãy thử lại sau ít phút.');
+      setError(requestError.message || 'Lỗi kết nối đến server.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const accuracy = getAccuracyValue(result?.accuracy_score);
-  const feedbackStyle = getFeedbackStyle(accuracy);
+  const playAudio = () => {
+    audioRef.current?.play();
+  };
+
+  const clearAudio = () => {
+    if (previousAudioUrlRef.current) {
+      URL.revokeObjectURL(previousAudioUrlRef.current);
+      previousAudioUrlRef.current = '';
+    }
+    setAudioBlob(null);
+    setAudioUrl('');
+    setResult(null);
+    setSuccess('');
+    setError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   return (
     <AIToolPageLayout
-      icon={<Mic className="h-6 w-6" />}
-      iconBgClass="bg-sky-100"
-      iconTextClass="text-sky-600"
-      title="Luyện đọc"
-      description="Nhập từ hoặc câu, ghi âm giọng đọc và nhận góp ý ngay."
+      icon={<Mic className="w-6 h-6" />}
+      iconBgClass="bg-emerald-100"
+      iconTextClass="text-emerald-600"
+      title="Kiểm Tra Phát Âm"
+      description="Ghi âm hoặc tải file âm thanh để so sánh với từ mẫu."
     >
       {error && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
+          <CheckCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm">{success}</p>
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-3xl border border-sky-100 bg-sky-50/70 p-5 sm:p-6">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sky-600 shadow-sm">
-              <Headphones className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-slate-900">Em muốn luyện đọc gì?</h2>
-              <p className="text-sm text-slate-500">Ví dụ: apple, Good morning, Em yêu trường em.</p>
-            </div>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <label className="text-sm font-medium text-slate-700">Mô hình nhận dạng</label>
+          <div className="inline-flex self-end rounded-2xl border border-slate-200 bg-slate-50 p-1 sm:self-auto">
+            <span className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-emerald-700 shadow-sm ring-1 ring-emerald-200">
+              <Sparkles className="h-4 w-4" />
+              Mô hình hiện tại
+            </span>
           </div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="student-target-text">
-            Từ hoặc câu mẫu
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700" htmlFor="student-target-text">
+            Từ/Câu mẫu (Target Text)
           </label>
-          <textarea
+          <input
             id="student-target-text"
+            type="text"
+            className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
             value={targetText}
             onChange={(event) => {
               setTargetText(event.target.value);
               setError('');
+              setSuccess('');
               setResult(null);
             }}
-            placeholder="Nhập từ hoặc câu em muốn đọc..."
-            rows={4}
-            maxLength={500}
+            placeholder="Ví dụ: apple, hello world"
             disabled={isProcessing}
-            className="w-full resize-none rounded-2xl border border-sky-200 bg-white px-4 py-3 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100"
           />
-          <p className="mt-2 text-right text-xs text-slate-400">{targetText.length}/500</p>
-        </section>
+        </div>
 
-        <section className="rounded-3xl border border-violet-100 bg-violet-50/70 p-5 sm:p-6">
-          <div className="mb-5">
-            <h2 className="font-semibold text-slate-900">Bước 1: Ghi âm</h2>
-            <p className="mt-1 text-sm text-slate-500">Đọc rõ ràng, ở nơi yên tĩnh để kết quả tốt hơn.</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className={`inline-flex items-center justify-center gap-2 rounded-3xl px-5 py-3 text-sm font-semibold shadow-sm transition ${
+                isRecording
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              } disabled:cursor-not-allowed disabled:opacity-60`}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isProcessing}
+            >
+              {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isRecording ? 'Dừng ghi âm' : 'Bắt đầu ghi âm'}
+            </button>
+
+            <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
+              <Upload className="h-4 w-4" />
+              Tải file âm thanh
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/wav,audio/mpeg,audio/webm,audio/ogg,audio/x-m4a,audio/m4a,.wav,.mp3,.webm,.ogg,.m4a"
+                onChange={handleFileUpload}
+                className="sr-only"
+                disabled={isProcessing || isRecording}
+              />
+            </label>
           </div>
+
           <button
             type="button"
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isProcessing}
-            className={`flex w-full items-center justify-center gap-3 rounded-2xl px-5 py-4 text-base font-bold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 ${
-              isRecording ? 'bg-rose-500 hover:bg-rose-600' : 'bg-violet-600 hover:bg-violet-700'
-            }`}
+            className="inline-flex items-center justify-center gap-2 rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={checkPronunciation}
+            disabled={isProcessing || isRecording || !audioBlob}
           >
-            {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            {isRecording ? 'Dừng ghi âm' : 'Bắt đầu ghi âm'}
+            {isProcessing ? (
+              <><Loader className="h-4 w-4 animate-spin" />Đang xử lý...</>
+            ) : (
+              <><CheckCircle className="h-4 w-4" />Kiểm tra phát âm</>
+            )}
           </button>
-          {isRecording && (
-            <p className="mt-3 flex items-center justify-center gap-2 text-sm font-semibold text-rose-600">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-500" />
-              Đang ghi âm...
-            </p>
-          )}
-          <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
-            <span className="h-px flex-1 bg-violet-200" /> hoặc <span className="h-px flex-1 bg-violet-200" />
-          </div>
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100">
-            <Upload className="h-4 w-4" />
-            Tải file âm thanh
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="audio/wav,audio/mpeg,audio/webm,audio/ogg,audio/x-m4a,audio/m4a,.wav,.mp3,.webm,.ogg,.m4a"
-              onChange={selectAudioFile}
-              disabled={isProcessing || isRecording}
-              className="sr-only"
-            />
-          </label>
-        </section>
+        </div>
       </div>
 
       {audioUrl && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-semibold text-slate-900">Bước 2: Nghe lại giọng đọc</h2>
-              <p className="text-sm text-slate-500">Nếu chưa hài lòng, em có thể ghi âm lại.</p>
+        <div className="mt-8 rounded-[24px] border border-emerald-100 bg-emerald-50/80 p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-semibold text-slate-900">Âm thanh đã ghi/tải lên</h2>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={playAudio}
+                className="inline-flex items-center gap-2 rounded-3xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                <Play className="h-4 w-4" /> Phát lại
+              </button>
+              <button
+                type="button"
+                onClick={clearAudio}
+                className="inline-flex items-center gap-2 rounded-3xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                title="Xóa âm thanh"
+              >
+                <Trash2 className="h-4 w-4" /> Xóa
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={removeAudio}
-              disabled={isProcessing}
-              className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Trash2 className="h-4 w-4" /> Ghi lại
-            </button>
           </div>
-          <audio ref={audioRef} controls className="w-full" crossOrigin="anonymous">
-            <source src={audioUrl} type={audioFile?.type || 'audio/webm'} />
-            Trình duyệt của em chưa hỗ trợ phát âm thanh.
-          </audio>
-        </section>
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-4">
+            <audio ref={audioRef} controls className="w-full" crossOrigin="anonymous">
+              <source src={audioUrl} type={audioBlob?.type || 'audio/webm'} />
+              Trình duyệt không hỗ trợ audio.
+            </audio>
+          </div>
+        </div>
       )}
 
-      <div className="mt-6 flex justify-center">
-        <button
-          type="button"
-          onClick={checkPronunciation}
-          disabled={isProcessing || isRecording || !audioFile}
-          className="inline-flex min-w-64 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-500 px-6 py-4 text-base font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:transform-none disabled:opacity-60"
-        >
-          {isProcessing ? (
-            <><LoaderCircle className="h-5 w-5 animate-spin" />Đang kiểm tra...</>
-          ) : (
-            <><CheckCircle2 className="h-5 w-5" />Kiểm tra phát âm</>
-          )}
-        </button>
-      </div>
-
       {result && (
-        <section className={`mt-8 rounded-3xl border p-5 sm:p-6 ${feedbackStyle.background}`}>
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className={`text-sm font-bold ${feedbackStyle.color}`}>{feedbackStyle.badge}</p>
-              <h2 className="text-xl font-bold text-slate-900">Kết quả luyện đọc của em</h2>
-            </div>
-            <div className="rounded-2xl bg-white px-5 py-3 text-center shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Độ chính xác</p>
-              <p className={`text-2xl font-bold ${feedbackStyle.color}`}>{result.accuracy_score || '0%'}</p>
-            </div>
+        <div className="mt-8 rounded-[24px] border border-emerald-100 bg-emerald-50/80 p-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-slate-900">Kết quả kiểm tra phát âm</h2>
+            <span className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
+              Faster-Whisper
+            </span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Câu mẫu</p>
-              <p className="font-semibold text-slate-900">{targetText}</p>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4">
+              <h3 className="mb-2 text-sm font-medium text-slate-700">Bạn đọc là:</h3>
+              <p className="text-lg font-semibold text-slate-900">&quot;{result.recognized_text}&quot;</p>
             </div>
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Máy nghe được</p>
-              <p className="font-semibold text-slate-900">{result.recognized_text || 'Chưa nhận được nội dung'}</p>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4">
+              <h3 className="mb-2 text-sm font-medium text-slate-700">Độ chính xác:</h3>
+              <p className={`text-lg font-semibold ${
+                result.accuracy_score === '100.0%' ? 'text-emerald-600' :
+                Number.parseFloat(result.accuracy_score) > 70 ? 'text-blue-600' : 'text-red-600'
+              }`}>
+                {result.accuracy_score}
+              </p>
             </div>
           </div>
-          <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Góp ý</p>
-            <p className="font-medium text-slate-800">{result.feedback || 'Em hãy nghe lại và thử đọc chậm, rõ hơn nhé.'}</p>
+          <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-4">
+            <h3 className="mb-2 text-sm font-medium text-slate-700">Đánh giá:</h3>
+            <p className="text-base font-semibold text-slate-900">{result.feedback}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              removeAudio();
-              setResult(null);
-            }}
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-sky-700 shadow-sm transition hover:bg-sky-50"
-          >
-            <RotateCcw className="h-4 w-4" /> Luyện một lần nữa
-          </button>
-        </section>
+        </div>
       )}
     </AIToolPageLayout>
   );
