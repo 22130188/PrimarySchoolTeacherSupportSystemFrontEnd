@@ -1,12 +1,71 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config';
-import { NUMBER_MAP, PROMPT_SUFFIX } from '../data/aiImageConstants';
+import {
+  MODEL_OPTIONS,
+  NUMBER_MAP,
+  PROMPT_SUFFIX,
+  TRANSLATION_INSTRUCTION,
+  TRANSLATION_MODEL,
+} from '../data/aiImageConstants';
 
 export function normalizePrompt(text) {
   return text
     .trim()
     .replace(/\b(\d+)\b/g, (m) => NUMBER_MAP[m] || m)
     + PROMPT_SUFFIX;
+}
+
+function getErrorText(error) {
+  const detail = error?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (detail) return JSON.stringify(detail);
+  return error?.response?.data?.message || error?.message || String(error || '');
+}
+
+function isUnavailableImageModelError(error) {
+  const message = getErrorText(error);
+  return /model.*not found|models?\/.*not found|not supported for predict|model.*not supported|unsupported model/i.test(message);
+}
+
+function getImageGenerationOptions(modelValue) {
+  const model = MODEL_OPTIONS.find((item) => item.value === modelValue) || MODEL_OPTIONS[0];
+  return {
+    model,
+    options: {
+      provider: model.provider,
+      model: model.value,
+      ...(model.quality ? { quality: model.quality } : {}),
+    },
+  };
+}
+
+export async function translateImagePrompt(puter, description) {
+  try {
+    const translated = await puter.ai.chat(
+      TRANSLATION_INSTRUCTION + description,
+      { model: TRANSLATION_MODEL }
+    );
+    const translatedText = String(translated || '').trim();
+    if (!translatedText) throw new Error('Empty translated prompt');
+    return { prompt: normalizePrompt(translatedText), translated: true };
+  } catch {
+    return { prompt: normalizePrompt(description), translated: false };
+  }
+}
+
+export async function generatePuterImage(puter, prompt, modelValue) {
+  const { options } = getImageGenerationOptions(modelValue);
+  try {
+    const image = await puter.ai.txt2img(prompt, options);
+    return { image, usedFallback: false };
+  } catch (error) {
+    if (!isUnavailableImageModelError(error)) throw error;
+
+    // The SDK default is managed by Puter. Retry only after a model-not-found error,
+    // so quota, authentication, safety, and network errors are never duplicated.
+    const image = await puter.ai.txt2img(prompt);
+    return { image, usedFallback: true };
+  }
 }
 
 export function imageToDataUrl(imgEl) {
@@ -37,13 +96,19 @@ export function imageToDataUrl(imgEl) {
 
 export function getFriendlyError(rawMessage) {
   const raw = rawMessage || '';
+  if (/model.*not found|models?\/.*not found|not supported for predict|model.*not supported|unsupported model/i.test(raw)) {
+    return 'Mô hình tạo ảnh hiện không khả dụng. Hãy thử lại với mô hình mặc định.';
+  }
   if (/sign|auth|login/i.test(raw)) {
     return 'Cần đăng nhập Puter. Hãy cho phép popup đăng nhập xuất hiện.';
   }
-  if (/quota|limit/i.test(raw)) {
-    return 'Hết giới hạn. Hãy thử model khác hoặc thử lại sau.';
+  if (/quota|limit|credit|balance/i.test(raw)) {
+    return 'Tài khoản Puter không đủ hạn mức tạo ảnh. Hãy kiểm tra credit hoặc thử lại sau.';
   }
-  return raw;
+  if (/drivers\/call|puter/i.test(raw)) {
+    return 'Dịch vụ tạo ảnh Puter đang không phản hồi. Vui lòng thử lại sau ít phút.';
+  }
+  return raw || 'Đã xảy ra lỗi khi tạo ảnh.';
 }
 
 export async function sourceToBlob(source) {

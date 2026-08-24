@@ -4,13 +4,30 @@ export const NUMBER_MAP = {
 };
 
 export const MODEL_OPTIONS = [
-  { value: 'google/imagen-4.0-fast', label: 'Imagen 4 Fast (nhanh)' },
-  { value: 'gemini-2.5-flash-image-preview', label: 'Gemini 2.5 Flash Image' },
-  { value: 'google/imagen-4.0', label: 'Imagen 4 Standard' },
-  { value: 'google/imagen-4.0-ultra', label: 'Imagen 4 Ultra' },
-  { value: 'black-forest-labs/flux-schnell', label: 'FLUX.1 Schnell' },
-  { value: 'gpt-image-1', label: 'GPT Image 1' },
-  { value: 'dall-e-3', label: 'DALL-E 3' },
+  {
+    value: 'gpt-image-1-mini',
+    label: 'GPT Image 1 Mini (nhanh)',
+    provider: 'openai-image-generation',
+    quality: 'low',
+  },
+  {
+    value: 'gpt-image-1',
+    label: 'GPT Image 1',
+    provider: 'openai-image-generation',
+    quality: 'low',
+  },
+  {
+    value: 'gpt-image-1.5',
+    label: 'GPT Image 1.5',
+    provider: 'openai-image-generation',
+    quality: 'low',
+  },
+  {
+    value: 'gpt-image-2',
+    label: 'GPT Image 2 (chất lượng cao)',
+    provider: 'openai-image-generation',
+    quality: 'low',
+  },
 ];
 
 export const PROMPT_SUFFIX = ', photorealistic, natural lighting, highly detailed, 4k';

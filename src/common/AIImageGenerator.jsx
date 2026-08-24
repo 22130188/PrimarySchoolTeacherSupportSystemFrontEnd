@@ -3,18 +3,17 @@ import { ImagePlus, RotateCcw, Save, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import {
   MODEL_OPTIONS,
-  TRANSLATION_MODEL,
-  TRANSLATION_INSTRUCTION,
   ACCENT_THEMES,
   STATUS_COLORS,
 } from '../data/aiImageConstants';
 import {
-  normalizePrompt,
   imageToDataUrl,
   getFriendlyError,
   sourceToBlob,
   saveImageToLibrary,
   extractErrorMessage,
+  generatePuterImage,
+  translateImagePrompt,
 } from '../helpers/aiImageHelpers';
 import { loadPuter } from '../helpers/puterLoader';
 import SaveImageModal from './SaveImageModal';
@@ -83,21 +82,34 @@ export default function AIImageGenerator({ onAddImage, accent = 'indigo', wide =
 
     try {
       setStatus({ msg: 'Đang dịch mô tả sang tiếng Anh...', type: 'info' });
-      const translated = await window.puter.ai.chat(
-        TRANSLATION_INSTRUCTION + trimmed,
-        { model: TRANSLATION_MODEL }
-      );
-      const promptEn = normalizePrompt(String(translated).trim());
+      const translation = await translateImagePrompt(window.puter, trimmed);
+      const promptEn = translation.prompt;
       setTranslatedPrompt(promptEn);
 
-      setStatus({ msg: 'Đang tạo ảnh (10-30 giây)...', type: 'info' });
-      const imgEl = await window.puter.ai.txt2img(promptEn, { model });
+      setStatus({
+        msg: translation.translated
+          ? 'Đang tạo ảnh (10-30 giây)...'
+          : 'Không thể dịch mô tả, đang tạo ảnh trực tiếp (10-30 giây)...',
+        type: 'info',
+      });
+      const generation = await generatePuterImage(window.puter, promptEn, model);
+      const imgEl = generation.image;
+
+      if (generation.usedFallback) {
+        setModel(MODEL_OPTIONS[0].value);
+      }
 
       const dataUrl = await imageToDataUrl(imgEl);
       setPreviewSrc(imgEl.src);
       setPreviewDataUrl(dataUrl);
-      setStatus({ msg: 'Tạo ảnh thành công!', type: 'success' });
+      setStatus({
+        msg: generation.usedFallback
+          ? 'Mô hình cũ không khả dụng. Ảnh đã được tạo bằng mô hình mặc định!'
+          : 'Tạo ảnh thành công!',
+        type: 'success',
+      });
     } catch (err) {
+      console.error('Puter image generation failed:', err);
       setStatus({ msg: getFriendlyError(err?.message || String(err)), type: 'error' });
     } finally {
       setLoading(false);
